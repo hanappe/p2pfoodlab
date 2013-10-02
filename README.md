@@ -1,4 +1,5 @@
 p2pfoodlab
 ==========
 
-P2P Food Lab
+This repository contains the code of the P2P Food Lab project.
+
