@@ -1,0 +1,101 @@
+#!/bin/bash
+
+#  P2P Food Lab Sensorbox
+#
+#  Copyright (C) 2013  Sony Computer Science Laboratory Paris
+#  Author: Peter Hanappe
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+home_dir=/var/p2pfoodlab
+date=`date +"%Y%m%d-%H%M%S"`
+
+iface=$1
+if [ "x$iface" == "x" ]; then
+   echo "[update-network] Info: No interface has been specified. Exiting." 2>&1 >> /var/p2pfoodlab/log.txt
+   exit 1
+fi
+
+# Network interfaces
+if [ -s $home_dir/etc/interfaces ]; then
+    echo "[update-network] Info: Copying /etc/network/interfaces to " $home_dir/backup/ 2>&1 >> /var/p2pfoodlab/log.txt
+    cp /etc/network/interfaces $home_dir/backup/interfaces-$date
+
+    echo "[update-network] Info: Installing new network interfaces file" 2>&1 >> /var/p2pfoodlab/log.txt
+    cp $home_dir/etc/interfaces /etc/network/interfaces
+fi
+
+# DHCP server
+if [ $iface == "wired" ]; then
+    if [ -e /etc/dhcp/dhcpd.conf ]; then
+        echo "[update-network] Info: Backing up /etc/dhcp/dhcpd.conf file to " $home_dir/backup/dhcpd.conf-$date 2>&1 >> /var/p2pfoodlab/log.txt
+        cp /etc/dhcp/dhcpd.conf $home_dir/backup/dhcpd.conf-$date
+    fi
+    if [ -s $home_dir/etc/dhcpd.conf ]; then
+        service isc-dhcp-server stop
+        
+        echo "[update-network] Info: Installing new dhcpd.conf file" 2>&1 >> /var/p2pfoodlab/log.txt
+        cp $home_dir/etc/dhcpd.conf /etc/dhcp/dhcpd.conf
+
+        service isc-dhcp-server start
+
+        echo "[update-network] Info: Enabling DHCP server at start-up" 2>&1 >> /var/p2pfoodlab/log.txt
+        update-rc.d isc-dhcp-server enable
+
+    elif [ -e /etc/dhcp/dhcpd.conf ]; then 
+        service isc-dhcp-server stop
+        
+        echo "[update-network] Info: Disabling DHCP server" 2>&1 >> /var/p2pfoodlab/log.txt
+        update-rc.d isc-dhcp-server disable
+    fi
+fi
+
+# GSM modem
+if [ $iface == "gsm" ]; then
+    if [ -e /etc/wvdial.conf ]; then
+        echo "[update-network] Info: Backing up /etc/wvdial.conf file to " $home_dir/backup/wvdial.conf-$date 2>&1 >> /var/p2pfoodlab/log.txt
+        mv /etc/wvdial.conf $home_dir/backup/wvdial.conf-$date
+    fi
+    if [ -s $home_dir/etc/wvdial.conf ]; then
+        echo "[update-network] Info: Installing new wvdial.conf file" 2>&1 >> /var/p2pfoodlab/log.txt
+        cp $home_dir/etc/wvdial.conf /etc/wvdial.conf
+    fi
+fi
+
+restart_interface() {
+#    ifplugstatus -qqq $1
+#    if [ $? != 1 ]; then
+        echo "[update-network] Info: Shutting down network interface " $1 2>&1 >> /var/p2pfoodlab/log.txt
+        ifdown $1
+#    fi
+    enabled=`cat /etc/network/interfaces | grep "iface $1" | wc -l`
+    if [ $enabled != "0" ]; then
+        echo "[update-network] Info: Bringing up network interface " $1 2>&1 >> /var/p2pfoodlab/log.txt
+        ifup $1
+    fi
+}
+
+case $iface in
+    wifi)
+        restart_interface wlan0
+        ;;
+
+    wired)
+        restart_interface eth0
+        ;;
+
+    gsm)
+        restart_interface ppp0
+        ;;
+esac

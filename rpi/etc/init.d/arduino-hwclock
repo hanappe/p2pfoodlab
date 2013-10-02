@@ -1,0 +1,63 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          arduino-hwclock
+# Required-Start:
+# Required-Stop:     umountroot
+# Should-Stop:       
+# X-Start-Before:    checkroot
+# Default-Start:     S
+# Default-Stop:      0 1 6
+# Short-Description: Restore / save the current clock
+# Description:       
+### END INIT INFO
+
+set -e
+
+DATEFILE=/etc/arduino-hwclock.date
+MILLISFILE=/etc/arduino-hwclock.millis
+
+save_date() {
+    date -u '+%Y-%m-%d %H:%M:%S' > $DATEFILE
+    /var/p2pfoodlab/bin/arduino millis > $MILLISFILE
+}
+
+restore_date() {
+    if [ -e $MILLISFILE ] ; then
+
+        SAVED_MILLIS=$(cat $MILLISFILE)
+        NOW_MILLIS=$(/var/p2pfoodlab/bin/arduino millis)
+        if [ $NOW_MILLIS -le $SAVED_MILLIS ] ; then
+            DELTA=$(echo "(4294967296 + $NOW_MILLIS - $SAVED_MILLIS) / 1000" | bc)
+        else
+            DELTA=$(echo "($NOW_MILLIS - $SAVED_MILLIS) / 1000" | bc)
+        fi
+
+        SAVED_DATE=$(cat $DATEFILE)
+        SAVED_SECONDS=$(date -u -d "$SAVED_DATE" '+%s')
+
+        ESTIMATED_SECONDS=$(expr $SAVED_SECONDS + $DELTA)
+        ESTIMATED_DATE=$(date -u -d "@$ESTIMATED_SECONDS")
+
+        NOW_SECONDS=$(date -u '+%s')
+
+        if [ $NOW_SECONDS -le $ESTIMATED_SECONDS ] ; then
+            echo date -u -s "$ESTIMATED_DATE"
+        fi
+    fi
+}
+
+case "${1:-}" in
+  stop|reload|restart|force-reload)
+        echo "Stopping arduino hwclock: saving system time."
+        save_date;;
+
+  start)
+        echo "Starting arduino hwclock: loading system time."
+        restore_date ;;
+
+  *)
+        echo "Usage: ${0:-} {start|stop|status|restart|reload|force-reload}" >&2
+        exit 1
+        ;;
+esac

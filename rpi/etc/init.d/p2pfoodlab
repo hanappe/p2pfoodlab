@@ -1,0 +1,56 @@
+#! /bin/bash
+### BEGIN INIT INFO
+# Provides:          p2pfoodlab
+# Required-Start:    $network
+# Required-Stop:     
+# Should-Start:      
+# Should-Stop:       
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 6
+# Short-Description: Start the P2P Food Lab update daemon
+# Description:
+### END INIT INFO
+
+set -e 
+
+log_message() {
+    echo $1 >> /var/p2pfoodlab/log.txt
+}
+
+do_start_daemon() {
+    log_message "[p2pfoodlab] Info: Starting P2P Food Lab daemon" 
+    start-stop-daemon --start --exec /var/p2pfoodlab/bin/p2pfoodlab-daemon
+}
+
+do_stop_daemon() {
+    log_message "[p2pfoodlab] Info: Stopping P2P Food Lab daemon" 
+    start-stop-daemon --stop --pidfile /var/run/p2pfoodlab-daemon.pid
+}
+
+do_start() {
+    do_start_daemon
+}
+
+do_stop() {
+    do_stop_daemon
+}
+
+case "$1" in
+start)
+        do_start
+        ;;
+stop)
+	do_stop
+	;;
+restart|reload|force-reload)
+	do_stop
+	do_start
+	;;
+force-start)
+	do_start
+	;;
+*)
+	echo "Usage: p2pfoodlab {start|stop|restart|reload|force-reload|force-start}"
+	exit 1
+	;;
+esac
