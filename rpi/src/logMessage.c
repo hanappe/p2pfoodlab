@@ -68,8 +68,6 @@ static const char* getTimestamp()
 
 void logMessage(const char* app, int level, const char* format, ...)
 {
-
-
         if ((level < _logLevel) || (level > LOG_ERROR))
                 return;
         FILE* fp = _logFile;
@@ -88,7 +86,19 @@ void logMessage(const char* app, int level, const char* format, ...)
                 vfprintf(fp, format, ap);
                 va_end(ap);
                 fflush(fp);
+        } else {
+                va_list ap;
+                va_start(ap, format);
+                fprintf(stderr, "[%s @ %s] ", app, getTimestamp());
+                switch (level) {
+                case LOG_DEBUG: fprintf(stderr, "Debug: "); break;
+                case LOG_INFO: fprintf(stderr, "Info: "); break;
+                case LOG_WARNING: fprintf(stderr, "Warning: "); break;
+                case LOG_ERROR: fprintf(stderr, "Error: "); break;
+                }
+                vfprintf(stderr, format, ap);
+                va_end(ap);
         }
-        if (_logFile == NULL) 
+        if (_logFile != NULL) 
                 fclose(fp);
 }

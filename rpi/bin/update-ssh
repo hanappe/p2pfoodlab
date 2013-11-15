@@ -1,38 +1,20 @@
 #!/bin/bash
 
-#  P2P Food Lab Sensorbox
-#
-#  Copyright (C) 2013  Sony Computer Science Laboratory Paris
-#  Author: Peter Hanappe
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 home_dir=/var/p2pfoodlab
 ssh_dir=/home/pi/.ssh
 date=`date +"%Y%m%d-%H%M%S"`
 
 if [ -e $ssh_dir/authorized_keys ]; then
-        echo "[update-ssh] Info: Backing up $ssh_dir/authorized_keys to " $home_dir/backup/authorized_keys-$date 2>&1 >> datastreams/log.txt
+        echo "[update-ssh] Info: Backing up $ssh_dir/authorized_keys to " $home_dir/backup/authorized_keys-$date 2>&1 >> /var/p2pfoodlab/log.txt
         mv $ssh_dir/authorized_keys $home_dir/backup/authorized_keys-$date
 fi
 
 if [ -s $home_dir/etc/authorized_keys ]; then
-    echo "[update-ssh] Info: Installing new authorized_keys file" 2>&1 >> datastreams/log.txt
+    echo "[update-ssh] Info: Installing new authorized_keys file" 2>&1 >> /var/p2pfoodlab/log.txt
     cp $home_dir/etc/authorized_keys $ssh_dir/authorized_keys
 
     chown pi.pi $ssh_dir/authorized_keys
     chmod 0644 $ssh_dir/authorized_keys
 else
-    echo "[update-ssh] Info: The authorized_keys file is empty. No SSH keys will be installed." 2>&1 >> datastreams/log.txt
+    echo "[update-ssh] Info: The authorized_keys file is empty. No SSH keys will be installed." 2>&1 >> /var/p2pfoodlab/log.txt
 fi

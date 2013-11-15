@@ -191,7 +191,13 @@ int execute(output_t* output, const char* cmdline)
                 char c;
                 size_t read = fread(&c, 1, 1, pipe);
                 if (read == 0) {
-                        int r = ferror(pipe)? -1 : 0;
+                        int err = ferror(pipe);
+                        int r = 0;
+                        if (err != 0) {
+                                r = -1;
+                                logMessage("daemon", LOG_ERROR, 
+                                           "Command failed: ferror(%d)\n", err);
+                        }
                         pclose(pipe);
                         return r;
                 }
@@ -375,6 +381,8 @@ const char* findCommand(const char* request)
                 { "/update/crontab", "/var/p2pfoodlab/bin/update-crontab 2>&1" },
                 { "/test/camera", "/var/p2pfoodlab/bin/test-camera 2>&1" },
                 { "/update/sensors", "/var/p2pfoodlab/bin/arduino enable-sensors 2>&1" },
+                { "/update/version", "/var/p2pfoodlab/bin/update-version 2>&1" },
+                { "/update/poweroff", "/var/p2pfoodlab/bin/update-poweroff 2>&1" },
                 { NULL, NULL }
         };
 
@@ -392,9 +400,14 @@ enum {
         HTTP_GET
 };
 
+#define REQ_MAX_ARGS 16
+
 typedef struct _request_t {
         int method;
         char* path;
+        int num_args;
+        char* names[REQ_MAX_ARGS];
+        char* values[REQ_MAX_ARGS];
 } request_t;
 
 typedef struct _response_t {
@@ -409,6 +422,8 @@ int parseRequest(int client, request_t* req, response_t* resp)
                 REQ_METHOD,
                 REQ_PATH,
                 REQ_HTTPVERSION,
+                REQ_ARGS_NAME,
+                REQ_ARGS_VALUE,
                 REQ_REQLINE_LF,
                 REQ_HEADER_NAME,
                 REQ_HEADER_VALUE,
@@ -471,11 +486,93 @@ int parseRequest(int client, request_t* req, response_t* resp)
                                 count = 0;
                                 state = REQ_HTTPVERSION;
 
+                        } else if (c == '?') {
+                                buffer[count++] = 0;
+                                req->path = malloc(count);
+                                memcpy(req->path, buffer, count);
+                                count = 0;
+                                state = REQ_ARGS_NAME;
+
                         } else if ((c == '\r') || (c == '\n')) {
                                 logMessage("daemon", LOG_WARNING, "Bad request: %s\n", buffer);
                                 resp->status = 400;
                                 return -1;
 
+                        } else if (count < BUFLEN-1) {
+                                buffer[count++] = (char) c;
+                        } else {
+                                buffer[BUFLEN-1] = 0;
+                                logMessage("daemon", LOG_WARNING, "Requested path too long: %s\n", buffer);
+                                resp->status = 400;
+                                return -1;
+                        }
+                        break;
+
+                case REQ_ARGS_NAME: 
+                        if (c == ' ') {
+                                buffer[count++] = 0;
+                                if (req->num_args >= REQ_MAX_ARGS) {
+                                        logMessage("daemon", LOG_WARNING, "Too many arguments: %d\n", REQ_MAX_ARGS);
+                                        resp->status = 400;
+                                        return -1;
+                                }
+                                req->names[req->num_args++] = strdup(buffer);
+                                count = 0;
+                                state = REQ_HTTPVERSION;
+                                
+                        } else if (c == '=') {
+                                buffer[count++] = 0;
+                                if (req->num_args >= REQ_MAX_ARGS) {
+                                        logMessage("daemon", LOG_WARNING, "Too many arguments: %d\n", REQ_MAX_ARGS);
+                                        resp->status = 400;
+                                        return -1;
+                                }
+                                req->names[req->num_args] = strdup(buffer);
+                                count = 0;
+                                state = REQ_ARGS_VALUE;
+
+                        } else if (c == '&') {
+                                buffer[count++] = 0;
+                                if (req->num_args >= REQ_MAX_ARGS) {
+                                        logMessage("daemon", LOG_WARNING, "Too many arguments: %d\n", REQ_MAX_ARGS);
+                                        resp->status = 400;
+                                        return -1;
+                                }
+                                req->names[req->num_args++] = strdup(buffer);
+                                count = 0;
+                                state = REQ_ARGS_NAME;
+
+                        } else if ((c == '\r') || (c == '\n')) {
+                                logMessage("daemon", LOG_WARNING, "Bad request: %s\n", buffer);
+                                resp->status = 400;
+                                return -1;
+                        } else if (count < BUFLEN-1) {
+                                buffer[count++] = (char) c;
+                        } else {
+                                buffer[BUFLEN-1] = 0;
+                                logMessage("daemon", LOG_WARNING, "Requested path too long: %s\n", buffer);
+                                resp->status = 400;
+                                return -1;
+                        }
+                        break;
+
+                case REQ_ARGS_VALUE: 
+                        if (c == ' ') {
+                                buffer[count++] = 0;
+                                req->values[req->num_args++] = strdup(buffer);
+                                count = 0;
+                                state = REQ_HTTPVERSION;
+                                
+                        } else if (c == '&') {
+                                buffer[count++] = 0;
+                                req->values[req->num_args++] = strdup(buffer);
+                                count = 0;
+                                state = REQ_ARGS_NAME;
+
+                        } else if ((c == '\r') || (c == '\n')) {
+                                logMessage("daemon", LOG_WARNING, "Bad request: %s\n", buffer);
+                                resp->status = 400;
+                                return -1;
                         } else if (count < BUFLEN-1) {
                                 buffer[count++] = (char) c;
                         } else {
@@ -594,12 +691,12 @@ int main(int argc, char **argv)
         if (nodaemon == 0) {
                 err = daemonise();
                 if (err != 0) exit(1);
+
+                err = writePidFile(pidFile);
+                if (err != 0) exit(1);
         }
 
         err = signalisation();
-        if (err != 0) exit(1);
-
-        err = writePidFile(pidFile);
         if (err != 0) exit(1);
 
         serverSocket = openServerSocket(port);
@@ -626,6 +723,12 @@ int main(int argc, char **argv)
                         clientPrintf(client, "HTTP/1.1 %03d\r\n", resp.status);
                         closeClient(client);
                         continue;
+                }
+
+                if (1) {
+                        printf("path: %s\n", req.path);
+                        for (int i =0; i < req.num_args; i++)
+                                printf("arg[%d]: %s = %s\n", i, req.names[i], req.values[i]);
                 }
 
                 const char* cmdline = findCommand(req.path);

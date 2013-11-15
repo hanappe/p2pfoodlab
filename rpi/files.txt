@@ -1,0 +1,53 @@
+
+src=(src/daemon.c
+    src/grab-image.c
+    src/config-get.c
+    src/arduino.c
+    src/logMessage.c
+    src/logMessage.h
+    src/json.c
+    src/json.h
+    src/Makefile)
+
+lib=(lib/broken.jpg)
+
+script=(bin/take-measurements
+    bin/test-camera
+    bin/update-network
+    bin/update-ssh
+    bin/update-crontab
+    bin/update-photostream
+    bin/update-datastreams
+    bin/update-version
+    bin/update-poweroff)
+
+bin=(bin/p2pfoodlab-daemon 
+    bin/grab-image 
+    bin/config-get 
+    bin/arduino)
+
+web=(web/bg.jpg
+    web/white.jpg
+    web/camera.php
+    web/config.inc.php
+    web/configuration.php
+    web/index.php
+    web/log.php
+    web/login.inc.php
+    web/md5.js
+    web/sensorbox.css
+    web/session.inc.php
+    web/update.inc.php
+    web/updates.php
+    web/opensensordata.inc.php)
+
+etc=(etc/modprobe.d/raspi-blacklist.conf
+    etc/dhcp/dhcpd.conf
+    etc/network/interfaces
+    etc/apache2/sites-available/default
+    etc/ssh/sshd_config
+    etc/default/isc-dhcp-server
+    etc/modules
+    etc/init.d/p2pfoodlab
+    etc/init.d/arduino-hwclock)
+

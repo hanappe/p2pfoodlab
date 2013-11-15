@@ -19,7 +19,7 @@ log_message() {
 
 do_start_daemon() {
     log_message "[p2pfoodlab] Info: Starting P2P Food Lab daemon" 
-    start-stop-daemon --start --exec /var/p2pfoodlab/bin/p2pfoodlab-daemon
+    /var/p2pfoodlab/bin/p2pfoodlab-daemon
 }
 
 do_stop_daemon() {

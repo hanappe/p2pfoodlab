@@ -22,6 +22,7 @@
 
 #if !defined(JSON_EMBEDDED)
 #include <stdio.h>
+#include <math.h>
 #endif
 
 typedef char int8;
@@ -70,7 +71,9 @@ void json_refcount(json_object_t *object, int32 val);
 void json_init_memory(char* ptr, int32 size);
 #endif
 
-typedef int32 (*json_iterator_t)(char* key, json_object_t* value, void* data);
+/* Return zero to continue, non-zero to stop the iteration. */
+typedef int32 (*json_iterator_t)(const char* key, json_object_t* value, void* data);
+
 typedef int32 (*json_writer_t)(void* userdata, const char* s, int32 len);
 
 //
@@ -85,7 +88,8 @@ json_object_t json_load(const char* filename, char* err, int len);
 
 json_object_t json_object_create();
 int32 json_object_length(json_object_t object);
-void json_object_foreach(json_object_t object, json_iterator_t func, void* data);
+/* Returns the code of the iterator function. */
+int32 json_object_foreach(json_object_t object, json_iterator_t func, void* data);
 json_object_t json_object_get(json_object_t object, const char* key);
 int32 json_object_set(json_object_t object, const char* key, json_object_t value);
 int32 json_object_unset(json_object_t object, const char* key);
@@ -100,12 +104,21 @@ int32 json_object_setstr(json_object_t object, const char* key, const char* valu
 
 // serialisation
 
-int32 json_serialise(json_object_t object, int32 binary, json_writer_t fun, void* userdata);
+
+enum {
+	k_json_pretty = 1,
+	k_json_binary = 2,
+};
+
+int32 json_serialise(json_object_t object, 
+                     int32 flags, 
+                     json_writer_t fun, 
+                     void* userdata);
 int32 json_tostring(json_object_t object, char* buffer, int32 buflen);
 
 #if !defined(JSON_EMBEDDED)
-int32 json_tofile(json_object_t object, int32 binary, const char* path);
-int32 json_tofilep(json_object_t object, int32 binary, FILE* fp);
+int32 json_tofile(json_object_t object, int32 flags, const char* path);
+int32 json_tofilep(json_object_t object, int32 flags, FILE* fp);
 #endif
 
 // parsing

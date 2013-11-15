@@ -1,0 +1,128 @@
+body {
+      background-image:url('bg.jpg');
+      background-size: 100% auto;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-position: center; 
+      width: 100%;
+      font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+      font-weight: normal; 
+      font-size: 14px;
+      line-height: 26px;
+}
+
+div.content {
+      margin: 0 auto;
+      width: 800px;
+      padding: 0px;
+}
+
+a:link { color: #000000; text-decoration: none; font-weight: bold; }
+a:visited { color: #000000; text-decoration: none; font-weight: bold; }
+a:active { color: #000000; text-decoration: none; font-weight: bold; }
+a:hover { color: #afafaf; text-decoration: none; font-weight: bold; }
+
+div.header {
+      background: white;
+      margin: 10px;
+      text-align: center;
+      font-size: 32px; 
+      font-weight: normal; 
+      line-height: 45px;
+      padding: 0px;
+      padding-bottom: 10px;
+      padding-top: 10px;
+}
+
+div.menubar {
+      background: white;
+      font-size: 18px;
+      margin: 10px;
+      height: 30px;
+      padding: 10px;
+      text-align: center;
+      position: relative;
+}
+
+div.pagemenu {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      text-align: left;
+}
+
+a.pagemenu {
+      /*font-variant:small-caps;*/
+      padding-right: 0px;
+}
+
+div.main {
+      background: white;
+      margin: 10px;
+      padding: 10px;
+}
+
+div.panel {
+      background: white;
+      margin: 10px;
+      padding: 10px;
+      border: solid 3px black;
+}
+
+div.message {
+      color: red;
+      background: white;
+      font-weight: bold; 
+      margin: 10px;
+      padding: 10px;
+      border: solid 3px red;
+}
+
+div.system_output {
+      color: black;
+      background: white;
+      font-weight: bold; 
+      margin: 10px;
+      padding: 10px;
+      border: solid 3px black;
+}
+
+div.testimage {
+      margin: 0 auto;
+      padding: 10px;
+      border: solid 1px black;
+}
+
+a.testimage {
+      padding: 2px;
+      border: solid 1px black;
+}
+
+h1 {
+      font-size: 18px;
+      line-height: 26px;
+}
+
+a:link { color: #000000; text-decoration: none; font-weight: bold; }
+a:visited { color: #000000; text-decoration: none; font-weight: bold; }
+a:active { color: #000000; text-decoration: none; font-weight: bold; }
+a:hover { color: #afafaf; text-decoration: none; font-weight: bold; }
+
+.input {} 
+
+.button {
+    margin-top: 15px;
+    padding: 4px;
+    border: 1px solid black;
+    background: white;
+    font-weight: bold; 
+}
+.button:hover {
+    margin-top: 15px;
+    padding: 4px;
+    border: 1px solid black;
+    background: white;
+    font-weight: bold; 
+    color: #afafaf;
+}
+

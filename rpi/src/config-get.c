@@ -106,6 +106,10 @@ int main(int argc, char **argv)
         parseArguments(argc, argv);
 
         const char* path = argv[optind];
+        if (optind >= argc) {
+                logMessage("config-get", LOG_ERROR, "missing path\n"); 
+                exit(1);
+        }
 
         json_object_t config = json_load(configFile, buffer, 512);
         if (json_isnull(config)) {

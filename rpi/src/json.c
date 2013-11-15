@@ -334,7 +334,7 @@ static void delete_json_hashtable(json_hashtable_t *hashtable);
 static int32 json_hashtable_set(json_hashtable_t *hashtable, const char* key, json_object_t value);
 static json_object_t json_hashtable_get(json_hashtable_t *hashtable, const char* key);
 static int32 json_hashtable_unset(json_hashtable_t *hashtable, const char* key);
-static void json_hashtable_foreach(json_hashtable_t *hashtable, json_iterator_t func, void* data);
+static int32 json_hashtable_foreach(json_hashtable_t *hashtable, json_iterator_t func, void* data);
 static int32 json_hashtable_size(json_hashtable_t *hashtable);
 static void json_hashtable_resize(json_hashtable_t *hashtable);
 static json_hashnode_t** json_hashtable_lookup_node(json_hashtable_t *hashtable, const char* key);
@@ -452,15 +452,17 @@ static int32 json_hashtable_unset(json_hashtable_t *hashtable, const char* key)
 	return -1;
 }
 
-static void json_hashtable_foreach(json_hashtable_t *hashtable, json_iterator_t func, void* data)
+static int32 json_hashtable_foreach(json_hashtable_t *hashtable, json_iterator_t func, void* data)
 {
 	json_hashnode_t *node = NULL;
 	
 	for (int32 i = 0; i < hashtable->size; i++) {
 		for (node = hashtable->nodes[i]; node != NULL; node = node->next) {
-			(*func)(node->key, &node->value, data);
+			int32 r = (*func)(node->key, &node->value, data);
+                        if (r != 0) return r;
 		}
 	}
+        return 0;
 }
 
 static int32 json_hashtable_size(json_hashtable_t *hashtable)
@@ -636,13 +638,13 @@ int32 json_object_setstr(json_object_t object, const char* key, const char* valu
 	return json_object_set(object, key, json_string_create(value));
 }
 
-void json_object_foreach(json_object_t object, json_iterator_t func, void* data)
+int32 json_object_foreach(json_object_t object, json_iterator_t func, void* data)
 {
 	if (object.type != k_json_object) {
-		return;
+		return -1;
 	}
 	json_hashtable_t* hashtable = (json_hashtable_t*) object.value.data;
-	json_hashtable_foreach(hashtable, func, data);
+	return json_hashtable_foreach(hashtable, func, data);
 }
 
 int32 json_object_length(json_object_t object)
@@ -850,6 +852,16 @@ float64 json_array_getnum(json_object_t array, int32 index)
         }
 }
 
+const char* json_array_getstr(json_object_t array, int32 index)
+{
+        json_object_t val = json_array_get(array, index);
+        if (val.type == k_json_string) {
+                return json_string_value(val);
+        } else {
+                return NULL;
+        }
+}
+
 int32 json_array_gettype(json_object_t array, int32 index)
 {
         json_object_t val = json_array_get(array, index);
@@ -858,8 +870,15 @@ int32 json_array_gettype(json_object_t array, int32 index)
 
 /******************************************************************************/
 
+typedef struct _json_serialise_t {
+        int pretty;
+        int indent;
+} json_serialise_t;
 
-int32 json_serialise_text(json_object_t object, json_writer_t fun, void* userdata);
+int32 json_serialise_text(json_serialise_t* serialise, 
+                          json_object_t object, 
+                          json_writer_t fun, 
+                          void* userdata);
 
 typedef struct _json_strbuf_t {
         char* s;
@@ -896,37 +915,45 @@ int32 json_tostring(json_object_t object, char* buffer, int32 buflen)
 #if !defined(JSON_EMBEDDED)
 static int32 json_file_writer(void* userdata, const char* s, int32 len)
 {
+        if (len == 0) return 0;
         FILE* fp = (FILE*) userdata;
 	int32 n = fwrite(s, len, 1, fp);
 	return (n != 1);
 }
 
-int32 json_tofilep(json_object_t object, int32 binary, FILE* fp)
+int32 json_tofilep(json_object_t object, int32 flags, FILE* fp)
 {
-        int32 res = json_serialise(object, 0, json_file_writer, (void*) fp);
+        int32 res = json_serialise(object, flags, json_file_writer, (void*) fp);
         fprintf(fp, "\n");
         return res;
 }
 
-int32 json_tofile(json_object_t object, int32 binary, const char* path)
+int32 json_tofile(json_object_t object, int32 flags, const char* path)
 {
         FILE* fp = fopen(path, "w");
         if (fp == NULL)
                 return -1;
 
-        int32 r = json_serialise(object, 0, json_file_writer, (void*) fp);
+        int32 r = json_serialise(object, flags, json_file_writer, (void*) fp);
         fclose(fp);
 
         return r;
 }
 #endif
 
-int32 json_serialise(json_object_t object, int32 binary, json_writer_t fun, void* userdata)
+int32 json_serialise(json_object_t object, 
+                     int32 flags, 
+                     json_writer_t fun, 
+                     void* userdata)
 {
-	if (binary) {
+        json_serialise_t serialise;
+        serialise.pretty = flags & k_json_pretty;
+        serialise.indent = 0;
+
+	if (flags & k_json_binary) {
 		return -1;
 	} else {
-		return json_serialise_text(object, fun, userdata);
+		return json_serialise_text(&serialise, object, fun, userdata);
 	}
 }
 
@@ -935,7 +962,10 @@ int32 json_print(json_writer_t fun, void* userdata, const char* s)
 	return (*fun)(userdata, s, JSON_STRLEN(s));
 }
 
-int32 json_serialise_text(json_object_t object, json_writer_t fun, void* userdata)
+int32 json_serialise_text(json_serialise_t* serialise, 
+                          json_object_t object, 
+                          json_writer_t fun, 
+                          void* userdata)
 {
 	int32 r;
 
@@ -984,7 +1014,7 @@ int32 json_serialise_text(json_object_t object, json_writer_t fun, void* userdat
 		if (r != 0) return r;
 		array_t* array = (array_t*) object.value.data;
 		for (int32 i = 0; i < array->length; i++) {
-			r = json_serialise_text(array->data[i], fun, userdata);
+			r = json_serialise_text(serialise, array->data[i], fun, userdata);
 			if (r != 0) return r;
 			if (i < array->length - 1) {
 				r = json_print(fun, userdata, ", ");
@@ -1001,6 +1031,10 @@ int32 json_serialise_text(json_object_t object, json_writer_t fun, void* userdat
  
 	case k_json_object: {
 		r = json_print(fun, userdata, "{");
+                if (serialise->pretty) {
+                        r = json_print(fun, userdata, "\n");
+                        serialise->indent += 4;
+                }
 		if (r != 0) return r;
 
 		json_hashtable_t* hashtable = (json_hashtable_t*) object.value.data;
@@ -1008,20 +1042,37 @@ int32 json_serialise_text(json_object_t object, json_writer_t fun, void* userdat
 		int32 count = 0;
 		for (int32 i = 0; i < hashtable->size; i++) {
 			for (node = hashtable->nodes[i]; node != NULL; node = node->next) {
+                                if (serialise->pretty) {
+                                        for (int ii = 0; ii < serialise->indent; ii++) {
+                                                r = json_print(fun, userdata, " ");
+                                                if (r != 0) return r;
+                                        }
+                                }
 				r = json_print(fun, userdata, "\"");
 				if (r != 0) return r;
 				r = json_print(fun, userdata, node->key);
 				if (r != 0) return r;
 				r = json_print(fun, userdata, "\": ");
 				if (r != 0) return r;
-				r = json_serialise_text(node->value, fun, userdata);
+				r = json_serialise_text(serialise, node->value, fun, userdata);
 				if (r != 0) return r;
 				if (++count < hashtable->num_nodes) {
 					r = json_print(fun, userdata, ", ");
 				}
+                                if (serialise->pretty) {
+                                        r = json_print(fun, userdata, "\n");
+                                }
+                                if (r != 0) return r;
 			}
 		}
 
+                if (serialise->pretty) {
+                        serialise->indent -= 4;
+                        for (int ii = 0; ii < serialise->indent; ii++) {
+                                r = json_print(fun, userdata, " ");
+                                if (r != 0) return r;
+                        }
+                }
 		r = json_print(fun, userdata, "}");
 		if (r != 0) return r;
 	} break; }
