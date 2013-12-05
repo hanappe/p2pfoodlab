@@ -3,6 +3,7 @@
 # Install required packages. Also remove package ifplugd because it is
 # doing a bad job on the Raspberry Pi in combination with the DHCP
 # server isc-dhcp-server.
+apt-get update
 apt-get install apache2 php5 libapache2-mod-php5 gcc libjpeg8-dev i2c-tools libi2c-dev isc-dhcp-server
 apt-get purge ifplugd
 apt-get autoremove
