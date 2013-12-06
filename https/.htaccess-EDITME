@@ -1,0 +1,69 @@
+Options -MultiViews
+RewriteEngine On
+RewriteBase /
+
+
+RewriteRule ^people/(.*)/notebook/(.*)$  index.php?view=notebook&host=$1&lang=$2 [L]
+RewriteRule ^people/(.*)/notebook/$  index.php?view=notebook&host=$1 [L]
+RewriteRule ^people/(.*)/notebook$  index.php?view=notebook&host=$1 [L]
+
+RewriteRule ^people/(.*)/greenhouse/(.*)$  index.php?view=greenhouse&host=$1&gid=$2 [L]
+RewriteRule ^people/(.*)/greenhouse/$  index.php?view=greenhouse&host=$1 [L]
+RewriteRule ^people/(.*)/greenhouse$  index.php?view=greenhouse&host=$1 [L]
+
+RewriteRule ^people/(.*)/account/(.*)$  index.php?view=account&host=$1&gid=$2 [L]
+RewriteRule ^people/(.*)/account/$  index.php?view=account&host=$1 [L]
+RewriteRule ^people/(.*)/account$  index.php?view=account&host=$1 [L]
+
+RewriteRule ^people/(.*)/tag/(.*)/(.*)/$  index.php?view=persotag&host=$1&tag=$2&lang=$3 [L]
+RewriteRule ^people/(.*)/tag/(.*)/(.*)$  index.php?view=persotag&host=$1&tag=$2&lang=$3 [L]
+RewriteRule ^people/(.*)/tag/(.*)/$  index.php?view=persotag&host=$1&tag=$2 [L]
+RewriteRule ^people/(.*)/tag/(.*)$  index.php?view=persotag&host=$1&tag=$2 [L]
+
+RewriteRule ^people/(.*)/channel/(.*)/(.*)/$  index.php?view=persochannel&host=$1&channel=$2&lang=$3 [L]
+RewriteRule ^people/(.*)/channel/(.*)/(.*)$  index.php?view=persochannel&host=$1&channel=$2&lang=$3 [L]
+RewriteRule ^people/(.*)/channel/(.*)/$  index.php?view=persochannel&host=$1&channel=$2 [L]
+RewriteRule ^people/(.*)/channel/(.*)$  index.php?view=persochannel&host=$1&channel=$2 [L]
+
+RewriteRule ^people/(.*)/$  index.php?view=notebook&host=$1 [L]
+RewriteRule ^people/(.*)$  index.php?view=notebook&host=$1 [L]
+
+RewriteRule ^tag/(.*)/(.*)/$  index.php?view=tag&tag=$1&lang=$2 [L]
+RewriteRule ^tag/(.*)/(.*)$  index.php?view=tag&tag=$1&lang=$2 [L]
+RewriteRule ^tag/(.*)/$  index.php?view=tag&tag=$1 [L]
+RewriteRule ^tag/(.*)$  index.php?view=tag&tag=$1 [L]
+
+RewriteRule ^channel/(.*)/(.*)/$  index.php?view=channel&channel=$1&lang=$2 [L]
+RewriteRule ^channel/(.*)/(.*)$  index.php?view=channel&channel=$1&lang=$2 [L]
+RewriteRule ^channel/(.*)/$  index.php?view=channel&channel=$1 [L]
+RewriteRule ^channel/(.*)$  index.php?view=channel&channel=$1 [L]
+
+RewriteRule ^post/(.*)/$  index.php?view=post&post=$1 [L]
+RewriteRule ^post/(.*)$  index.php?view=post&post=$1 [L]
+
+RewriteRule ^help/(.*)/$  index.php?view=help&lang=$1 [L]
+RewriteRule ^help/$  index.php?view=help&lang=en [L]
+RewriteRule ^help/(.*)$  index.php?view=help&lang=$1 [L]
+RewriteRule ^help$  index.php?view=help&lang=en [L]
+
+RewriteRule ^index/(.*)/$  index.php?view=index&lang=$1 [L]
+RewriteRule ^index/(.*)$  index.php?view=index&lang=$1 [L]
+RewriteRule ^index/$  index.php?view=index [L]
+RewriteRule ^index$  index.php?view=index [L]
+
+RewriteRule ^login$  index.php?view=login [L]
+RewriteRule ^createaccount$  index.php?view=createaccount [L]
+RewriteRule ^validate/(.*)$  index.php?view=createaccount&op=validate&code=$1 [L]
+RewriteRule ^logout$  index.php?view=logout [L]
+
+RewriteRule ^conditions/(.*)/$  index.php?view=conditions&lang=$1 [L]
+RewriteRule ^conditions/$  index.php?view=conditions&lang=en [L]
+RewriteRule ^conditions/(.*)$  index.php?view=conditions&lang=$1 [L]
+RewriteRule ^conditions$  index.php?view=conditions&lang=en [L]
+
+
+RewriteRule ^rest/post/(.*).json$  rest.php?target=post&id=$1&format=json [L]
+
+
+RewriteRule ^opensensordata/.*$  data.php [L]
+

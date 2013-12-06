@@ -1,0 +1,119 @@
+
+div.PictureBox {
+      margin: 0 auto;
+      position: relative;
+}
+
+img.SlideshowImage {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    border: none;
+}
+
+div.CaptionBox {
+      margin: 0 auto;
+      text-align: center;
+      height: 64px;
+      line-height: 22px;
+      padding: 4px;
+      padding-top: 8px;
+      padding-left: 20px;
+      padding-right: 20px;
+      color: black;
+}
+
+div.ControlBox {
+      margin: 0 auto;
+      text-align: center;
+      height: 32px;
+}
+
+a.Arrow:link {  
+    font-size: 20px;
+    text-align: center;
+    color: #000000; 
+    text-decoration: none; 
+    font-weight: bold;
+    margin-left: 7px;
+    margin-right: 7px;
+}
+
+a.Arrow:visited { color: #000000; text-decoration: none; font-weight: bold; }
+a.Arrow:active { color: #000000; text-decoration: none; font-weight: bold; }
+a.Arrow:hover { color: #afafaf; text-decoration: none; font-weight: bold; }
+
+a.Number:link { 
+    font-size: 14px;
+    color: #000000; 
+    text-decoration: none; 
+    font-weight: normal; 
+    border-bottom: 1px solid white; 
+    margin-left: 7px;
+    margin-right: 7px;
+}
+
+a.Number:visited { 
+    color: #000000; 
+    text-decoration: none; 
+    font-weight: normal; 
+    border-bottom: 1px solid white; 
+}
+
+a.Number:active { 
+    color: #000000; 
+    text-decoration: none; 
+    font-weight: normal; 
+    border-bottom: 1px solid white; 
+}
+
+a.Number:hover { 
+    color: #afafaf; 
+    text-decoration: none; 
+    font-weight: normal; 
+    border-bottom: 1px solid white; 
+}
+
+a.SelectedNumber:link { 
+    font-size: 14px;
+    color: #ba3c21; 
+    text-decoration: none; 
+    font-weight: normal; 
+    border-bottom: 0px solid black; 
+    margin-left: 7px;
+    margin-right: 7px;
+}
+
+a.SelectedNumber:visited { 
+    color: #ba3c21; 
+    text-decoration: none; 
+    font-weight: normal; 
+}
+
+a.SelectedNumber:active { 
+    color: #ba3c21; 
+    text-decoration: none; 
+    font-weight: normal; 
+}
+
+a.SelectedNumber:hover { 
+    color: #ba3c21; 
+    text-decoration: none; 
+    font-weight: normal; 
+}
+
+
+
+
+div.DateBox {
+      margin: 0 auto;
+      text-align: center;
+      height: 24px;
+      font-size: 14px;
+      line-height: 22px;
+      padding: 4px;
+      padding-top: 8px;
+      padding-left: 20px;
+      padding-right: 20px;
+      color: black;
+}

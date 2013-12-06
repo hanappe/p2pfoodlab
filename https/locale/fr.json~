@@ -1,0 +1,61 @@
+{
+    "edit": "modifier", 
+    "reply": "répondre", 
+    "logout": "déconnexion", 
+    "The security code you entered was not correct. Please try again.": "Le code de sécurité saisi est érroné. Veuillez ressayer.", 
+    "home": "home", 
+    "User name": "Nom d'utilisateur", 
+    "join": "inscription", 
+    "Please verify your email address. It failed to validate.": "Veuillez vérifier votre adresse email.", 
+    "show data from": "afficher les données à partir de", 
+
+    "It is possible to submit notes to your notebook using one of several languages. This is handy for people who participate in several language groups. To make it easier to filter your notes based on the language, please select the ones that you intend to use.": "Il est possible de maintenir plusieurs carnets de notes dans des langues différentes. Cela permet de participer dans plusieurs communautés. Pour faciliter le tri des messages, veuillez saisir la liste des langues que vous souhaiteriez utiliser. ", 
+
+    "Please select the language that you would like to use for the web site interface:": "Veuillez sélectionner votre language préféré pour l'interface utilisateur du site :", 
+
+    "If you would like to translate the interface to another language, please contact us!": "Si vous voudriez aider à traduite l'interface dans d'autres langues, merci de nous contacter !", 
+
+    "Invalid interface language.": "Choix de language érroné", 
+
+    "Currently available options:": "Les options actuellement disponibles :", 
+
+    "view all": "voir toutes",
+
+    "Languages used in your notebook": "Langues utilisées dans mon carnet", 
+
+    "browse the message channels": "trier les messages par catégorie", 
+    "meet the participants": "rencontrer les participants", 
+    "greenhouse": "ma serre", 
+    "help": "aide", 
+    "Check password": "Vérification du mot de passe", 
+
+    "How do I use this site?": "Comment utiliser ce site?", 
+
+    "-- old --": {
+        "join us": "inscrivez-vous", 
+        "create an account": "inscrivez-vous", 
+        "english string": "chaine francaise"
+    }, 
+    "Please verify your password. It failed to validate.": "Veuillez vérifier votre mot de passe", 
+    "Please enter a valid account name (min. 3 characters, starts with a letter, digits accepted): ": "Veuillez saisir un nom d'utilisateur valide: min. 3 charactères, commence par une lettre, les chiffres sont acceptés.", 
+    "create a new account": "inscrivez-vous", 
+    "to": "à", 
+    "or": "ou", 
+    "You must accept the Open Database License to create an account on P2P Food Lab": "Il faut accepter les conditions générales d'utilisation pour pouvoir s'inscrire", 
+    "Password": "Mot de passe", 
+    "read the most recent posts": "parcourir les messages récentes", 
+    "hide thread": "cacher la discussion", 
+    "log in to reply": "connectez-vous pour répondre", 
+    "show thread": "afficher la discussion", 
+    "Username": "Nom d'utilisateur", 
+    "The username you entered is already used. Please select another one. Sorry...": "Le nom d'utilisateur que vous avez choisi est déjà pris. Veuillez en choisir un autre. Désolé...", 
+    "index": "sommaire", 
+    "today": "aujourd'hui", 
+    "login": "connectez-vous", 
+    "register": "inscription", 
+    "account": "mon compte", 
+    "Language used for the web site": "Langage préféré pour visualiser le site", 
+    "Write a new note.": "Ecrivez une nouvelle note.", 
+    "log in": "connection", 
+    "notebook": "mon carnet"
+}

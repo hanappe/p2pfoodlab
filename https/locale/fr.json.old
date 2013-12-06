@@ -1,0 +1,68 @@
+{
+    "home": 
+            "home", 
+    "login": 
+            "connectez-vous", 
+    "Please verify your email address. It failed to validate.": 
+            "Veuillez vérifier votre adresse email.", 
+    "join": 
+            "inscription", 
+    "show data from": 
+            "afficher les données à partir de", 
+    "The security code you entered was not correct. Please try again.": 
+            "Le code de sécurité saisi est érroné. Veuillez ressayer.", 
+    "browse the message channels": 
+            "visualisez les messageries", 
+    "help": 
+            "aide", 
+    "show thread": 
+            "afficher la discussion", 
+    "index": 
+            "sommaire", 
+    "today": 
+            "aujourd'hui", 
+    "register": 
+            "inscription", 
+    "log in": 
+            "connection",
+    "Username": 
+            "Nom d'utilisateur", 
+    "hide thread": 
+            "cacher la discussion", 
+    "to": 
+            "à", 
+    "How do I use this site?": 
+            "Comment utiliser ce site?", 
+    "meet the participants": 
+            "rencontrez les participants", 
+    "log in to reply": 
+            "connectez-vous pour répondre", 
+    "Please verify your password. It failed to validate.": 
+            "Veuillez vérifier votre mot de passe", 
+    "Write a new note.": 
+            "Ecrivez une nouvelle note.", 
+    "browse the message channels": 
+            "triez les messages par catégorie", 
+    "read the most recent posts": 
+            "parcourez les message récentes", 
+    "The username you entered is already used. Please select another one. Sorry...": 
+            "Le nom d'utilisateur que vous avez choisi est déjà pris. Veuillez en choisir un autre. Désolé...", 
+    "Please enter a valid account name (min. 3 characters, starts with a letter, digits accepted): ": 
+            "Veuillez saisir un nom d'utilisateur valide: min. 3 charactères, commence par une lettre, les chiffres sont acceptés.", 
+    "You must accept the Open Database License to create an account on P2P Food Lab": 
+            "Il faut accepter les conditions générales d'utilisation pour pouvoir s'inscrire", 
+    "Check password": 
+            "Vérification du mot de passe", 
+    "notebook": "mon carnet", 
+    "logout": "déconnexion", 
+    "join us": "inscrivez-vous", 
+    "Language used for the web site": "Langage préféré pour visualiser le site", 
+    "account": "mon compte", 
+    "create an account": "inscrivez-vous", 
+    "create a new account": "inscrivez-vous", 
+    "User name": "Nom d'utilisateur", 
+    "Password": "Mot de passe", 
+    "or": "ou", 
+    "greenhouse": "ma serre", 
+    "english string": "chaine francaise"
+}

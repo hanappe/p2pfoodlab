@@ -1,0 +1,170 @@
+Northwest Caucasian,Abkhaz,аҧсуа бызшәа - аҧсшәа,ab,0,0
+Afro-Asiatic,Afar,Afaraf,aa,0,0
+Indo-European,Afrikaans,Afrikaans,af,1,0
+Niger–Congo,Akan,Akan,ak,0,0
+Indo-European,Albanian,gjuha shqipe,sq,1,0
+Afro-Asiatic,Amharic,አማርኛ,am,0,0
+Afro-Asiatic,Arabic,العربية,ar,1,0
+Indo-European,Aragonese,aragonés,an,0,0
+Indo-European,Armenian,Հայերեն,hy,0,0
+Indo-European,Assamese,অসমীয়া,as,0,0
+Northeast Caucasian,Avaric,авар мацӀ - магӀарул мацӀ,av,0,0
+Indo-European,Avestan,avesta,ae,0,0
+Aymaran,Aymara,aymar aru,ay,0,0
+Turkic,Azerbaijani,azərbaycan dili,az,0,0
+Niger–Congo,Bambara,bamanankan,bm,0,0
+Turkic,Bashkir,башҡорт теле,ba,0,0
+Language isolate,Basque,euskara - euskera,eu,1,0
+Indo-European,Belarusian,беларуская мова,be,0,0
+Indo-European,Bengali; Bangla,বাংলা,bn,0,0
+Indo-European,Bihari,भोजपुरी,bh,0,0
+Creole,Bislama,Bislama,bi,0,0
+Indo-European,Bosnian,bosanski jezik,bs,0,0
+Indo-European,Breton,brezhoneg,br,1,0
+Indo-European,Bulgarian,български език,bg,1,0
+Indo-European,Catalan; Valencian,català - valencià,ca,1,0
+Austronesian,Chamorro,Chamoru,ch,0,0
+Northeast Caucasian,Chechen,нохчийн мотт,ce,1,0
+Niger–Congo,Chichewa; Chewa; Nyanja,chiCheŵa - chinyanja,ny,0,0
+Sino-Tibetan,Chinese,中文 (Zhōngwén) - 汉语 - 漢語,zh,1,0
+Turkic,Chuvash,чӑваш чӗлхи,cv,0,0
+Indo-European,Cornish,Kernewek,kw,1,0
+Indo-European,Corsican,corsu,co,1,0
+Algonquian,Cree,ᓀᐦᐃᔭᐍᐏᐣ,cr,0,0
+Indo-European,Croatian,hrvatski jezik,hr,1,0
+Indo-European,Czech,čeština - český jazyk,cs,1,0
+Indo-European,Danish,dansk,da,1,0
+Indo-European,Divehi; Dhivehi; Maldivian;,ދިވެހި,dv,0,0
+Indo-European,Dutch,Nederlands - Vlaams,nl,1,0
+Indo-European,English,English,en,1,0
+Uralic,Estonian,eesti - eesti keel,et,1,0
+Niger–Congo,Ewe,Eʋegbe,ee,0,0
+Indo-European,Faroese,føroyskt,fo,0,0
+Austronesian,Fijian,vosa Vakaviti,fj,0,0
+Uralic,Finnish,suomi - suomen kieli,fi,0,0
+Indo-European,French,français,fr,1,0
+Niger–Congo,Fula - Fulah - Pulaar - Pular,Fulfulde - Pulaar - Pular,ff,0,0
+Indo-European,Galician,galego,gl,1,0
+South Caucasian,Georgian,ქართული,ka,1,0
+Indo-European,German,Deutsch,de,1,0
+Indo-European,Greek - Modern,ελληνικά,el,1,0
+Tupian,Guaraní,Avañe'ẽ,gn,0,0
+Indo-European,Gujarati,ગુજરાતી,gu,0,0
+Creole,Haitian; Haitian Creole,Kreyòl ayisyen,ht,0,0
+Afro-Asiatic,Hausa,Hausa - هَوُسَ,ha,0,0
+Afro-Asiatic,Hebrew (modern),עברית,he,1,0
+Niger–Congo,Herero,Otjiherero,hz,0,0
+Indo-European,Hindi,हिन्दी - हिंदी,hi,1,0
+Austronesian,Hiri Motu,Hiri Motu,ho,0,0
+Uralic,Hungarian,magyar,hu,1,0
+Austronesian,Indonesian,Bahasa Indonesia,id,0,0
+Indo-European,Irish,Gaeilge,ga,1,0
+Niger–Congo,Igbo,Asụsụ Igbo,ig,0,0
+Eskimo–Aleut,Inupiaq,Iñupiaq - Iñupiatun,ik,0,0
+Indo-European,Icelandic,Íslenska,is,1,0
+Indo-European,Italian,italiano,it,1,0
+Eskimo–Aleut,Inuktitut,ᐃᓄᒃᑎᑐᑦ,iu,0,0
+Japonic,Japanese,日本語 (にほんご),ja,1,0
+Austronesian,Javanese,basa Jawa,jv,0,0
+Eskimo–Aleut,Kalaallisut - Greenlandic,kalaallisut - kalaallit oqaasii,kl,0,0
+Dravidian,Kannada,ಕನ್ನಡ,kn,0,0
+Nilo-Saharan,Kanuri,Kanuri,kr,0,0
+Indo-European,Kashmiri,कश्मीरी - كشميري‎,ks,0,0
+Turkic,Kazakh,қазақ тілі,kk,0,0
+Austroasiatic,Khmer,ខ្មែរ - ខេមរភាសា - ភាសាខ្មែរ,km,0,0
+Niger–Congo,Kikuyu - Gikuyu,Gĩkũyũ,ki,0,0
+Niger–Congo,Kinyarwanda,Ikinyarwanda,rw,0,0
+Turkic,Kyrgyz,Кыргызча - Кыргыз тили,ky,0,0
+Uralic,Komi,коми кыв,kv,0,0
+Niger–Congo,Kongo,KiKongo,kg,0,0
+Language isolate,Korean,한국어 (韓國語) - 조선어 (朝鮮語),ko,1,0
+Indo-European,Kurdish,Kurdî - كوردی‎,ku,1,0
+Niger–Congo,Kwanyama - Kuanyama,Kuanyama,kj,0,0
+Indo-European,Luxembourgish - Letzeburgesch,Lëtzebuergesch,lb,1,0
+Niger–Congo,Ganda,Luganda,lg,0,0
+Niger–Congo,Lingala,Lingála,ln,0,0
+Tai–Kadai,Lao,ພາສາລາວ,lo,0,0
+Indo-European,Lithuanian,lietuvių kalba,lt,1,0
+Niger–Congo,Luba-Katanga,Tshiluba,lu,0,0
+Indo-European,Latvian,latviešu valoda,lv,1,0
+Indo-European,Manx,Gaelg - Gailck,gv,0,0
+Indo-European,Macedonian,македонски јазик,mk,1,0
+Austronesian,Malagasy,fiteny malagasy,mg,0,0
+Austronesian,Malay,bahasa Melayu - بهاس ملايو‎,ms,0,0
+Dravidian,Malayalam,മലയാളം,ml,0,0
+Afro-Asiatic,Maltese,Malti,mt,1,0
+Austronesian,Māori,te reo Māori,mi,0,0
+Indo-European,Marathi (Marāṭhī),मराठी,mr,0,0
+Austronesian,Marshallese,Kajin M̧ajeļ,mh,0,0
+Mongolic,Mongolian,монгол,mn,0,0
+Austronesian,Nauru,Ekakairũ Naoero,na,0,0
+Dené–Yeniseian,Navajo - Navaho,Diné bizaad - Dinékʼehǰí,nv,0,0
+Indo-European,Norwegian Bokmål,Norsk bokmål,nb,0,0
+Niger–Congo,North Ndebele,isiNdebele,nd,0,0
+Indo-European,Nepali,नेपाली,ne,0,0
+Niger–Congo,Ndonga,Owambo,ng,0,0
+Indo-European,Norwegian Nynorsk,Norsk nynorsk,nn,1,0
+Indo-European,Norwegian,Norsk,no,1,0
+Niger–Congo,South Ndebele,isiNdebele,nr,0,0
+Indo-European,Occitan,occitan - lenga d'òc,oc,0,0
+Algonquian,Ojibwe - Ojibwa,ᐊᓂᔑᓈᐯᒧᐎᓐ,oj,0,0
+Afro-Asiatic,Oromo,Afaan Oromoo,om,0,0
+India-Asia,Oriya,ଓଡ଼ିଆ,or,0,0
+Indo-European,Ossetian - Ossetic,ирон æвзаг,os,0,0
+Indo-European,Panjabi - Punjabi,ਪੰਜਾਬੀ - پنجابی‎,pa,0,0
+Indo-European,Persian (Farsi),فارسی,fa,1,0
+Indo-European,Polish,język polski - polszczyzna,pl,1,0
+Indo-European,Pashto - Pushto,پښتو,ps,1,0
+Indo-European,Portuguese,português,pt,1,0
+Quechuan,Quechua,Runa Simi - Kichwa,qu,0,0
+Indo-European,Romansh,rumantsch grischun,rm,0,0
+Niger–Congo,Kirundi,Ikirundi,rn,0,0
+Indo-European,Romanian,limba română,ro,1,0
+Indo-European,Russian,русский язык,ru,1,0
+Indo-European,Sardinian,sardu,sc,0,0
+Indo-European,Sindhi,सिन्धी - سنڌي، سندھی‎,sd,0,0
+Uralic,Northern Sami,Davvisámegiella,se,0,0
+Austronesian,Samoan,gagana fa'a Samoa,sm,0,0
+Creole,Sango,yângâ tî sängö,sg,0,0
+Indo-European,Serbian,српски језик,sr,1,0
+Indo-European,Scottish Gaelic; Gaelic,Gàidhlig,gd,0,0
+Niger–Congo,Shona,chiShona,sn,0,0
+Indo-European,Sinhala - Sinhalese,සිංහල,si,0,0
+Indo-European,Slovak,slovenčina - slovenský jazyk,sk,1,0
+Indo-European,Slovene,slovenski jezik - slovenščina,sl,1,0
+Afro-Asiatic,Somali,Soomaaliga - af Soomaali,so,0,0
+Niger–Congo,Southern Sotho,Sesotho,st,0,0
+Turkic,South Azerbaijani,تورکجه‎,az,0,0
+Indo-European,Spanish - Castilian,español - castellano,es,1,0
+Austronesian,Sundanese,Basa Sunda,su,0,0
+Niger–Congo,Swahili,Kiswahili,sw,0,0
+Niger–Congo,Swati,SiSwati,ss,0,0
+Indo-European,Swedish,Svenska,sv,1,0
+Dravidian,Tamil,தமிழ்,ta,0,0
+Dravidian,Telugu,తెలుగు,te,0,0
+Indo-European,Tajik,тоҷикӣ - toğikī - تاجیکی‎,tg,0,0
+Tai–Kadai,Thai,ไทย,th,1,0
+Afro-Asiatic,Tigrinya,ትግርኛ,ti,0,0
+Turkic,Turkmen,Türkmen - Түркмен,tk,0,0
+Niger–Congo,Tswana,Setswana,tn,0,0
+Austronesian,Tonga (Tonga Islands),faka Tonga,to,0,0
+Turkic,Turkish,Türkçe,tr,1,0
+Niger–Congo,Tsonga,Xitsonga,ts,0,0
+Turkic,Tatar,татар теле - tatar tele,tt,0,0
+Niger–Congo,Twi,Twi,tw,0,0
+Austronesian,Tahitian,Reo Tahiti,ty,0,0
+Turkic,Uyghur - Uighur,Uyƣurqə - ئۇيغۇرچە‎,ug,0,0
+Indo-European,Ukrainian,українська мова,uk,1,0
+Indo-European,Urdu,اردو,ur,0,0
+Turkic,Uzbek,O‘zbek - Ўзбек - أۇزبېك‎,uz,0,0
+Niger–Congo,Venda,Tshivenḓa,ve,0,0
+Austroasiatic,Vietnamese,Tiếng Việt,vi,1,0
+Indo-European,Walloon,walon,wa,0,0
+Indo-European,Welsh,Cymraeg,cy,1,0
+Niger–Congo,Wolof,Wollof,wo,0,0
+Indo-European,Western Frisian,Frysk,fy,0,0
+Niger–Congo,Xhosa,isiXhosa,xh,0,0
+Indo-European,Yiddish,ייִדיש,yi,0,0
+Niger–Congo,Yoruba,Yorùbá,yo,0,0
+Tai–Kadai,Zhuang - Chuang,Saɯ cueŋƅ - Saw cuengh,za,0,0
+Niger–Congo,Zulu,isiZulu,zu,0,0
