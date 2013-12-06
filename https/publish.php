@@ -113,10 +113,9 @@ if ($id != NULL) {
 
 if (isset($_FILES['docs'])) {
 
-        echo "count names = " . count($_FILES['docs']['name']) . "<br>\n";
-        echo "count tmpnames = " . count($_FILES['docs']['tmp_name']) . "<br>\n";
-
-        var_dump($_FILES['docs']);
+        //echo "count names = " . count($_FILES['docs']['name']) . "<br>\n";
+        //echo "count tmpnames = " . count($_FILES['docs']['tmp_name']) . "<br>\n";
+        //var_dump($_FILES['docs']);
 
         for ($i = 0; $i < count($_FILES['docs']['name']); $i++) {
 
@@ -152,7 +151,7 @@ if (isset($_FILES['docs'])) {
 
                 $tmpname = $_FILES['docs']['tmp_name'][$i];
 
-                echo "tmpname = $tmpname<br>\n";
+                //echo "tmpname = $tmpname<br>\n";
 
                 $finfo = finfo_open(FILEINFO_MIME_TYPE);
                 $mimetype = finfo_file($finfo, $tmpname);
@@ -182,7 +181,7 @@ if (isset($_FILES['docs'])) {
 
                 try {
                         $filename = sprintf("%s/%s-large.jpg", $docsdir, $path);        
-                        echo "filename = $filename<br>\n";
+                        //echo "filename = $filename<br>\n";
                 
                         if (($size[0] > 1200) || ($size[1] > 1200)) {
                                 $img->scaleImage(1200, 0); 
@@ -195,14 +194,14 @@ if (isset($_FILES['docs'])) {
                         }
 
                         $filename = sprintf("%s/%s-medium.jpg", $docsdir, $path);        
-                        echo "filename = $filename<br>\n";
+                        //echo "filename = $filename<br>\n";
                         $img->scaleImage(800, 0); 
                         $d = $img->getImageGeometry();
                         if ($d['height'] > 800)  $img->scaleImage(0, 800); 
                         $img->writeImage($filename);
 
                         $filename = sprintf("%s/%s-small.jpg", $docsdir, $path);        
-                        echo "filename = $filename<br>\n";
+                        //echo "filename = $filename<br>\n";
                         $img->scaleImage(240, 0); 
                         $d = $img->getImageGeometry();
                         if ($d['height'] > 240)  $img->scaleImage(0, 240); 
@@ -210,7 +209,7 @@ if (isset($_FILES['docs'])) {
                         $img->writeImage($filename);
 
                         $filename = sprintf("%s/%s-tiny.jpg", $docsdir, $path);        
-                        echo "filename = $filename<br>\n";
+                        //echo "filename = $filename<br>\n";
                         $img->scaleImage(100, 0); 
                         $d = $img->getImageGeometry();
                         if ($d['height'] > 100)  $img->scaleImage(0, 100); 
