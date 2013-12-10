@@ -25,17 +25,17 @@
 
 ?>
 <div class="strip" style="margin-top: 20px;">
-  <div class="empty_box index_box fg_white frame">
-    <a href="http://p2pfoodlab.net">
-      <div class="index_entry"><?php _p("about P2P Food Lab") ?></div>                       
-    </a>
-    <img src="DSC03573.JPG" class="adjusted" />
-  </div> 
+    <div class="index_box">
+      <a href="http://p2pfoodlab.net" class="index_entry">
+        <?php _p("about P2P Food Lab") ?>
+      </a>
+      <img src="DSC03573.JPG" class="adjusted" />
+    </div> 
 </div> 
 
 
 <div class="strip">
-  <div class="empty_box index_box fg_white frame_blue">
+  <div class="index_box fg_white">
 
     <script type="text/javascript"> 
       function submitForm() 
@@ -69,84 +69,21 @@
 </div> 
 
 <div class="strip">
-  <div class="empty_box index_box fg_white frame_green">
-    <a href="<?php url('posts') ?>">
-      <div class="index_entry"><?php _p("recent posts") ?></div>                       
+  <div class="index_box">
+    <a href="<?php url('posts') ?>" class="index_entry">
+      <?php _p("recent posts") ?>
     </a>
     <img src="DSC01421.JPG" class="adjusted" />
   </div>
 </div> 
 
 <div class="strip">     
-  <div class="empty_box index_box fg_white frame_blue">
-    <a href="http://p2pfoodlab.net">
-      <div class="index_entry"><?php _p("meet the participants") ?></div>                       
+  <div class="index_box">
+    <a href="<?php url('people') ?>" class="index_entry">
+      <?php _p("meet the participants") ?>
     </a>
     <img src="DSC03517.JPG" class="adjusted" />
   </div> 
 </div> 
 
 
-
-<!--
-
-
-<div class="strip">
-  <div class="content_box frame clearfix margin">
-
-<?php if ($lang->code == 'fr'): ?>
-    <img src="<?php url('DSC00604.JPG') ?>" class="floatleft margin" width="240px"/>
-    <p class="index">Bienvenue sur le site communautaire de P2P Food Lab.</p>
-    <p class="index"><a href="http://p2pfoodlab.net" class="standout">Apprenez plus sur le projet P2P Food Lab.</a></p>
-    <p class="index"><a href="<?php url('help') ?>" class="standout">Comment utiliser ce site ?</a></p>
-
-<?php else: ?>
-
-    <img src="<?php url('DSC00604.JPG') ?>" class="floatleft margin" width="240px"/>
-    <p class="index">Welcome to the community web site of P2P Food Lab.</p>
-    <p class="index"><a href="http://p2pfoodlab.net" class="standout">Learn more about the P2P Food Project.</a></p>
-    <p class="index"><a href="<?php url('help') ?>" class="standout">How do I use this site?</a></p>
-<?php endif; ?>
-
-  </div> 
-</div> 
-  
-<div class="strip">
-  <div class="content_box">
-    <p class="title"><?php _p("meet the participants") ?></p>
-    <div class="frame margin">
-<?php
-          for ($i = 0; $i < count($this->accounts); $i++) {
-                  $account = $this->accounts[$i];
-                  $url = $base_url . "/people/" . $account->username;
-                  echo "<a href=\"$url\" class=\"rightmargin\">" . $account->username . "</a>\n";
-          }
-?>       
-    </div> 
-  </div> 
-</div> 
-
-
-
-<div class="strip">
-  <div class="content_box">
-   <p class="title"><?php _p("browse the message channels") ?></p>
-    <div class="margin frame">
-<?php
-          for ($i = 0; $i < count($this->channels); $i++) {
-                  $channel = $this->channels[$i];
-                  $url = $base_url . "/channel/" . $channel->id;
-                  echo "<a href=\"$url\" class=\"rightmargin\">" . $channel->title . "</a>\n";
-          }
-?>       
-    </div> 
-  </div> 
-</div> 
-
-<div class="strip">
-  <div class="content_box">
-    <p class="title"><?php _p("read the most recent posts") ?></p>
-  </div> 
-</div> 
-
--->

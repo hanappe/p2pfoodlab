@@ -168,6 +168,10 @@ if ($view == "post") {
         $page = new RecentPostsPage($visitor_account, $lang);
         $page->generate();
 
+ } else if ($view == "people") {
+        $page = new PeoplePage($visitor_account, $lang);
+        $page->generate();
+
  } else {
         $page = new IndexPage($visitor_account, $lang);
         $page->generate();

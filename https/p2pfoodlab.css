@@ -53,7 +53,7 @@ a.title, a.standout { color: #326296; }
 a.standout:hover { color: #ba3c21; }
 div.standout { color: #326296; }
 span.standout { color: #326296; }
-div.warning { color: #ba3c21; }
+div.warning { color: #ba3c21: bold; }
 span.warning { color: #ba3c21; }
 img.noborder { border: none; }
 .middle { vertical-align: middle; }
@@ -78,17 +78,6 @@ div.content_box {
     min-width: 480px;
     margin: 0 auto;
     background: white;
-    padding: 0;
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;   
-    box-sizing: border-box;        
-}
-
-div.empty_box {
-    width: 100%;
-    max-width: 800px;
-    min-width: 480px;
-    margin: 0 auto;
     padding: 0;
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;   
@@ -144,18 +133,6 @@ div.shift_logo {
     margin-left: 22px;
 }
 
-div.half_box {
-    margin: 0px;
-    margin-bottom: 10px;
-    vertical-align: top;
-    width: 49%;
-    max-width: 395px;
-    min-width: 237px;
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;   
-    box-sizing: border-box;        
-}
-
 div.float_left {
     float: left;
 }
@@ -165,26 +142,48 @@ div.float_right {
 }
 
 div.index_box {
+    width: 100%;
+    max-width: 800px;
+    min-width: 480px;
+    height: 200px;
+    margin: 0 auto;
+    padding: 0;
     margin-top: 10px;
     position: relative;
     text-align: center;
-    min-height: 200px;
 }
 
 img.adjusted {
     position: absolute;
     z-index: -1;
     width: 100%;
+    height: 200px;
     top: 0;
     left: 0;
+    border: solid 1px white;
+    -webkit-border-radius: 7px;
+    -khtml-border-radius: 7px;
+    -moz-border-radius: 7px;
+    border-radius: 7px;
 }
 
-div.index_entry { 
-    color: white; 
+a.index_entry { 
+    display: inline-block;
+    width: 100%;
+    height: 48px;
     font-size: 48px; 
     line-height: 48px; 
-    margin: 70px; 
+    padding-top: 72px; 
+    padding-bottom: 80px; 
+    color: white;
+    border: solid 1px white;
+    -webkit-border-radius: 7px;
+    -khtml-border-radius: 7px;
+    -moz-border-radius: 7px;
+    border-radius: 7px;
 }
+
+a.index_entry:hover { background-color: rgba(0,0,0,0.15); }
 
 form.qlogin {
     display: inline-block;

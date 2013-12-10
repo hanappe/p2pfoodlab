@@ -181,6 +181,19 @@ if ($this->errmsg) {
 <?php
 } else {
 ?>
+
+      <div class="strip">
+        <div class="content_box frame margin">
+          <?php 
+             echo $this->group->name;
+             if (isset($this->group->description) 
+                 && (strlen($this->group->description) > 0)) {
+                 echo ": " . $this->group->description;
+             }
+          ?>
+        </div>
+      </div>
+
       <div class="strip">
         <div class="content_box frame">
           <div class="datepicker margin">

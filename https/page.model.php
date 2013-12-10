@@ -645,7 +645,7 @@ class Notebook extends PersonalPage
         }
 }
 
-class IndexPage extends ThreadListViewer
+class IndexPage extends Page
 {
         public $accounts;
         public $channels;
@@ -673,26 +673,34 @@ class IndexPage extends ThreadListViewer
         public function insert_body() 
         {
                 global $base_url;
-                
                 include "index.view.php";
+        }
+}
 
-                /* $postbox = new Postbox(); */
-                /* if (!$postbox->load_recent($this->lang)) { */
-                /*         internalServerError($postbox->err); */
-                /* } */
-                /* $this->threadlist = new ThreadList(); */
-                /* $this->threadlist->convert($postbox); */
-                /* $this->insert_threads(false); */
+class PeoplePage extends Page
+{
+        public $accounts;
+        public $channels;
+
+        function __construct($visitor, $lang) 
+        {
+                parent::__construct($visitor);
+
+                $this->accounts = Account::load_all();
+                if ($this->accounts === false)
+                        internalServerError("Database error (Account::load_all)");
         }
 
-        /*
-        public function generate() 
+        public function insert_title()
         {
-                global $page;
-                require_once "index2.view.php";
-                db_close();
-                exit(0);
-                }*/
+                echo "<span class='title'>" . _s("participants") . "</span>\n";
+        }
+
+        public function insert_body() 
+        {
+                global $base_url;
+                include "people.view.php";
+        }
 }
 
 class AccountPage extends Page
