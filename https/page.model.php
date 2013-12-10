@@ -26,12 +26,14 @@
 class Page
 {
         public $visitor;
+        public $show_menu;
         public $show_account_submenu;
         public $message;
 
         function __construct($visitor) 
         {
                 $this->visitor = $visitor;
+                $this->show_menu = true;
                 $this->show_account_submenu = true;
                 $this->message = false;
         }
@@ -652,6 +654,8 @@ class IndexPage extends ThreadListViewer
         {
                 parent::__construct($visitor);
 
+                $this->show_menu = false;
+
                 $this->accounts = Account::load_all();
                 if ($this->accounts === false)
                         internalServerError("Database error (Account::load_all)");
@@ -672,14 +676,23 @@ class IndexPage extends ThreadListViewer
                 
                 include "index.view.php";
 
-                $postbox = new Postbox();
-                if (!$postbox->load_recent($this->lang)) {
-                        internalServerError($postbox->err);
-                }
-                $this->threadlist = new ThreadList();
-                $this->threadlist->convert($postbox);
-                $this->insert_threads(false);
+                /* $postbox = new Postbox(); */
+                /* if (!$postbox->load_recent($this->lang)) { */
+                /*         internalServerError($postbox->err); */
+                /* } */
+                /* $this->threadlist = new ThreadList(); */
+                /* $this->threadlist->convert($postbox); */
+                /* $this->insert_threads(false); */
         }
+
+        /*
+        public function generate() 
+        {
+                global $page;
+                require_once "index2.view.php";
+                db_close();
+                exit(0);
+                }*/
 }
 
 class AccountPage extends Page
@@ -864,5 +877,29 @@ class ErrorPage extends Page
                 include "error.view.php"; 
         }
 }
+
+class RecentPostsPage extends ThreadListViewer
+{
+        function __construct($visitor, $lang) 
+        {
+                parent::__construct($visitor);
+                $this->lang = $lang;
+        }
+
+        public function insert_title()
+        {
+                echo "<span class='title'>" . _s("recent posts") . "</span>\n";
+        }
+
+        public function insert_body() 
+        {
+                $postbox = new Postbox();
+                $postbox->load_recent($this->lang, 0, 100); 
+                $this->threadlist = new ThreadList();
+                $this->threadlist->convert($postbox);
+                $this->insert_threads(false);
+        }
+}
+
 
 ?>

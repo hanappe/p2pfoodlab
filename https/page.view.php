@@ -19,6 +19,7 @@
   <body>
     <div class="screen">
 
+<?php if ($this->show_menu): ?>
       <div class="strip">
         <div class="content_box">
           <div class="header">
@@ -70,6 +71,7 @@
         </div>
 
       </div> <!-- strip  -->
+<?php endif; ?>
 
       <?php $this->insert_body()  ?>
 

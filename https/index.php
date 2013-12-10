@@ -164,6 +164,10 @@ if ($view == "post") {
         $page = new TermsAndConditions($visitor_account, $lang);
         $page->generate();
 
+ } else if ($view == "posts") {
+        $page = new RecentPostsPage($visitor_account, $lang);
+        $page->generate();
+
  } else {
         $page = new IndexPage($visitor_account, $lang);
         $page->generate();

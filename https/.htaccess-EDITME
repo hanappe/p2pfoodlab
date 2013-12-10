@@ -61,6 +61,10 @@ RewriteRule ^conditions/$  index.php?view=conditions&lang=en [L]
 RewriteRule ^conditions/(.*)$  index.php?view=conditions&lang=$1 [L]
 RewriteRule ^conditions$  index.php?view=conditions&lang=en [L]
 
+RewriteRule ^posts/(.*)/$  index.php?view=posts&lang=$1 [L]
+RewriteRule ^posts/(.*)$  index.php?view=posts&lang=$1 [L]
+RewriteRule ^posts/$  index.php?view=posts [L]
+RewriteRule ^posts$  index.php?view=posts [L]
 
 RewriteRule ^rest/post/(.*).json$  rest.php?target=post&id=$1&format=json [L]
 

@@ -48,6 +48,7 @@ a:active { color: black; text-decoration: underline; font-weight: normal; }
 a:hover { color: #ba3c21; text-decoration: none; font-weight: normal; }
 
 .title { color: #326296; }
+
 a.title, a.standout { color: #326296; }
 a.standout:hover { color: #ba3c21; }
 div.standout { color: #326296; }
@@ -55,6 +56,7 @@ span.standout { color: #326296; }
 div.warning { color: #ba3c21; font-weight: bold; }
 span.warning { color: #ba3c21; }
 img.noborder { border: none; }
+.middle { vertical-align: middle; }
 
 div.screen {
     position: absolute;
@@ -73,8 +75,20 @@ div.strip {
 div.content_box {
     width: 100%;
     max-width: 800px;
+    min-width: 480px;
     margin: 0 auto;
     background: white;
+    padding: 0;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;   
+    box-sizing: border-box;        
+}
+
+div.empty_box {
+    width: 100%;
+    max-width: 800px;
+    min-width: 480px;
+    margin: 0 auto;
     padding: 0;
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;   
@@ -121,14 +135,76 @@ img.logo {
     height: 16px;
 }
 
-div.shift_logo {
-    margin-left: 22px;
-}
-
 div.submenu {
     font-size: 14px; 
     line-height: 14px;
 }
+
+div.shift_logo {
+    margin-left: 22px;
+}
+
+div.half_box {
+    margin: 0px;
+    margin-bottom: 10px;
+    vertical-align: top;
+    width: 49%;
+    max-width: 395px;
+    min-width: 237px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;   
+    box-sizing: border-box;        
+}
+
+div.float_left {
+    float: left;
+}
+
+div.float_right {
+    float: right;
+}
+
+div.index_box {
+    position: relative;
+    text-align: center;
+    min-height: 200px;
+}
+
+img.adjusted {
+    position: absolute;
+    z-index: -1;
+    width: 100%;
+    top: 0;
+    left: 0;
+}
+
+div.index_entry { 
+    color: white; 
+    font-size: 48px; 
+    line-height: 48px; 
+    margin: 70px; 
+}
+
+form.qlogin {
+    display: inline-block;
+    text-align: center;
+    height: 100px;
+    margin: 30px;
+}
+
+.large {
+    font-size: 40px; 
+    line-height: 48px; 
+}
+
+div.bg_yellow { background: #daaa4c; }
+div.bg_blue { background: #326296; }
+div.bg_lightblue { background: #bcd7dc; }
+div.bg_red { background: #ba3c21; }
+div.bg_purple { background: #84037d; }
+div.bg_green { background: #335e4b; }
+div.fg_white { color: white; }
+
 
 a.selected_menu:link { color: #326296; }
 a.selected_menu:visited { color: #326296; }
@@ -146,6 +222,67 @@ div.frame {
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
+
+div.frame_red {
+    border-top: solid 1px #ba3c21;
+    border-left: solid 1px #ba3c21;
+    border-bottom: solid 5px #ba3c21;
+    border-right: solid 5px #ba3c21;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+
+div.frame_yellow {
+    border-top: solid 1px #daaa4c;
+    border-left: solid 1px #daaa4c;
+    border-bottom: solid 5px #daaa4c;
+    border-right: solid 5px #daaa4c;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+
+div.frame_purple {
+    border-top: solid 1px #84037d;
+    border-left: solid 1px #84037d;
+    border-bottom: solid 5px #84037d;
+    border-right: solid 5px #84037d;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+
+div.frame_lightblue {
+    border-top: solid 1px #bcd7dc;
+    border-left: solid 1px #bcd7dc;
+    border-bottom: solid 5px #bcd7dc;
+    border-right: solid 5px #bcd7dc;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+
+div.frame_blue {
+    border-top: solid 1px #326296;
+    border-left: solid 1px #326296;
+    border-bottom: solid 5px #326296;
+    border-right: solid 5px #326296;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+
+div.frame_green {
+    border-top: solid 1px #335e4b;
+    border-left: solid 1px #335e4b;
+    border-bottom: solid 5px #335e4b;
+    border-right: solid 5px #335e4b;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+
 
 div.message {
     border-top: solid 1px #ba3c21;

@@ -24,6 +24,60 @@
 */
 
 ?>
+<div class="strip" style="margin-top: 20px;">
+  <div class="empty_box index_box fg_white frame">
+    <a href="http://p2pfoodlab.net">
+      <div class="index_entry"><?php _p("about P2P Food Lab") ?></div>                       
+    </a>
+    <img src="DSC03573.JPG" class="adjusted" />
+  </div> 
+</div> 
+
+
+<div class="strip">
+  <div class="content_box index_box fg_white bg_green frame_blue">
+    
+    <form action="<?php url('login') ?>" method="post" name="login" class="qlogin"  style="vertical-align: bottom;">
+      <input type="hidden" name="op" value="login" />
+      <table class="qlogin">
+        <tr>
+          <td class="label large fg_white"><?php _p("username") ?></td>
+          <td class="input"><input type="text" name="visitor" size="8" maxlength="32" value="<?php echo $this->username ?>" /></td>
+        </tr>
+        <tr>
+          <td class="label large fg_white"><?php _p("password") ?></td>
+          <td class="input">
+            <input type="password" name="pwhash" size="8" maxlength="30" value="" />
+          </td>
+        </tr>
+      </table>
+      <input type="submit" style="position: absolute; left: -9999px; width: 1px; height: 1px;"/>
+    </form><br/>
+    <a href="createaccount" style="color: white; font-size: 75%;">You don't have an account? Create a new one.</a>
+  </div>
+</div> 
+
+<div class="strip">
+  <div class="content_box index_box fg_white bg_blue frame_green">
+    <a href="<?php url('posts') ?>">
+      <div class="index_entry"><?php _p("recent posts") ?></div>                       
+    </a>
+  </div>
+</div> 
+
+<div class="strip">
+  <a href="http://p2pfoodlab.net">
+    <div class="content_box index_box fg_white bg_purple frame_blue">
+      <div class="index_entry"><?php _p("meet the participants") ?></div>                       
+    </div> 
+  </a>
+</div> 
+
+
+
+<!--
+
+
 <div class="strip">
   <div class="content_box frame clearfix margin">
 
@@ -59,6 +113,8 @@
   </div> 
 </div> 
 
+
+
 <div class="strip">
   <div class="content_box">
    <p class="title"><?php _p("browse the message channels") ?></p>
@@ -79,3 +135,5 @@
     <p class="title"><?php _p("read the most recent posts") ?></p>
   </div> 
 </div> 
+
+-->

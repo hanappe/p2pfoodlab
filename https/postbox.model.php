@@ -67,6 +67,28 @@ class Postbox
                 $this->posts[] = $post;
         }
 
+        public function load_recent($lang, $from, $num) 
+        {
+                global $mysqli;
+
+                if ($lang) {
+                        $query = ("SELECT p.`id`, p.`from`, p.`thread`, p.`replyto`, p.`date`, p.`text`, "
+                                  . "p.`text_html`, p.`lang` FROM posts p WHERE " 
+                                  . "p.`lang`='" . $mysqli->real_escape_string($lang->code) . "'");
+                } else {
+                        $query = ("SELECT p.`id`, p.`from`, p.`thread`, p.`replyto`, p.`date`, p.`text`, "
+                                  . "p.`text_html`, p.`lang` FROM posts p");
+                }
+                if ($newest_first)
+                        $query .= "ORDER BY date DESC";
+                else
+                        $query .= "ORDER BY date DESC";
+
+                $query .= " LIMIT $from, $num";
+
+                return $this->_load($query);
+        }
+
         public function load_account($account_id, $lang, $newest_first) 
         {
                 global $mysqli;
@@ -204,24 +226,6 @@ class Postbox
                                   . "AND c.`post_id`=p.id "
                                   . "ORDER BY date DESC");
                 }
-                return $this->_load($query);
-        }
-
-        public function load_recent($lang) 
-        {
-                global $mysqli;
-
-                if ($lang) {
-                        $query = ("SELECT p.`id`, p.`from`, p.`thread`, p.`replyto`, p.`date`, p.`text`, "
-                                  . "p.`text_html`, p.`lang` FROM posts p WHERE 1 " 
-                                  . "AND p.`lang`='" . $mysqli->real_escape_string($lang->code) . "' "
-                                  . "ORDER BY date DESC LIMIT 30");
-                } else {
-                        $query = ("SELECT p.`id`, p.`from`, p.`thread`, p.`replyto`, p.`date`, p.`text`, "
-                                  . "p.`text_html`, p.`lang` FROM posts p WHERE 1 " 
-                                  . "ORDER BY date DESC LIMIT 30");
-                }
-
                 return $this->_load($query);
         }
 
