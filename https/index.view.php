@@ -35,7 +35,7 @@
 
 
 <div class="strip">
-  <div class="content_box index_box fg_white bg_green frame_blue">
+  <div class="empty_box index_box fg_white frame_blue">
     
     <form action="<?php url('login') ?>" method="post" name="login" class="qlogin"  style="vertical-align: bottom;">
       <input type="hidden" name="op" value="login" />
@@ -54,23 +54,26 @@
       <input type="submit" style="position: absolute; left: -9999px; width: 1px; height: 1px;"/>
     </form><br/>
     <a href="createaccount" style="color: white; font-size: 75%;">You don't have an account? Create a new one.</a>
+    <img src="DSC01408.JPG" class="adjusted" />
   </div>
 </div> 
 
 <div class="strip">
-  <div class="content_box index_box fg_white bg_blue frame_green">
+  <div class="empty_box index_box fg_white frame_green">
     <a href="<?php url('posts') ?>">
       <div class="index_entry"><?php _p("recent posts") ?></div>                       
     </a>
+    <img src="DSC01421.JPG" class="adjusted" />
   </div>
 </div> 
 
-<div class="strip">
-  <a href="http://p2pfoodlab.net">
-    <div class="content_box index_box fg_white bg_purple frame_blue">
+<div class="strip">     
+  <div class="empty_box index_box fg_white frame_blue">
+    <a href="http://p2pfoodlab.net">
       <div class="index_entry"><?php _p("meet the participants") ?></div>                       
-    </div> 
-  </a>
+    </a>
+    <img src="DSC03517.JPG" class="adjusted" />
+  </div> 
 </div> 
 
 

@@ -165,6 +165,7 @@ div.float_right {
 }
 
 div.index_box {
+    margin-top: 10px;
     position: relative;
     text-align: center;
     min-height: 200px;
