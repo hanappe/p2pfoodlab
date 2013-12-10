@@ -842,7 +842,7 @@ function do_reply(thread, post, lang)
         var editor = document.getElementById("editor_" + post);
         if (!editor) {
                 new NoteEditor("editor_reply_" + post, "post_" + post, 
-                               post, lang, undefined);
+                               thread, post, lang, undefined);
         }
 }
 

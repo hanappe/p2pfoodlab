@@ -157,7 +157,7 @@ class ThreadListViewer extends Page
                 return $account;
         }
 
-        public function insert_post($post, $first_post, $type, $expanded, $expandable)
+        public function insert_post($post, $first_post, $type, $expanded, $thread_size)
         {
                 global $base_url;
 
@@ -218,9 +218,9 @@ class ThreadListViewer extends Page
                 echo "      <a class=\"note_author\" href=\"$url\">$from</a> \n";
                 echo "       <span class=\"note_date\">" . $post->date . "</span>\n";
 
-                if ($first_post && $expandable) {
-                        $hide = _s("hide thread");
-                        $show = _s("show thread");
+                if ($first_post && ($thread_size > 0)) {
+                        $hide = _s("hide thread") . " ($thread_size)";
+                        $show = _s("show thread") . " ($thread_size)";
                         $label = ($expanded)? $hide : $show;
                         $id = "thread_" . $post->id;
                         echo ("      <a href=\"javascript:void(0);\" class=\"note_op\" "
@@ -274,11 +274,11 @@ class ThreadListViewer extends Page
                 echo "  <div class=\"strip\">\n";
                 echo "    <div class=\"content_box $color_scheme\">\n";
 
-                $has_thread = (count($thread->posts) > 1);
+                $thread_size = count($thread->posts) - 1;
 
-                $this->insert_post($post, true, $type, $expand, $has_thread);
+                $this->insert_post($post, true, $type, $expand, $thread_size);
 
-                if ($has_thread) {
+                if ($thread_size > 0) {
                         $visibility = $expand? "visible" : "hidden";
                         echo "    <div id=\"thread_" . $thread->id . "\" class=\"$visibility\">\n";
                         for ($i = 1; $i < count($thread->posts); $i++) {

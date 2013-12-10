@@ -44,12 +44,12 @@ function error($errmsg)
 
 function internalServerError($details)
 {
-        error("An internal server error occured.<br>(Details: " . $details . ")");
+        error("An internal server error occured: " . $details);
 }
 
 function badRequest($details)
 {
-        error("Bad request.<br>(Details: " . $details . ")");
+        error("Bad request: " . $details);
 }
 
 function unauthorized($msg)

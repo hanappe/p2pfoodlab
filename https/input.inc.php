@@ -153,7 +153,7 @@ function input_get_replyto()
         if ($replyto == NULL)
                 return NULL;
         if (!preg_match("/^[0-9]+$/", $replyto))
-                badRequest("");
+                badRequest("Invalid reply ID");
         return $replyto;
 }
 
@@ -163,7 +163,7 @@ function input_get_thread()
         if ($thread == NULL)
                 return NULL;
         if (!preg_match("/^[0-9]+$/", $thread))
-                badRequest("");
+                badRequest("Invalid thread ID");
         return $thread;
 }
 
