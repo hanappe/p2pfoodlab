@@ -52,7 +52,6 @@ if ($op != "postnote")
 $text = input_get_text();
 //echo "<pre>text 0 = $text</pre>";
 
-
 if ((!$text || (strlen($text) <= 0)) // no text
     && (!isset($_FILES['docs']) || (count($_FILES['docs']['name']) == 0)) ) { // and no images
         header("Location: " . $url);
@@ -61,6 +60,8 @@ if ((!$text || (strlen($text) <= 0)) // no text
 
 $text = Post::sanitise_text($text);
 //echo "<pre>text 2 = $text</pre>";
+
+//echo "" . __FILE__. ":" . __LINE__ . "<br>\n";
 
 $id = input_get('post');
 
@@ -104,7 +105,7 @@ if ($id != NULL) {
 
         if (!$note->parse($visitor_account)) 
                 badRequest("Failed to parse the note.");
-        
+
         if (!$note->store())
                 internalServerError("Database error.");
  }
