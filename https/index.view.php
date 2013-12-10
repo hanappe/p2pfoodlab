@@ -36,13 +36,23 @@
 
 <div class="strip">
   <div class="empty_box index_box fg_white frame_blue">
+
+    <script type="text/javascript"> 
+      function submitForm() 
+      {
+          var visitor = document.forms['login'].visitor.value;
+          var pw = document.forms['login'].pwhash.value;
+          document.forms['login'].pwhash.value = hex_md5(visitor + pw);
+          document.forms['login'].submit();
+      }
+    </script>
     
-    <form action="<?php url('login') ?>" method="post" name="login" class="qlogin"  style="vertical-align: bottom;">
+    <form action="<?php url('login') ?>" method="post" name="login" class="qlogin" onsubmit="return submitForm();" >
       <input type="hidden" name="op" value="login" />
       <table class="qlogin">
         <tr>
           <td class="label large fg_white"><?php _p("username") ?></td>
-          <td class="input"><input type="text" name="visitor" size="8" maxlength="32" value="<?php echo $this->username ?>" /></td>
+          <td class="input"><input type="text" name="visitor" size="8" maxlength="32" /></td>
         </tr>
         <tr>
           <td class="label large fg_white"><?php _p("password") ?></td>
