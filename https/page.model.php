@@ -283,7 +283,7 @@ class ThreadListViewer extends Page
                         echo "    <div id=\"thread_" . $thread->id . "\" class=\"$visibility\">\n";
                         for ($i = 1; $i < count($thread->posts); $i++) {
                                 $post = $thread->posts[$i];
-                                $this->insert_post($post, false, "reply", false, $has_thread);
+                                $this->insert_post($post, false, "reply", false, false);
                         }                
                         echo "      </div>\n";
                 }
