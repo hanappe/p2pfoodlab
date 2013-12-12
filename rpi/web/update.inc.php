@@ -1158,6 +1158,11 @@ function update_opensensordata()
         }
         $osd_config->key = $key;
 
+        if (!save_config($tmp)) {
+                echo $config_error . "<br>";
+                return NULL;
+        }
+
         if (($osd_config->server != $oldserver) 
             || ($osd_config->key != $oldkey)
             || 1) { // FIXME
@@ -1178,11 +1183,6 @@ function update_opensensordata()
                         $msg .= "The new OpenSensorData group definition could not be created.";
                         return NULL;
                 }
-        }
-
-        if (!save_config($tmp)) {
-                echo $config_error . "<br>";
-                return NULL;
         }
         
         return $tmp;

@@ -13,6 +13,9 @@ adduser pi i2c
 adduser pi video
 adduser pi www-data
 
+install --directory --owner=pi --group=pi --mode=0700 /home/pi/.ssh
+install --directory --owner=pi --group=www-data --mode=0775 /etc/opensensordata
+
 # Load the modules for the I2C bus.
 modprobe i2c_dev
 modprobe i2c_bcm2708
@@ -35,8 +38,16 @@ cd /tmp/dist
 bash ./install.sh /var/p2pfoodlab pi pi
 
 # Install the P2P Food Lab configuration file.
+install --directory --owner=pi --group=www-data --mode=0775 /var/p2pfoodlab
+install --directory --owner=pi --group=www-data --mode=0775 /var/p2pfoodlab/backup
+install --directory --owner=pi --group=www-data --mode=0775 /var/p2pfoodlab/photostream
 install --directory --owner=pi --group=www-data --mode=0775 /var/p2pfoodlab/etc
 install --owner=pi --group=www-data --mode=0664 config.json /var/p2pfoodlab/etc
+
+touch /var/p2pfoodlab/log.txt
+chown pi.www-data /var/p2pfoodlab/log.txt
+chmod 0664 /var/p2pfoodlab/log.txt
+
 
 # Install the system configuration files.
 source ./files.txt
