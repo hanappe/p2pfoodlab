@@ -1,0 +1,48 @@
+
+1. Install Raspbian on a >4GB CD card.
+   See http://www.raspberrypi.org/downloads
+
+2. Put the SD card in the RPi and boot the little device. In the blue
+   configuration screen (raspi-config), do the following:
+
+   - expand the file system.
+   - set the graphics card memory to a minimum (16MB)
+   - enable the SSH server
+   - disable the desktop at startup.
+
+3. Log into the RPi. Make sure that you have network access. Then run
+   the following command:
+
+$ wget https://github.com/hanappe/p2pfoodlab/raw/master/rpi/install-p2pfoodlab.sh
+$ sudo bash install-p2pfoodlab.sh
+
+
+NOTE: This installation script is meant for Raspberry Pi's that will
+      be used exclusively as a sensorbox. It overwrites some
+      configuration files, such as the Apache2 configuration
+      files. Don't run it on a RPi that you're already using for other
+      projects.
+
+4. Plug in the USB WiFi, the webcam, and then reboot the RPi.
+
+5. Connect the RPi to a laptop/PC using a cross-cable. The laptop
+  should be configured to obtain an IP address automatically using
+  DHCP.
+
+6. Start a web browser and go to the address http://192.168.3.14/ 
+   Log in to the configuration web site. The default password is
+   'p2pfoodlab'.
+
+7. Configure the different sections of the sensorbox:
+
+   - The WiFi settings of your network
+
+   - Give a name to the sensorbox and provide the OpenSensorData.net
+     key to upload the data
+
+   - Set the period with which you want to upload the data, and the
+     webcam photos.
+
+8. Sit back and relax.
+
+
