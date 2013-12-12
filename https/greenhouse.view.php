@@ -67,7 +67,7 @@ echo " ];\n";
 
 var timer = null;
 var updating = false;
-var osd = new OpenSensorData("<?php echo $base_url ?>/opensensordata");
+var osd = new OpenSensorData("<?php echo $base_url ?>/opensensordata", null);
 
 function twoDigits(n)
 {
@@ -114,10 +114,11 @@ function updateDatasets()
 
         for (i = 0; i < datastreams.length; i++) {
                 //var path = ("datapoints/" + datastreams[i] + "/" + range + ".json");
-                var path = ("datapoints/" + datastreams[i] + "/" + d + ".json");
+                var path = ("filter/" + datastreams[i] + "/" + d + ".json");
                 var updater = { 
                         "graph": graphs[i],
                         "callback": function(me, data) { 
+                                //alert(data);
                                 me.graph.updateOptions({ file: data}); 
                                 me.graph.updating = false;
                                 checkUpdating();
@@ -179,7 +180,18 @@ if ($this->errmsg) {
       </div>
 
 <?php
-} else {
+} else if (($this->visitor != NULL)
+           && ($this->host != NULL)
+           && ($this->visitor->id == $this->host->id)
+           && (count($host->sensorbox) <= 0)) {
+        
+        echo "    <div class=\"strip\">\n";
+        echo "        <div class=\"content_box frame margin\">\n";
+        echo "             " . _s("For more information about this section, check out the help section") . " (<a href=\"" . url_s('help#sensorbox') . "\">" . _s("here") . "</a>).\n";
+        echo "        </div>\n";
+        echo "    </div>\n";
+
+ } else {
 ?>
 
       <div class="strip">

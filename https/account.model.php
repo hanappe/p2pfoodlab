@@ -25,17 +25,15 @@
 
 require_once "opensensordata.inc.php";
 
-function visitor_at_home()
+function visitor_at_home($host, $visitor)
 {
-        global $host_account, $visitor_account;
         return ($visitor_account 
                 && $host_account 
                 && ($host_account->id == $visitor_account->id));
 }
 
-function visitor_registered()
+function visitor_registered($visitor)
 {
-        global $host_account, $visitor_account;
         return $visitor_account != NULL; 
 }
 
@@ -328,7 +326,8 @@ class Account
 
                 $res = $mysqli->query($query);
                 if ($mysqli->errno) {
-                        echo $mysqli->error . "<br/>\n";
+                        $this->err = $mysqli->error;
+                        return false;
                 }
                 if (!$res || ($res->num_rows != 1)) return false;
                 $row = $res->fetch_assoc();
@@ -355,7 +354,7 @@ class Account
 
                 $res = $mysqli->query($query);
                 if ($mysqli->errno) {
-                        //echo $mysqli->error . "<br/>\n";
+                        $this->err = $mysqli->error;
                         return false;
                 }
 
@@ -378,7 +377,7 @@ class Account
 
                 $res = $mysqli->query($query);
                 if ($mysqli->errno) {
-                        //echo $mysqli->error . "<br/>\n";
+                        $this->err = $mysqli->error;
                         return false;
                 }
 
@@ -412,7 +411,7 @@ class Account
                 
                 $res = $mysqli->query($query);
                 if ($mysqli->errno) {
-                        //echo $mysqli->error . "<br/>\n";
+                        $this->err = $mysqli->error;
                         return false;
                 }
 
@@ -433,7 +432,7 @@ class Account
 
                 $res = $mysqli->query($query);
                 if ($mysqli->errno) {
-                        //echo $mysqli->error . "<br/>\n";
+                        $this->err = $mysqli->error;
                         return false;
                 }
 
@@ -453,7 +452,7 @@ class Account
 
                         $res = $mysqli->query($query);
                         if ($mysqli->errno) {
-                                //echo $mysqli->error . "<br/>\n";
+                                $this->err = $mysqli->error;
                                 return false;
                         }
                 } else {
@@ -466,7 +465,7 @@ class Account
 
                         $res = $mysqli->query($query);
                         if ($mysqli->errno) {
-                                //echo $mysqli->error . "<br/>\n";
+                                $this->err = $mysqli->error;
                                 return false;
                         }
                 }
@@ -488,7 +487,7 @@ class Account
 
                         $res = $mysqli->query($query);
                         if ($mysqli->errno) {
-                                //echo $mysqli->error . "<br/>\n";
+                                $this->err = $mysqli->error;
                                 return false;
                         }
                 } else {
@@ -501,7 +500,7 @@ class Account
 
                         $res = $mysqli->query($query);
                         if ($mysqli->errno) {
-                                //echo $mysqli->error . "<br/>\n";
+                                $this->err = $mysqli->error;
                                 return false;
                         }
                 }
@@ -519,7 +518,7 @@ class Account
 
                         $res = $mysqli->query($query);
                         if ($mysqli->errno) {
-                                //echo $mysqli->error . "<br/>\n";
+                                $this->err = $mysqli->error;
                                 return false;
                         }
                 } else {
@@ -532,7 +531,7 @@ class Account
 
                         $res = $mysqli->query($query);
                         if ($mysqli->errno) {
-                                //echo $mysqli->error . "<br/>\n";
+                                $this->err = $mysqli->error;
                                 return false;
                         }
                 }
@@ -543,7 +542,7 @@ class Account
         {
                 global $mysqli, $osd_appkey;
                 
-                $osd = new OpenSensorData(null, null, null);
+                $osd = new OpenSensorData(null, null);
                 $osd->appkey = $osd_appkey;
                 $osd_account = $osd->create_account("p2pfl_" . $this->username, $this->email);
                 if (!$osd_account) {
@@ -572,6 +571,30 @@ class Account
         {
                 return in_array($s, $this->lang);
         }
-}
 
+        public function count_messages() 
+        {
+                global $mysqli;
+
+                if (isset($this->message_count))
+                        return $this->message_count;
+
+                $query = ("SELECT COUNT(*) as count FROM posts WHERE `from`=" . $this->id);
+                //echo $query . "<br/>\n";
+
+                $res = $mysqli->query($query);
+                if ($mysqli->errno) {
+                        $this->err = $mysqli->error;
+                        return false;
+                }
+                if (!$res || ($res->num_rows != 1)) {
+                        $this->err = "SQL query failed";
+                        return false;
+                }
+                $row = $res->fetch_assoc();
+                $this->message_count = $row['count'];
+
+                return $this->message_count;
+        }
+}
 ?>

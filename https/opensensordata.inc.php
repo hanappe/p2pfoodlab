@@ -25,15 +25,13 @@ class OpenSensorData
         public $msg = "";
         public $server = "http://opensensordata.net";
         public $key = "no-key";
-        public $cachedir = FALSE;
         public $appkey = "no-key";
         public $err = false;
 
-        function __construct($server, $key, $cachedir) 
+        function __construct($server, $key) 
         {
                 if ($server) $this->server = $server;
                 if ($key) $this->key = $key;
-                if ($cachedir) $this->cachedir = $cachedir;
         }
 
         public function decode($json)

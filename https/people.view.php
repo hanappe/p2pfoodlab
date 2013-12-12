@@ -28,10 +28,37 @@
 <?php
    for ($i = 0; $i < count($this->accounts); $i++) {
        $account = $this->accounts[$i];
+
+       $messages = $account->count_messages();
+
        $url = $base_url . "/people/" . $account->username;
+
+ if (($messages <= 0) 
+     && (count($account->sensorbox) <= 0)
+     && (($this->visitor == NULL)
+         || ($this->host == NULL)
+         || ($this->visitor->id != $this->host->id))) {
+         continue;
+ }
+
 echo "<div class=\"strip\">\n";
 echo "  <div class=\"content_box frame margin\">\n";
-echo "    <a href=\"$url\" class=\"rightmargin\">" . $account->username . "</a>\n";
+echo "    <a href=\"$url\" class=\"rightmargin standout\">" . $account->username . "</a>\n";
+ if ($messages == 1) {
+         echo "     1 post\n";
+ } else if ($messages > 1) {
+         echo "     $messages posts\n";
+ }
+ if (count($account->sensorbox) == 1) {
+         if ($messages > 0)          
+                 echo "     - \n";
+         echo "     <a href=\"$url/greenhouse/1\">1 dataset</a>\n";
+ } else if (count($account->sensorbox) > 1) {
+         if ($messages > 0)          
+                 echo "     - \n";
+         echo "     <a href=\"$url/greenhouse/1\">" . count($account->sensorbox) . " datasets</a>\n";
+ }
+
 echo "  </div>\n";
 echo "</div>\n";
    }

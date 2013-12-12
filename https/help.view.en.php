@@ -209,6 +209,16 @@
 
 <div class="strip">
   <div class="content_box frame margin">
+    <a name="sensorbox"></a>
+    <h1>Greenhouses and datasets</h1>
+
+
+  </div>
+</div>
+
+
+<div class="strip">
+  <div class="content_box frame margin">
     <a name="opensensordata"></a>
     <h1>OpenSensorData.net</h1>
 
