@@ -1,4 +1,7 @@
 
+How to install the sensobox software on the RPi
+-----------------------------------------------
+
 1. Install Raspbian on a >4GB CD card.
    See http://www.raspberrypi.org/downloads
 
