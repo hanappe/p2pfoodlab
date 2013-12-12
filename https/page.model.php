@@ -414,7 +414,14 @@ class PersonalPage extends ThreadListViewer
         public function insert_notebook_menu()
         {
                 $base = url_s('people/' . $this->host->username . '/notebook/');
+                $np = $this->host->count_messages();
                 $n = count($this->host->lang);
+
+                if (($np <= 0) 
+                    && (($this->visitor == null) 
+                        || ($this->host->id != $this->visitor->id))) 
+                        return;
+
                 $u = "";
                 if ($this->select == "notebook")
                         $u = "selected_menu";
@@ -445,6 +452,12 @@ class PersonalPage extends ThreadListViewer
 
                 $base = url_s('people/' . $this->host->username . '/greenhouse/');
                 $n = count($this->host->sensorbox);
+
+                if (($n <= 0) 
+                    && (($this->visitor == null) 
+                        || ($this->host->id != $this->visitor->id))) 
+                        return;
+
                 $u = "";
                 if ($this->select == "greenhouse")
                         $u = "selected_menu";
@@ -524,7 +537,6 @@ class PersoTagPage extends PersonalPage
                 }
                 echo "              </div>";
         }
-
 
         public function insert_body() 
         {
@@ -618,17 +630,30 @@ class Notebook extends PersonalPage
                 $lang_sel = $this->lang? $this->lang->code : $this->visitor->lang[0];
                 $lang_opt = "['" . join("','", $this->visitor->lang) . "']"; 
                 echo "    <div class=\"strip\">\n";
-                echo "        <div class=\"content_box frame\">\n";
-                echo "            <div class=\"margin\">\n";
-                echo "                <a href=\"javascript:void(0);\" onclick=\"do_newnote('$lang_sel', $lang_opt)\">" . _s("Write a new note.") . "</a>\n";
-                echo "                <div id=\"newnote\" class=\"visible\"></div>\n";
-                echo "            </div>\n";
+                echo "        <div class=\"content_box frame margin\">\n";
+                echo "             <a href=\"javascript:void(0);\" onclick=\"do_newnote('$lang_sel', $lang_opt)\">" . _s("Write a new note.") . "</a>\n";
+                echo "             <div id=\"newnote\" class=\"visible\"></div>\n";
+                echo "        </div>\n";
+                echo "    </div>\n";
+        }
+
+        public function insert_message() 
+        {
+                echo "    <div class=\"strip\">\n";
+                echo "        <div class=\"content_box frame margin\">\n";
+                echo "             " . _s("Start keeping notes and post your questions and observation using the link below. For more info, check the help section") . " (<a href=\"" . url_s('help#editing') . "\">" . _s("here") . "</a>).\n";
                 echo "        </div>\n";
                 echo "    </div>\n";
         }
 
         public function insert_body() 
         {
+                if (($this->visitor != NULL)
+                    && ($this->host != NULL)
+                    && ($this->visitor->id == $this->host->id)
+                    && ($this->host->count_messages() <= 0)) {
+                        $this->insert_message();
+                }
                 if (($this->visitor != NULL)
                     && ($this->host != NULL)
                     && ($this->visitor->id == $this->host->id)) {
@@ -689,6 +714,13 @@ class PeoplePage extends Page
                 $this->accounts = Account::load_all();
                 if ($this->accounts === false)
                         internalServerError("Database error (Account::load_all)");
+
+                for ($i = 0; $i < count($this->accounts); $i++) {
+                        $account = $this->accounts[$i];
+                        if (!$account->load_sensorboxes()) {
+                                internalServerError("Database error (Account::load_sensorboxes)");
+                        }
+                }
         }
 
         public function insert_title()
@@ -716,7 +748,7 @@ class AccountPage extends Page
                 parent::__construct($visitor);
                 $this->show_account_submenu = true;
 
-                $osd = new OpenSensorData($osd_server, null, null);
+                $osd = new OpenSensorData($osd_server, null);
                 $this->osd_account = $osd->get_account($visitor->osd_username);
 
                 if (!$visitor->load_sensorboxes()) {
@@ -783,7 +815,7 @@ class GreenhousePage extends PersonalPage
                         $this->index = 0;
                 }
                 if ($this->index >= 0) {
-                        $osd = new OpenSensorData($osd_server, null, null);
+                        $osd = new OpenSensorData($osd_server, null);
                         $this->group = $osd->get_group($host->sensorbox[$this->index]);
                         if ($this->group === FALSE) {
                                 $this->errmsg = "Connection to OpenSensorData.net failed";
