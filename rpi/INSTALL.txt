@@ -2,6 +2,8 @@
 How to install the sensobox software on the RPi
 -----------------------------------------------
 
+Part 1
+
 1. Install Raspbian on a >4GB CD card.
    See http://www.raspberrypi.org/downloads
 
@@ -20,23 +22,55 @@ $ wget https://github.com/hanappe/p2pfoodlab/raw/master/rpi/install-p2pfoodlab.s
 $ sudo bash install-p2pfoodlab.sh
 
 
-NOTE: This installation script is meant for Raspberry Pi's that will
-      be used exclusively as a sensorbox. It overwrites some
-      configuration files, such as the Apache2 configuration
-      files. Don't run it on a RPi that you're already using for other
-      projects.
+    NOTE: This installation script is meant for Raspberry Pi's that
+      will be used exclusively as a sensorbox. The installation script
+      overwrites existing configuration files without a warning,
+      including the Apache2 configuration files. Don't run the script
+      on a RPi that you're already using for other purposes.
 
-4. Plug in the USB WiFi, the webcam, and then reboot the RPi.
 
-5. Connect the RPi to a laptop/PC using a cross-cable. The laptop
-  should be configured to obtain an IP address automatically using
-  DHCP.
+Part 2
 
-6. Start a web browser and go to the address http://192.168.3.14/ 
+4. Download and install the Arduino IDE on your laptop:
+   http://arduino.cc/en/main/software
+
+5. Download the code for the Arduino in the sensorbox:
+
+$ wget https://github.com/hanappe/p2pfoodlab/archive/master.zip
+$ unzip master.zip
+
+   This will create a directory called p2pfoodlab-master.
+
+   Open the Arduino IDE application, import the library
+   p2pfoodlab-master/arduino/DHT22.zip (Menu: Sketch > Import
+   Library). See also http://arduino.cc/en/Guide/Libraries
+   
+6. Connect the Arduino to your PC using an USB cable and the FTDI
+   USB-to-Serial adapter (http://arduino.cc/en/Guide/ArduinoProMini).
+
+   In the Arduino IDE, open the sketch
+   p2pfoodlab-master/arduino/p2pfoodlab/p2pfoodlab.ino
+
+   In the Tools > Board menu, select "Arduino Pro Mini (3.3V, 8MHz) w/
+   ATmega328". 
+
+   In Tools > Serial Port menu, make sure you have the right port
+   selected (trial and error?).
+
+
+Part 3
+
+7. Plug in the USB WiFi, the webcam, and then reboot the RPi.
+
+8. Connect the RPi to a laptop/PC using a cross-cable. The laptop
+   should be configured to obtain an IP address automatically using
+   DHCP. 
+  
+9. Start a web browser and go to the address http://192.168.3.14/ 
    Log in to the configuration web site. The default password is
    'p2pfoodlab'.
 
-7. Configure the different sections of the sensorbox:
+10. Configure the different sections of the sensorbox:
 
    - The WiFi settings of your network
 
@@ -46,6 +80,8 @@ NOTE: This installation script is meant for Raspberry Pi's that will
    - Set the period with which you want to upload the data, and the
      webcam photos.
 
-8. Sit back and relax.
 
+Part 4
+
+11. Sit back and relax.
 
