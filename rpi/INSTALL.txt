@@ -80,8 +80,37 @@ Part 3
    - Set the period with which you want to upload the data, and the
      webcam photos.
 
+   - Add your public SSH key to the SSH section (needed for the
+     optional test below).
+
+     On Linux, copy the output of the command below:
+
+     $ cat ~/.ssh/id_rsa.pub
+
+     If you don't have any SSH keys, you can generate them as follows:
+
+     $ ssh-keygen -t rsa
+
+
+11. To test the communication with the Arduino, ssh into the RPi and
+    execute the following commands:
+
+    $ i2cdetect -y 1
+
+    This should show the presence of the Arduino at the address 04.
+
+    $ /var/p2pfoodlab/bin/arduino millis
+
+    This should return the current clock count of the Arduino.
+
+12. To verify that the data upload:
+    - On the RPi, check the ID of the data group:
+      $ cat /etc/opensensordata/group.json
+    - Write down the ID of the group.
+    - Go to the web page
+      http://opensensordata.net/viewgroup/<ID>.csv
 
 Part 4
 
-11. Sit back and relax.
+13. Sit back and relax.
 
