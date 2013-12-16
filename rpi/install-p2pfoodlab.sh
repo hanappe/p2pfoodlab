@@ -8,6 +8,8 @@ gid=pi
 home=/home/pi
 dest=/var/p2pfoodlab
 
+cd $home
+
 # Install required packages. Also remove package ifplugd because it is
 # doing a bad job on the Raspberry Pi in combination with the DHCP
 # server isc-dhcp-server.
@@ -30,24 +32,22 @@ modprobe i2c_bcm2708
 
 # Download the latest version of the sensorbox software and
 # configuration files.
-cd $home
-if [ -d p2pfoodlab ]; then
-    cd p2pfoodlab
-    git pull 
+if [ -d $home/p2pfoodlab ]; then
+    su -l -c "cd $home/p2pfoodlab && git pull" $uid 
 else
-    git clone https://github.com/hanappe/p2pfoodlab.git
-    cd p2pfoodlab
+    su -l -c "cd $home && git clone https://github.com/hanappe/p2pfoodlab.git" $uid
 fi
 
+
 # Compile the source code.
-su -l -c "make -C rpi/src clean all" pi
+su -l -c "make -C $home/p2pfoodlab/rpi/src clean all" $uid
 
 # Install the files.
-cd dist
+cd $home/p2pfoodlab/rpi
 bash ./install.sh $dest $uid $gid
-cd ..
 
 # Install the P2P Food Lab configuration file.
+cd $home/p2pfoodlab/rpi
 install --directory --owner=$uid --group=www-data --mode=0775 $dest
 install --directory --owner=$uid --group=www-data --mode=0775 $dest/backup
 install --directory --owner=$uid --group=www-data --mode=0775 $dest/photostream
