@@ -26,12 +26,15 @@ class OpenSensorData
         public $server = "http://opensensordata.net";
         public $key = "no-key";
         public $cachedir = FALSE;
+        public $appkey = "no-key";
+        public $err = false;
 
         function __construct($server, $key, $cachedir) 
         {
-                $this->server = $server;
-                $this->key = $key;
-                $this->cachedir = $cachedir;
+                if ($server) $this->server = $server;
+                if ($key) $this->key = $key;
+                if (isset($cachedir))
+                        $this->cachedir = $cachedir;
         }
 
         public function decode($json)
@@ -74,7 +77,8 @@ class OpenSensorData
         {
                 $options = array('http' => 
                                  array ("header" => ("Content-type: application/json\r\n"
-                                                     . "X-OpenSensorData-Key: " . $this->key . "\r\n")
+                                                     . "X-OpenSensorData-Key: " . $this->key . "\r\n"),
+                                        "ignore_errors" => "1"
                                         )
                                  );
 
@@ -82,14 +86,22 @@ class OpenSensorData
                 $url = $this->server . "/" . $path;
                 $r = file_get_contents($url, false, $context);
 
-                /* echo "-------------------------------------------<br>\n"; */
-                /* echo "GET $url<br>\n"; */
-                /* echo "-> "; var_dump($r); echo "<br>\n"; */
+                echo "-------------------------------------------<br>\n";
+                echo "GET $url<br>\n";
+                echo "-> "; var_dump($r); echo "<br>\n";
 
-                if ($r === FALSE) 
+                if ($r === FALSE) {
+                        $this->msg = "Failed to retrieve data from OpenSensorData.net: unknown error. ";
                         return FALSE;
+                }
 
-                return $this->decode($r);
+                $json = $this->decode($r);
+                if (isset($json->error)) {
+                        $this->msg = $json->msg;
+                        return false;
+                }
+
+                return $json;
         }
 
         public function put($path, $data) 
@@ -99,7 +111,8 @@ class OpenSensorData
                                         "method" => "PUT",
                                         "header" => ("Content-type: application/json\r\n"
                                                      . "X-OpenSensorData-Key: " . $this->key . "\r\n"),
-                                        "content" => json_encode($data)
+                                        "content" => json_encode($data),
+                                        "ignore_errors" => "1"
                                         )
                                  );
 
@@ -107,26 +120,86 @@ class OpenSensorData
                 $url = $this->server . "/" . $path;
                 $r = file_get_contents($url, false, $context);
 
-                /* echo "-------------------------------------------<br>\n"; */
-                /* echo "PUT $url<br>\n"; */
-                /* echo "-> "; var_dump($data); echo "<br>\n"; */
-                /* echo "-> "; var_dump($r); echo "<br>\n"; */
+                echo "-------------------------------------------<br>\n";
+                echo "PUT $url<br>\n";
+                echo "-> "; var_dump($data); echo "<br>\n";
+                echo "-> "; var_dump($r); echo "<br>\n";
 
-                if ($r === FALSE) 
+                if ($r === FALSE) {
+                        $this->msg = "Failed to retrieve data from OpenSensorData.net: unknown error. ";
                         return FALSE;
-                
-                return $this->decode($r);
+                }
+
+                $json = $this->decode($r);
+                if (isset($json->error)) {
+                        $this->msg = $json->msg;
+                        return false;
+                }
+
+                return $json;
         }
 
+        public function put_with_appkey($path, $data) 
+        {
+                $options = array('http' => 
+                                 array (
+                                        "method" => "PUT",
+                                        "header" => ("Content-type: application/json\r\n"
+                                                     . "X-OpenSensorData-AppKey: " . $this->appkey . "\r\n"),
+                                        "content" => json_encode($data),
+                                        "ignore_errors" => "1"
+                                        )
+                                 );
+
+                $context  = stream_context_create($options);
+                $url = $this->server . "/" . $path;
+                $r = file_get_contents($url, false, $context);
+
+                echo "-------------------------------------------<br>\n";
+                echo "PUT/AppKey $url<br>\n";
+                echo "-> data: "; var_dump($data); echo "<br>\n";
+                echo "-> json: " . json_encode($data) . "<br>\n";
+                echo "<- resp header: "; var_dump($http_response_header); echo "<br>\n";
+                echo "<- resp data: "; var_dump($r); echo "<br>\n";
+
+                if ($r === FALSE) {
+                        $this->msg = "Failed to retrieve data from OpenSensorData.net: unknown error. ";
+                        return FALSE;
+                }
+
+                $json = $this->decode($r);
+                if (isset($json->error)) {
+                        $this->msg = $json->msg;
+                        return false;
+                }
+
+                return $json;
+        }
 
         public function get_my_account()
         {
                 return $this->get("account.json");
         }
 
-        public function get_account($name)
+        public function get_account($name) 
         {
                 return $this->get("accounts/" . $name . ".json");
+        }
+
+        public function get_group($id) {
+                return $this->get("groups/" . $id . ".json");
+        }
+
+        public function create_account($name, $email) 
+        {
+                $d = new StdClass();
+                $d->username = $name;
+                $d->email = $email;
+
+                $account = $this->put_with_appkey("accounts/", $d);
+                var_dump($account);
+
+                return $account;
         }
 
         public function get_datastream_by_name($account, $group, $name)
@@ -141,7 +214,7 @@ class OpenSensorData
 
         public function create_datastream($name, $description, $unit, $cached_ok)
         {
-                if ($cached_ok) {
+                if ($cached_ok && $this->cachedir) {
                         $filename = $this->cachedir . "/" . $name . ".json";
                         $json = file_get_contents($filename);
                         if ($json != FALSE) {
@@ -161,7 +234,7 @@ class OpenSensorData
                         return FALSE;
                 }
 
-                if (1) {
+                if ($this->cachedir) {
                         $filename = $this->cachedir . "/" . $name . ".json";
                         $err = file_put_contents($filename, json_encode($reply));
                         if ($err === FALSE) {
