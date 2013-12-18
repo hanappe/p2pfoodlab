@@ -279,6 +279,8 @@ if ($this->errmsg) {
                                                   { labels: [ "Date", "<?php echo $datastream->unit ?>" ],
                                                     includeZero: true, 
                                                     showRangeSelector: false,
+                                                    customBars: true,
+                                                    errorBars: true,
                                                     drawCallback: function(me, initial) {
                                                         if (blockRedraw || initial) return;
                                                         blockRedraw = true;
