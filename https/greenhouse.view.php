@@ -113,7 +113,8 @@ function updateDatasets()
         updating = true;
 
         for (i = 0; i < datastreams.length; i++) {
-                var path = ("datapoints/" + datastreams[i] + "/" + range + ".json");
+                var path = ("filter/" + datastreams[i] + "/" + range + ".json");
+                //var path = ("datapoints/" + datastreams[i] + "/" + range + ".json");
                 //var path = ("filter/" + datastreams[i] + "/" + d + ".json");
                 var updater = { 
                         "graph": graphs[i],
