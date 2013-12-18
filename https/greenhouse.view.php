@@ -105,16 +105,16 @@ function checkUpdating()
 
 function updateDatasets()
 {
-        //var range = formatDate(startDate) + "/" + formatDate(endDate);
-        var d = formatDate(endDate);
+        var range = formatDate(startDate) + "/" + formatDate(endDate);
+        //var d = formatDate(endDate);
 
         if (updating) return;
 
         updating = true;
 
         for (i = 0; i < datastreams.length; i++) {
-                //var path = ("datapoints/" + datastreams[i] + "/" + range + ".json");
-                var path = ("filter/" + datastreams[i] + "/" + d + ".json");
+                var path = ("datapoints/" + datastreams[i] + "/" + range + ".json");
+                //var path = ("filter/" + datastreams[i] + "/" + d + ".json");
                 var updater = { 
                         "graph": graphs[i],
                         "callback": function(me, data) { 
@@ -128,8 +128,8 @@ function updateDatasets()
                 osd.getdata(path, updater, updater.callback);
         }
         for (i = 0; i < photostreams.length; i++) {
-                //var path = ("photos/" + photostreams[i] + "/" + range + ".json");
-                var path = ("photos/" + photostreams[i] + "/" + d + ".json");
+                var path = ("photos/" + photostreams[i] + "/" + range + ".json");
+                //var path = ("photos/" + photostreams[i] + "/" + d + ".json");
                 var updater = { 
                         "slideshow": slideshows[i],
                         "callback": function(me, data) { 
@@ -206,21 +206,20 @@ if ($this->errmsg) {
         </div>
       </div>
 
+<? /*
       <div class="strip">
         <div class="content_box frame">
           <div class="datepicker margin">
             <?php _p("show data of") ?>
             <a href="javascript:void(0);" id="endDate" class="date"><?php _p("today") ?></a>.
+*/ ?>
 
-<? /*
             <?php _p("show data from") ?>
             <?php _p("show data from") ?>
             <a href="javascript:void(0);" id="startDate" class="date"><?php echo $start_date ?></a>
             <?php _p("to") ?>
             <a href="javascript:void(0);" id="endDate" class="date"><?php _p("today") ?></a>.
-*/ ?>
             <script type="text/javascript">
-<? /*
             Calendar.setup(
               {
                 dateField: 'startDate',
@@ -228,7 +227,7 @@ if ($this->errmsg) {
                 selectHandler: changeStartDate
               }
             );
-*/ ?>
+<? /**/ ?>
             Calendar.setup(
               {
                 dateField: 'endDate',
