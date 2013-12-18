@@ -206,15 +206,15 @@ if ($this->errmsg) {
         </div>
       </div>
 
-<? /*
       <div class="strip">
         <div class="content_box frame">
           <div class="datepicker margin">
+
+<? /*
             <?php _p("show data of") ?>
             <a href="javascript:void(0);" id="endDate" class="date"><?php _p("today") ?></a>.
 */ ?>
 
-            <?php _p("show data from") ?>
             <?php _p("show data from") ?>
             <a href="javascript:void(0);" id="startDate" class="date"><?php echo $start_date ?></a>
             <?php _p("to") ?>
