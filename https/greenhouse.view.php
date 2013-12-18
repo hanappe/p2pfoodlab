@@ -120,7 +120,7 @@ function updateDatasets()
                         "graph": graphs[i],
                         "callback": function(me, data) { 
                                 //alert(data);
-                                me.graph.updateOptions({ file: data}); 
+                                me.graph.updateOptions({ "file": data, "customBars": true, "errorBars": true }); 
                                 me.graph.updating = false;
                                 checkUpdating();
                         }
