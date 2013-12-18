@@ -22,6 +22,7 @@
 
 require_once "config.inc.php";
 require_once "session.inc.php";
+require_once "error.inc.php";
 
 $json = file_get_contents("https://p2pfoodlab.net/sensorbox-versions.json");
 

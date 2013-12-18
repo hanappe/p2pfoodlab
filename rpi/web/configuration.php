@@ -21,8 +21,27 @@
 */
 
 require_once "config.inc.php";
+require_once "error.inc.php";
 require_once "session.inc.php";
 require_once "update.inc.php";
+
+
+function load_group() 
+{
+  global $osd_dir;
+
+  $filename = $osd_dir . "/group.json";
+  if (is_readable($filename)) {
+    $json = file_get_contents($filename);
+    if ($json != FALSE) {
+      // FIXME: if the description or the unit changed, shouldn't we create a new definition?
+      return json_decode($json);
+    }
+  }
+  return FALSE;
+}
+
+$group = load_group();
 
 $config->login->pwsalt = get_random_string(12);
 if (!save_config($config)) {
@@ -496,7 +515,11 @@ function testCamera()
           </table>
           <input type="submit" class="button" value="Update sensors config" />
         </form>
-      </div>
+
+<?php if ($group): ?>
+	<p><a href="http://opensensordata.net/viewgroup/<?php echo $group->id ?>.csv">View data at OpenSensorData.net</a></p>
+<?php endif; ?>
+     </div>
       
 
 

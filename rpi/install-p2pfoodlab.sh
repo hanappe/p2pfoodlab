@@ -24,7 +24,7 @@ adduser pi video
 adduser pi www-data
 
 install --directory --owner=$uid --group=$gid --mode=0700 $home/.ssh
-install --directory --owner=$uid --group=www-data --mode=0775 /etc/opensensordata
+install --directory --owner=$uid --group=www-data --mode=0775 $home/etc/opensensordata
 
 # Load the modules for the I2C bus.
 modprobe i2c_dev

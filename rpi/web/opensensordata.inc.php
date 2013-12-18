@@ -216,11 +216,13 @@ class OpenSensorData
         {
                 if ($cached_ok && $this->cachedir) {
                         $filename = $this->cachedir . "/" . $name . ".json";
-                        $json = file_get_contents($filename);
-                        if ($json != FALSE) {
-                                // FIXME: if the description or the unit changed, shouldn't we create a new definition?
-                                return $this->decode($json);
-                        }
+			if (is_readable($filename)) {
+			  $json = file_get_contents($filename);
+			  if ($json != FALSE) {
+			    // FIXME: if the description or the unit changed, shouldn't we create a new definition?
+			    return $this->decode($json);
+			  }
+			}
                 }
                 
                 $d = new StdClass();
@@ -235,14 +237,19 @@ class OpenSensorData
                 }
 
                 if ($this->cachedir) {
+
+		echo "trying to store datastream in $filename<br>\n";
+
                         $filename = $this->cachedir . "/" . $name . ".json";
                         $err = file_put_contents($filename, json_encode($reply));
                         if ($err === FALSE) {
-                                $this->msg = " Failed to save the OpenSensorData.net datastream definition. Call for help!";
+                                $this->msg = " Failed to save the OpenSensorData.net datastream definition to $filename. ";
                                 return FALSE;
                         }
                 }
 
+		echo "datastream stored in $filename<br>\n";
+		
                 return $reply;
         }
 }

@@ -226,48 +226,78 @@ function update_opensensordata_definitions($config, $cached_ok)
         $sensors_config = $config->sensors;
         if ($sensors_config->rht03_1 == "yes") {
                 $d = $osd->create_datastream("t", "Internal temperature (RHT03)", "Celsius", $cached_ok);
-                if (!$d) return FALSE;
+                if (!$d) {
+		  $msg .= $osd->msg;
+		  return FALSE;
+		}
                 $datastreams[] = $d;
 
                 $d = $osd->create_datastream("rh", "Internal humidity (RHT03)", "RH%", $cached_ok);
-                if (!$d) return FALSE;
+                if (!$d) {
+		  $msg .= $osd->msg;
+		  return FALSE;
+		}
                 $datastreams[] = $d;
         }
         if ($sensors_config->rht03_2 == "yes") {
                 $d = $osd->create_datastream("tx", "External temperature (RHT03)", "Celsius", $cached_ok);
-                if (!$d) return FALSE;
+                if (!$d) {
+		  $msg .= $osd->msg;
+		  return FALSE;
+		}
                 $datastreams[] = $d;
 
                 $d = $osd->create_datastream("rhx", "External humidity (RHT03)", "RH%", $cached_ok);
-                if (!$d) return FALSE;
+                if (!$d) {
+		  $msg .= $osd->msg;
+		  return FALSE;
+		}
                 $datastreams[] = $d;
         }
         if ($sensors_config->sht15_1 == "yes") {
                 $d = $osd->create_datastream("t2", "Internal temperature (SHT15)", "Celsius", $cached_ok);
-                if (!$d) return FALSE;
+                if (!$d) {
+		  $msg .= $osd->msg;
+		  return FALSE;
+		}
                 $datastreams[] = $d;
 
                 $d = $osd->create_datastream("rh2", "Internal humidity (SHT15)", "RH%", $cached_ok);
-                if (!$d) return FALSE;
+                if (!$d) {
+		  $msg .= $osd->msg;
+		  return FALSE;
+		}
                 $datastreams[] = $d;
         }
         if ($sensors_config->sht15_2 == "yes") {
                 $d = $osd->create_datastream("tx2", "External temperature (SHT15)", "Celsius", $cached_ok);
-                if (!$d) return FALSE;
+                if (!$d) {
+		  $msg .= $osd->msg;
+		  return FALSE;
+		}
                 $datastreams[] = $d;
 
                 $d = $osd->create_datastream("rhx2", "External humidity (SHT15)", "RH%", $cached_ok);
-                if (!$d) return FALSE;
+                if (!$d) {
+		  $msg .= $osd->msg;
+		  return FALSE;
+		}
                 $datastreams[] = $d;
         }
         if ($sensors_config->light == "yes") {
                 $d = $osd->create_datastream("lum", "Illuminance", "none", $cached_ok);
-                if (!$d) return FALSE;
+                if (!$d) {
+		  $msg .= $osd->msg;
+		  return FALSE;
+		}
                 $datastreams[] = $d;
         }
         if ($sensors_config->soil == "yes") {
                 $d = $osd->create_datastream("soil", "Soil humidity", "none", $cached_ok);
-                if (!$d) return FALSE;
+                if (!$d) {
+		  $msg .= $osd->msg;
+		  return FALSE;
+		}
                 $datastreams[] = $d;
         }
 
@@ -1366,7 +1396,7 @@ function update_power()
         return $tmp;
 }
 
-$op = $_REQUEST['op'];
+$op = isset($_REQUEST['op'])? $_REQUEST['op'] : NULL;
 //echo "section=" . $section . "<br>\n";
 if ($op == "update") {
 
