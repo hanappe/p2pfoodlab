@@ -50,7 +50,7 @@
 #define LUMINOSITY_FLAG (1 << 4)
 #define SOIL_FLAG (1 << 5)
 
-#define CMD_POWEROFF 0x00
+#define CMD_SET_POWEROFF 0x00
 #define CMD_SET_SENSORS 0x10
 #define CMD_SUSPEND 0x20
 #define CMD_RESUME 0x30
@@ -59,6 +59,7 @@
 #define CMD_GET_FRAMES 0x60
 #define CMD_TRANSFER 0x70
 #define CMD_PUMP 0x80
+#define CMD_GET_POWEROFF 0x90
 
 static const char* homeDir = "/var/p2pfoodlab";
 static const char* configFile = "/var/p2pfoodlab/etc/config.json";
@@ -146,11 +147,11 @@ int arduino_read_float(int arduino, float* value)
         return 0;
 }
 
-int arduino_poweroff(int arduino, int minutes)
+int arduino_set_poweroff(int arduino, int minutes)
 {
         unsigned char c[3];
 
-        c[0] = CMD_POWEROFF;
+        c[0] = CMD_SET_POWEROFF;
         c[1] = (minutes & 0x0000ff00) >> 8;
         c[2] = (minutes & 0x000000ff);
 
@@ -160,6 +161,44 @@ int arduino_poweroff(int arduino, int minutes)
                 return -1;
         }
         usleep(10000);
+
+        return 0;
+}
+
+int arduino_get_poweroff(int arduino, unsigned long* off, unsigned long* on)
+{
+        unsigned char c[4];
+
+        c[0] = CMD_GET_POWEROFF;
+
+        int n = write(arduino, c, 1);
+        if (n != 1) {
+                logMessage("arduino", LOG_ERROR, "Failed to write the data\n"); 
+                return -1;
+        }
+        usleep(10000);
+
+        for (int i = 0; i < 4; i++) {
+                int v = i2c_smbus_read_byte(arduino);
+                if (v == -1) {
+                        logMessage("arduino", LOG_ERROR, "Failed to read the 'poweroff' value\n");
+                        return -1;
+                }
+                c[i] = (unsigned char) (v & 0xff);
+                usleep(10000);
+        }
+        *off = (unsigned long) (c[0] << 24) | (c[1] << 16) | (c[2] << 8) | (c[3] << 0);
+
+        for (int i = 0; i < 4; i++) {
+                int v = i2c_smbus_read_byte(arduino);
+                if (v == -1) {
+                        logMessage("arduino", LOG_ERROR, "Failed to read the 'wakeup' value\n");
+                        return -1;
+                }
+                c[i] = (unsigned char) (v & 0xff);
+                usleep(10000);
+        }
+        *on = (unsigned long) (c[0] << 24) | (c[1] << 16) | (c[2] << 8) | (c[3] << 0);
 
         return 0;
 }
@@ -727,10 +766,24 @@ int poweroff(int minutes)
                 return -1;
         }
 
-        if (arduino_poweroff(arduino, minutes) != 0) {
+        if (arduino_set_poweroff(arduino, minutes) != 0) {
                 arduino_disconnect(arduino);
                 return -1;
         }
+
+        unsigned long millis, off, on;
+        if (arduino_millis(arduino, &millis) != 0) {
+                arduino_disconnect(arduino);
+                return -1;
+        }
+        if (arduino_get_poweroff(arduino, &off, &on) != 0) {
+                arduino_disconnect(arduino);
+                return -1;
+        }
+
+        logMessage("arduino", LOG_INFO, "Arduino: Current time: %u min\n", millis / 60000);
+        logMessage("arduino", LOG_INFO, "Arduino: Power off at: %u min\n", off); 
+        logMessage("arduino", LOG_INFO, "Arduino: Wake up at: %u min\n", on); 
 
         arduino_disconnect(arduino);
 

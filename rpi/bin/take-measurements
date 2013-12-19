@@ -160,8 +160,9 @@ bring_down_network
 
 if [ "$poweroff" = "yes" ]; then
     if [ "x$wakeup_time" != "x" ]; then
+        log_message "[take-measurements @ $d] Info: Powering down. Wake-up in $wakeup_time minutes." 
         $home_dir/bin/arduino poweroff $wakeup_time
+        sudo poweroff
     fi
-    sudo poweroff
 fi
 

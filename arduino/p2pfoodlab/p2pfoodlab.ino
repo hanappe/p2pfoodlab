@@ -34,7 +34,7 @@
 
 #define CMD_MASK 0xf0
 #define ARG_MASK 0x0f
-#define CMD_POWEROFF 0x00
+#define CMD_SET_POWEROFF 0x00
 #define CMD_SET_SENSORS 0x10
 #define CMD_SUSPEND 0x20
 #define CMD_RESUME 0x30
@@ -43,6 +43,7 @@
 #define CMD_GET_FRAMES 0x60
 #define CMD_TRANSFER 0x70
 #define CMD_PUMP 0x80
+#define CMD_GET_POWEROFF 0x90
 
 #define RHT03_1_FLAG (1 << 0)
 #define RHT03_2_FLAG (1 << 1)
@@ -157,7 +158,7 @@ void receive_data(int byteCount)
                         digitalWrite(PUMP_PIN, HIGH);
                 send_index = 0;
 
-        } else if ((command & CMD_MASK) == CMD_POWEROFF) {
+        } else if ((command & CMD_MASK) == CMD_SET_POWEROFF) {
                 unsigned long now = millis() / 60000; // in minutes
                 if (byteCount >= 3) {
                         unsigned long minutes = (c[1] << 8) | c[2];
@@ -168,6 +169,9 @@ void receive_data(int byteCount)
                         if (wakeup_at == 0) wakeup_at = 1;
                         if (wakeup_at >= MINUTE_OVERFLOW) wakeup_at -= MINUTE_OVERFLOW;
                 }
+
+        } else if ((command & CMD_MASK) == CMD_GET_POWEROFF) {
+                // Nothing to do.
         }
 }
 
@@ -235,7 +239,24 @@ void send_data()
                 if (send_index >= sp) {
                         send_index = 0;
                 }
-        } 
+        } else if ((command & CMD_MASK) == CMD_GET_POWEROFF) {
+                unsigned char c;
+                switch (send_byte) {
+                case 0: c = (poweroff_at & 0xff000000) >> 24; break;
+                case 1: c = (poweroff_at & 0x00ff0000) >> 16; break;
+                case 2: c = (poweroff_at & 0x0000ff00) >> 8; break;
+                case 3: c = (poweroff_at & 0x000000ff); break;
+                case 4: c = (wakeup_at & 0xff000000) >> 24; break;
+                case 5: c = (wakeup_at & 0x00ff0000) >> 16; break;
+                case 6: c = (wakeup_at & 0x0000ff00) >> 8; break;
+                case 7: c = (wakeup_at & 0x000000ff); break;
+                default: c = 0;
+                }                
+                Wire.write(c);
+                send_byte++;
+                //Serial.println("millis[]");
+
+        } else         } 
 }
 
 void setup() 

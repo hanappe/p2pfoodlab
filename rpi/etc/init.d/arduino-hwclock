@@ -2,11 +2,11 @@
 
 ### BEGIN INIT INFO
 # Provides:          arduino-hwclock
-# Required-Start:
-# Required-Stop:     umountroot
+# Required-Start:    $local_fs kmod fake-hwclock
+# Required-Stop:     $local_fs kmod fake-hwclock
 # Should-Stop:       
-# X-Start-Before:    checkroot
-# Default-Start:     S
+# X-Start-Before:    
+# Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: Restore / save the current clock
 # Description:       
@@ -14,8 +14,8 @@
 
 set -e
 
-DATEFILE=/etc/arduino-hwclock.date
-MILLISFILE=/etc/arduino-hwclock.millis
+DATEFILE=/var/p2pfoodlab/etc/arduino-hwclock.date
+MILLISFILE=/var/p2pfoodlab/etc/arduino-hwclock.millis
 
 save_date() {
     date -u '+%Y-%m-%d %H:%M:%S' > $DATEFILE
