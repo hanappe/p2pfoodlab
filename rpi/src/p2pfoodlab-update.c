@@ -93,7 +93,7 @@ static void event_update_sensors()
         if (num_datastreams == -1) 
                 return;
 
-        log_info("Found %d datastreams\n", num_datastreams); 
+        log_info("Found %d datastreams", num_datastreams); 
         if (num_datastreams == 0)
                 return;
 
@@ -156,12 +156,12 @@ static void event_update_camera(json_object_t config)
         unsigned int width, height;
 
         if (get_image_size(json_string_value(size_str), &width, &height) != 0) {
-                log_err("Invalid image size: %s\n", 
+                log_err("Invalid image size: %s", 
                         json_string_value(size_str)); 
                 return;
         }
 
-        log_info("Grabbing %s image from %s\n", 
+        log_info("Grabbing %s image from %s", 
                    json_string_value(size_str), device);
 
         camera_t* camera = new_camera(device, IO_METHOD_MMAP,
@@ -185,8 +185,7 @@ static void event_update_camera(json_object_t config)
                  1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, 
                  r.tm_hour, r.tm_min, r.tm_sec);
 
-        log_info("Storing image in %s\n", 
-                   filename);
+        log_info("Storing image in %s", filename);
 
         int size = camera_getimagesize(camera);
         unsigned char* buffer = camera_getimagebuffer(camera);
@@ -194,8 +193,7 @@ static void event_update_camera(json_object_t config)
         FILE* fp = fopen(filename, "w");
         if (fp == NULL) {
                 delete_camera(camera);
-                log_info("Failed to open file '%s'\n", 
-                         filename);
+                log_info("Failed to open file '%s'", filename);
                 return;
         }
 
@@ -205,7 +203,7 @@ static void event_update_camera(json_object_t config)
                 if ((m == 0) && (ferror(fp) != 0)) { 
                         delete_camera(camera);
                         fclose(fp);
-                        log_info("Failed to write to file '%s'\n", 
+                        log_info("Failed to write to file '%s'", 
                                  filename);
                         return;
                         
@@ -364,7 +362,7 @@ static void parse_arguments(int argc, char **argv)
 
 static event_t* add_periodic_events(int period, event_t* list, int type)
 {
-        log_debug("Add periodic events (period %d):\n", period);
+        log_debug("Add periodic events (period %d).", period);
 
         int minutes_day = 24 * 60;
         int minute = 0;
@@ -397,7 +395,7 @@ static event_t* add_fixed_events(json_object_t fixed, event_t* list, int type)
                 }
                 int h = atoi(json_string_value(hs));
                 if ((h < 0) || (h > 23)) {
-                        log_err("Invalid camera update hour: %d\n", h); 
+                        log_err("Invalid camera update hour: %d", h); 
                         continue;
                 }
                 json_object_t ms = json_object_get(time, "m");
@@ -410,7 +408,7 @@ static event_t* add_fixed_events(json_object_t fixed, event_t* list, int type)
                 }
                 int m = atoi(json_string_value(ms));
                 if ((m < 0) || (m > 59)) {
-                        log_err("Invalid camera update minute: %d\n", m); 
+                        log_err("Invalid camera update minute: %d", m); 
                         continue;
                 }
                 event_t* e = new_event(h * 60 + m, type);
@@ -459,13 +457,13 @@ static event_t* add_camera_events(json_object_t config, event_t* list)
                 }
                 int value = atoi(json_string_value(period));
                 if (value <= 0) {
-                        log_err("Invalid camera period setting: %d\n", value); 
+                        log_err("Invalid camera period setting: %d", value); 
                         return list;
                 }
                 return add_periodic_events(value, list, UPDATE_CAMERA);
 
         } else {
-                log_err("Invalid camera update setting: '%s'\n", 
+                log_err("Invalid camera update setting: '%s'", 
                            json_string_value(update)); 
                 return list;
         }        
@@ -503,14 +501,14 @@ static event_t* add_sensor_events(json_object_t config, event_t* list)
                 }
                 int value = atoi(json_string_value(period));
                 if (value <= 0) {
-                        log_err("Invalid sensors period setting: %d\n", value); 
+                        log_err("Invalid sensors period setting: %d", value); 
                         return list;
                 }
                 return add_periodic_events(value, list, UPDATE_SENSORS);
 
         } else {
-                log_err("Invalid sensors update setting: '%s'\n", 
-                           json_string_value(upload)); 
+                log_err("Invalid sensors update setting: '%s'", 
+                        json_string_value(upload)); 
                 return list;
         }        
 
@@ -561,7 +559,7 @@ int main(int argc, char **argv)
                 log = fopen(log_file, "a");
         }
         if (log == NULL) {
-                fprintf(stderr, "Failed to open the log file ('%s')\n", log_file);
+                fprintf(stderr, "Failed to open the log file ('%s')", log_file);
                 log_set_filep(stderr);
         } else {
                 log_set_filep(log);
@@ -569,7 +567,7 @@ int main(int argc, char **argv)
 
         json_object_t config = json_load(config_file, buffer, 512);
         if (json_isnull(config)) {
-                log_err("%s\n", buffer); 
+                log_err("%s", buffer); 
                 exit(1);
         } 
 
@@ -583,7 +581,7 @@ int main(int argc, char **argv)
 
         t = time(NULL);
         localtime_r(&t, &tm);
-        log_debug("current time: %02d:%02d\n", tm.tm_hour, tm.tm_min);
+        log_debug("current time: %02d:%02d.", tm.tm_hour, tm.tm_min);
         int cur_minute = tm.tm_hour * 60 + tm.tm_min;
 
         event_t* e = eventlist_get_next(events, cur_minute);
@@ -611,7 +609,7 @@ int main(int argc, char **argv)
         else
                 delta = e->minute - cur_minute;
 
-        log_debug("next event in %d minutes\n", delta);
+        log_debug("next event in %d minutes", delta);
 
         eventlist_delete_all(events);
 

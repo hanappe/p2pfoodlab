@@ -65,15 +65,15 @@ static int arduino_connect(int bus, int address)
         int arduino = -1;
         char *fileName = (bus == 0)? "/dev/i2c-0" : "/dev/i2c-1";
  
-        log_info("Connecting to Arduino\n"); 
+        log_info("Connecting to Arduino"); 
 
         if ((arduino = open(fileName, O_RDWR)) < 0) {
-                log_err("Failed to open the I2C device\n"); 
+                log_err("Failed to open the I2C device"); 
                 return -1;
         }
 
         if (ioctl(arduino, I2C_SLAVE, address) < 0) {
-                log_err("Unable to get bus access to talk to slave\n");
+                log_err("Unable to get bus access to talk to slave");
                 return -1;
         }
 
@@ -83,17 +83,17 @@ static int arduino_connect(int bus, int address)
 
 static void arduino_disconnect(int arduino)
 {
-        log_info("Disconnecting from Arduino\n"); 
+        log_info("Disconnecting from Arduino"); 
         if (arduino > 0)
                 close(arduino);
 }
 
 static int arduino_suspend_(int arduino)
 {
-        log_info("Sending start transfer\n"); 
+        log_info("Sending start transfer"); 
 
         if (i2c_smbus_write_byte(arduino, CMD_SUSPEND) == -1) {
-                log_err("Failed to send the 'start transfer' command\n");
+                log_err("Failed to send the 'start transfer' command");
                 return -1;
         }
         usleep(10000);
@@ -103,15 +103,15 @@ static int arduino_suspend_(int arduino)
 static int arduino_resume_(int arduino, int reset)
 {
         if (reset) 
-                log_info("Clearing the memory and resuming measurements\n"); 
+                log_info("Clearing the memory and resuming measurements"); 
         else
-                log_info("Resuming measurements\n"); 
+                log_info("Resuming measurements"); 
 
         unsigned char c = CMD_RESUME;
         if (reset) c |= 0x01;
 
         if (i2c_smbus_write_byte(arduino, c) == -1) {
-                log_err("Failed to send the 'transfer done' command. This is not good... You may have to restart the device.\n");
+                log_err("Failed to send the 'transfer done' command. This is not good... You may have to restart the device.");
                 return -1;
         }
         usleep(10000);
@@ -150,7 +150,7 @@ static int arduino_set_poweroff_(int arduino, int minutes)
 
         int n = write(arduino, c, 3);
         if (n != 3) {
-                log_err("Failed to write the data\n"); 
+                log_err("Failed to write the data"); 
                 return -1;
         }
         usleep(10000);
@@ -166,7 +166,7 @@ static int arduino_get_poweroff(int arduino, unsigned long* off, unsigned long* 
 
         int n = write(arduino, c, 1);
         if (n != 1) {
-                log_err("Failed to write the data\n"); 
+                log_err("Failed to write the data"); 
                 return -1;
         }
         usleep(10000);
@@ -174,7 +174,7 @@ static int arduino_get_poweroff(int arduino, unsigned long* off, unsigned long* 
         for (int i = 0; i < 4; i++) {
                 int v = i2c_smbus_read_byte(arduino);
                 if (v == -1) {
-                        log_err("Failed to read the 'poweroff' value\n");
+                        log_err("Failed to read the 'poweroff' value");
                         return -1;
                 }
                 c[i] = (unsigned char) (v & 0xff);
@@ -185,7 +185,7 @@ static int arduino_get_poweroff(int arduino, unsigned long* off, unsigned long* 
         for (int i = 0; i < 4; i++) {
                 int v = i2c_smbus_read_byte(arduino);
                 if (v == -1) {
-                        log_err("Failed to read the 'wakeup' value\n");
+                        log_err("Failed to read the 'wakeup' value");
                         return -1;
                 }
                 c[i] = (unsigned char) (v & 0xff);
@@ -201,27 +201,27 @@ static int arduino_pump_(int arduino, int seconds)
         unsigned char c;
         int err;
 
-        log_info("Turning pump on\n"); 
+        log_info("Turning pump on"); 
         c = CMD_PUMP | 0x01;
 
         for (int attempt = 0; attempt < 4; attempt++) {
                 err = i2c_smbus_write_byte(arduino, c);
                 if (err == 0) break;
-                log_err("Failed to send the 'pump on' command.\n");
+                log_err("Failed to send the 'pump on' command.");
                 usleep(2000);
         }
         if (err != 0) return -1;
 
         sleep(seconds);
 
-        log_info("Turning pump off\n"); 
+        log_info("Turning pump off"); 
         c = CMD_PUMP;
 
         for (int attempt = 0; attempt < 20; attempt++) {
                 err = i2c_smbus_write_byte(arduino, c);
                 if (err == 0) break;
                 log_err("Failed to send the 'pump off' command. "
-                        "This is not good... You may have to restart the device.\n");
+                        "This is not good... You may have to restart the device.");
                 usleep(2000);
         }
         if (err != 0) return -1;
@@ -233,10 +233,10 @@ static int arduino_pump_(int arduino, int seconds)
 
 static int arduino_millis_(int arduino, unsigned long* m)
 {
-        log_info("Getting the current time on the Arduino\n"); 
+        log_info("Getting the current time on the Arduino"); 
 
         if (i2c_smbus_write_byte(arduino, CMD_GET_MILLIS) == -1) {
-                log_err("Failed to send the 'get millis' command\n");
+                log_err("Failed to send the 'get millis' command");
                 return -1;
         }
         usleep(10000);
@@ -245,7 +245,7 @@ static int arduino_millis_(int arduino, unsigned long* m)
         for (int i = 0; i < 4; i++) {
                 int v = i2c_smbus_read_byte(arduino);
                 if (v == -1) {
-                        log_err("Failed to read the 'millis' value\n");
+                        log_err("Failed to read the 'millis' value");
                         return -1;
                 }
                 c[i] = (unsigned char) (v & 0xff);
@@ -258,10 +258,10 @@ static int arduino_millis_(int arduino, unsigned long* m)
 
 static int arduino_get_frames(int arduino)
 {
-        log_info("Getting the number of data frames on the Arduino\n"); 
+        log_info("Getting the number of data frames on the Arduino"); 
 
         if (i2c_smbus_write_byte(arduino, CMD_GET_FRAMES) == -1) {
-                log_err("Failed to send the 'get count' command\n");
+                log_err("Failed to send the 'get count' command");
                 return -1;
         }
         usleep(10000);
@@ -270,7 +270,7 @@ static int arduino_get_frames(int arduino)
         for (int i = 0; i < 2; i++) {
                 int v = i2c_smbus_read_byte(arduino);
                 if (v == -1) {
-                        log_err("Failed to read the 'frames' value\n");
+                        log_err("Failed to read the 'frames' value");
                         return -1;
                 }
                 c[i] = (unsigned char) (v & 0xff);
@@ -281,17 +281,17 @@ static int arduino_get_frames(int arduino)
 
 static int arduino_get_sensors_(int arduino, unsigned char* enabled, unsigned char* period)
 {
-        log_info("Getting enabled sensors and update period\n"); 
+        log_info("Getting enabled sensors and update period"); 
 
         if (i2c_smbus_write_byte(arduino, CMD_GET_SENSORS) == -1) {
-                log_err("Failed to send the 'get sensors' command\n");
+                log_err("Failed to send the 'get sensors' command");
                 return -1;
         }
         usleep(10000);
 
         int v = i2c_smbus_read_byte(arduino);
         if (v == -1) {
-                log_err("Failed to read the 'get sensors' value\n");
+                log_err("Failed to read the 'get sensors' value");
                 return -1;
         }
         unsigned char _enabled = (v & 0x000000ff);
@@ -300,7 +300,7 @@ static int arduino_get_sensors_(int arduino, unsigned char* enabled, unsigned ch
 
         v = i2c_smbus_read_byte(arduino);
         if (v == -1) {
-                log_err("Failed to read the 'get sensors' value\n");
+                log_err("Failed to read the 'get sensors' value");
                 return -1;
         }
         unsigned char _period = (v & 0x000000ff);
@@ -322,7 +322,7 @@ static int arduino_set_sensors_(int arduino, unsigned char enabled, unsigned cha
 
         int n = write(arduino, c, 3);
         if (n != 3) {
-                log_err("Failed to write the 'set sensors' command\n"); 
+                log_err("Failed to write the 'set sensors' command"); 
                 return -1;
         }
         usleep(10000);
@@ -346,7 +346,7 @@ static int download_data(int arduino,
         }
 
         if (i2c_smbus_write_byte(arduino, CMD_TRANSFER) == -1) {
-                log_err("Failed to send the 'transfer' command\n");
+                log_err("Failed to send the 'transfer' command");
                 goto error_recovery;
         }
         usleep(10000);
@@ -440,7 +440,7 @@ int arduino_store_data(int* datastreams,
         if (arduino_resume_(arduino, 1) != 0) 
                 goto error_recovery;
 
-        log_info("Download successful\n"); 
+        log_info("Download successful"); 
         err = 0; 
 
  error_recovery:

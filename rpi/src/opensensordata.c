@@ -40,17 +40,17 @@ int opensensordata_get_datastream(const char* cache, const char* name)
 
         json_object_t def = json_load(filename, buffer, 512);
         if (json_isnull(def)) {
-                log_err("%s\n", buffer); 
+                log_err("%s", buffer); 
                 return -1;
         } else if (!json_isobject(def)) {
-                log_err("Invalid datastream definition: %s\n", filename); 
+                log_err("Invalid datastream definition: %s", filename); 
                 return -1;
         }
 
         int id = -1;
         json_object_t v = json_object_get(def, "id");
         if (json_isnull(v)) {
-                log_err("Invalid datastream id: %s\n", filename); 
+                log_err("Invalid datastream id: %s", filename); 
                 return -1;
         }
         if (json_isstring(v)) {
@@ -58,7 +58,7 @@ int opensensordata_get_datastream(const char* cache, const char* name)
         } else if (json_isnumber(v)) {
                 id = json_number_value(v);
         } else {
-                log_err("Invalid datastream id: %s\n", filename); 
+                log_err("Invalid datastream id: %s", filename); 
                 return -1;
         }
         
