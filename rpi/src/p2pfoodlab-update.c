@@ -613,9 +613,9 @@ int main(int argc, char **argv)
 
         eventlist_delete_all(events);
 
-        if ((delta > 3) && poweroff_enabled(config)) {
+        if ((delta > 2) && poweroff_enabled(config)) {
                 if (_test) 
-                        printf("POWEROFF %d\n", delta - 3);
+                        printf("POWEROFF %d\n", delta - 2);
                 else
                         do_poweroff(delta - 3);
         }
