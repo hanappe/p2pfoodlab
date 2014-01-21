@@ -702,9 +702,11 @@ static void upload_data(json_object_t config, const char* filename, int test)
                 log_err("Uploading of datapoints failed"); 
                 char* resp = opensensordata_get_response(osd);
                 if (resp) log_err("%s", resp); 
-        } else {
-                log_info("Upload successful"); 
-        }
+                delete_opensensordata(osd);
+                return;
+        } 
+
+        log_info("Upload successful"); 
 
         delete_opensensordata(osd);
 
