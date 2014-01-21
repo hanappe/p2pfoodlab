@@ -618,10 +618,10 @@ static void poweroff_maybe(json_object_t config, event_t* events, int test)
 
         t = time(NULL);
         localtime_r(&t, &tm);
-        log_debug("current time: %02d:%02d.", tm.tm_hour, tm.tm_min);
+        log_debug("Current time: %02d:%02d.", tm.tm_hour, tm.tm_min);
         int cur_minute = tm.tm_hour * 60 + tm.tm_min;
 
-        event_t* e = eventlist_get_next(events, cur_minute);
+        event_t* e = eventlist_get_next(events, cur_minute + 1);
         if (e == NULL)
                 e = eventlist_get_next(events, 0);
         if (e == NULL)
@@ -633,9 +633,9 @@ static void poweroff_maybe(json_object_t config, event_t* events, int test)
         else
                 delta = e->minute - cur_minute;
 
-        if ((delta < 10) && (delta > 0)) {
-                log_info("Next event in %d minute(s)", delta);
-        } else if ((delta < 60) && ((delta % 10) == 0)) {
+        if (delta == 0) {
+                return;
+        } else if (delta <= 5) {
                 log_info("Next event in %d minute(s)", delta);
         } else if ((delta < 60) && ((delta % 10) == 0)) {
                 log_info("Next event in %d minute(s)", delta);
