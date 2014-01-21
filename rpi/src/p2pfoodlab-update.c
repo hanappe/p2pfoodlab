@@ -44,6 +44,7 @@ static char* _log_file = "/var/p2pfoodlab/log.txt";
 static char* _osd_dir = "/var/p2pfoodlab/etc/opensensordata";
 static char* _data_file = "/var/p2pfoodlab/datapoints.csv";
 static char* _img_dir = "/var/p2pfoodlab/photostream";
+static char* _archive_dir = "/var/p2pfoodlab/backup";
 static int _test = 0;
 
 #define VERSION_MAJOR 1
@@ -604,7 +605,7 @@ static void do_poweroff(int minutes)
 {
         int err = arduino_set_poweroff(minutes);
         if (err != 0) return;
-        log_info("Poweroff"); 
+        log_info("Powering off"); 
         char* argv[] = { "/usr/bin/sudo", "/sbin/poweroff", NULL};
         execv(argv[0], argv);
         log_err("Failed to poweroff");         
@@ -632,7 +633,7 @@ static void poweroff_maybe(json_object_t config, event_t* events, int test)
         else
                 delta = e->minute - cur_minute;
 
-        log_debug("next event in %d minute(s)", delta);
+        log_info("Next event in %d minute(s)", delta);
 
         if ((delta > 2) && poweroff_enabled(config)) {
                 if (test) 
@@ -681,7 +682,7 @@ static void upload_data(json_object_t config, const char* filename, int test)
 
         opensensordata_set_key(osd, json_string_value(key));
 
-        log_debug("Uploading datapoints (filesize=%d)", (int) buf.st_size); 
+        log_info("Uploading datapoints (filesize=%d)", (int) buf.st_size); 
 
         int ret = opensensordata_put_datapoints(osd, filename);
         if (ret != 0) {
@@ -689,10 +690,27 @@ static void upload_data(json_object_t config, const char* filename, int test)
                 char* resp = opensensordata_get_response(osd);
                 if (resp) log_err("%s", resp); 
         } else {
-                log_debug("Upload successful"); 
+                log_info("Upload successful"); 
         }
 
         delete_opensensordata(osd);
+
+        char backupfile[512];
+        struct timeval tv;
+        struct tm r;
+
+        gettimeofday(&tv, NULL);
+        localtime_r(&tv.tv_sec, &r);
+        snprintf(backupfile, 512, "%s/datapoints-%04d%02d%02d-%02d%02d%02d.csv",
+                 _archive_dir,
+                 1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, 
+                 r.tm_hour, r.tm_min, r.tm_sec);
+
+        log_info("Copying datapoints to %s", backupfile);
+        
+        if (rename(filename, backupfile) == -1) {
+                log_err("Failed to copy datapoints to %s", backupfile); 
+        }        
 }
 
 static event_t* build_eventlist(json_object_t config)
