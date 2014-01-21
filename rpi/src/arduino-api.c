@@ -370,7 +370,7 @@ static int download_data(int arduino,
                         if (arduino_read_float(arduino, &value) != 0) 
                                 goto error_recovery;
                         if (datastreams[i] > 0)
-                                fprintf(fp, "%d,%s,%f", datastreams[i], time, value);
+                                fprintf(fp, "%d,%s,%f\n", datastreams[i], time, value);
                 }
         }
 
@@ -389,61 +389,52 @@ int arduino_store_data(int* datastreams,
         int err = -1; 
 
         arduino = arduino_connect(bus, address);
-        if (arduino < 0) {
+        if (arduino < 0) 
+                return -1;
+
+        if (arduino_suspend_(arduino) != 0) {
+                arduino_disconnect(arduino);
                 return -1;
         }
 
-        if (arduino_suspend_(arduino) != 0) 
-                goto error_recovery;
+        for (int attempt = 0; attempt < 5; attempt++) {
 
-        time_t now = time(NULL);
-        unsigned long millis;
-        if (arduino_millis_(arduino, &millis) != 0) {
-                arduino_resume_(arduino, 0);
-                goto error_recovery;
-        }
-        log_info("Current time on the arduino: %u msec", millis); 
+                err = -1; 
 
-        time_t delta = now - ((millis + 500) / 1000);
+                time_t now = time(NULL);
+                unsigned long millis;
 
-        unsigned char enabled;
-        unsigned char period;
+                err =  arduino_millis_(arduino, &millis);
+                if (err != 0) continue;
 
-        int v = arduino_get_sensors_(arduino, &enabled, &period);
-        if (v == -1) {
-                arduino_resume_(arduino, 0);
-                goto error_recovery;
-        }
+                log_info("Current time on the arduino: %u msec", millis); 
 
-        int numFrames = arduino_get_frames(arduino);
-        if (numFrames == -1) {
-                arduino_resume_(arduino, 0);
-                goto error_recovery;
-        }
-        log_info("Found %d measurement frames", numFrames); 
+                time_t delta = now - ((millis + 500) / 1000);
+
+                unsigned char enabled;
+                unsigned char period;
+
+                int v = arduino_get_sensors_(arduino, &enabled, &period);
+                if (v == -1) continue;
+
+                int numFrames = arduino_get_frames(arduino);
+                if (numFrames == -1) continue;
+
+                log_info("Found %d measurement frames", numFrames); 
         
-        for (int attempt = 0; attempt < 4; attempt++) {
                 err = download_data(arduino, 
                                     delta, 
                                     datastreams, 
                                     numDatastreams, 
                                     numFrames,
                                     outputFile);
-                        if (err == 0) break;
+                if (err == 0) break;
         }
 
-        if (err != 0) {
-                arduino_resume_(arduino, 0);
-                goto error_recovery;
-        }
+        arduino_resume_(arduino, 0);
 
-        if (arduino_resume_(arduino, 1) != 0) 
-                goto error_recovery;
-
-        log_info("Download successful"); 
-        err = 0; 
-
- error_recovery:
+        if (err == 0) 
+                log_info("Download successful"); 
 
         arduino_disconnect(arduino);
         return err;
