@@ -16,7 +16,8 @@
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    along wit
+    h this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 #include <Wire.h>
@@ -87,9 +88,6 @@ float stack[STACK_SIZE];
 
 DHT22 rht03_1(RHT03_1_PIN);
 DHT22 rht03_2(RHT03_2_PIN);
-//SHT1x sht15_1(SHT15_1_DATA_PIN, SHT15_1_CLOCK_PIN);
-//unsigned char sht15_1_init = 0;
-
 
 
 void stack_reset()
@@ -162,13 +160,23 @@ void receive_data(int byteCount)
                 unsigned long now = millis() / 60000; // in minutes
                 if (byteCount >= 3) {
                         unsigned long minutes = (c[1] << 8) | c[2];
-                        poweroff_at = now + 2;
+                        if (minutes <  2) minutes = 2;
+                        poweroff_at = now + 1;
                         wakeup_at = now + minutes;
                         if (poweroff_at == 0) poweroff_at = 1;
                         if (poweroff_at >= MINUTE_OVERFLOW) poweroff_at -= MINUTE_OVERFLOW;
                         if (wakeup_at == 0) wakeup_at = 1;
                         if (wakeup_at >= MINUTE_OVERFLOW) wakeup_at -= MINUTE_OVERFLOW;
                 }
+        Serial.println("Set poweroff/wakeup");
+        Serial.print("bytecount="); 
+        Serial.println(byteCount); 
+
+        Serial.print("poweroff_at ");
+        Serial.println(poweroff_at);
+
+        Serial.print("wakeup_at ");
+        Serial.println(wakeup_at);
 
         } else if ((command & CMD_MASK) == CMD_GET_POWEROFF) {
                 // Nothing to do.
@@ -256,7 +264,7 @@ void send_data()
                 send_byte++;
                 //Serial.println("millis[]");
 
-        } else         } 
+        }
 }
 
 void setup() 
@@ -277,7 +285,6 @@ void setup()
         // tell the Arduino when to shut it down again.
         pinMode(RPi_PIN, OUTPUT);
         digitalWrite(RPi_PIN, HIGH);
-        //digitalWrite(RPi_PIN, LOW);
 
         pinMode(PUMP_PIN, OUTPUT);
         digitalWrite(PUMP_PIN, LOW);
@@ -339,19 +346,20 @@ void measure_sensors(float start)
                         stack_push(-1.0f);
                 }
         }
-        if (enabled_sensors & SHT15_1_FLAG) {
-                /* if (sht15_1_init == 0) { */
-                /*         sht15_1_init = 1; */
-                /*         sht15_1.resetSensor(); */
-                /*         delay(2000); */
-                /* } */
-                /* sht15_1.readSensor(); */
-                /* float t = sht15_1.TempC; */
-                /* float rh = sht15_1.RH; */
-                /* stack_push(t); */
-                /* stack_push(rh); */
-                stack_push(0.0);
-                stack_push(0.0);
+        if (enabled_sensors & RHT03_2_FLAG) {
+
+                //Serial.println("RHT03_2");
+
+                float t, rh; 
+                if (get_rht03(&rht03_2, &t, &rh) == 0) {
+                        stack_push(t);
+                        stack_push(rh);
+                        DebugPrintValue("t ", t);
+                        DebugPrintValue("rh ", rh);
+                } else {
+                        stack_push(-300.0f);
+                        stack_push(-1.0f);
+                }
         }
 
         frames++;
@@ -364,13 +372,24 @@ void loop()
         unsigned long now = millis();
         unsigned long minutes = now / 60000;
 
-        //Serial.println("loop");
+        Serial.println("loop");
 
         if (!do_update) {
                 /* We're transferring data. Do short sleeps until the
                    transfer is done. */
+                digitalWrite(13, HIGH);
                 delay(100); 
-                
+                digitalWrite(13, LOW);
+                delay(100);                 
+                digitalWrite(13, HIGH);
+                delay(100); 
+                digitalWrite(13, LOW);
+                delay(100); 
+                digitalWrite(13, HIGH);
+                delay(100); 
+                digitalWrite(13, LOW);
+                delay(100); 
+
                 /* In case the data download failed and the arduino
                    was not resumed correctly, start measuring again
                    after one minute. */
@@ -382,14 +401,17 @@ void loop()
 
         digitalWrite(13, HIGH);
 
-        /* Serial.print("minutes "); */
-        /* Serial.println(minutes); */
+#if DEBUG
+        Serial.println("----"); 
+        Serial.print("minute ");
+        Serial.println(minutes); 
 
-        /* Serial.print("poweroff_at "); */
-        /* Serial.println(poweroff_at); */
+        Serial.print("poweroff_at ");
+        Serial.println(poweroff_at);
 
-        /* Serial.print("wakeup_at "); */
-        /* Serial.println(wakeup_at); */
+        Serial.print("wakeup_at ");
+        Serial.println(wakeup_at);
+#endif
 
         if (TIME_ELAPSED(minutes, measure_at)) {
                 measure_sensors((float) now / 1000.0f);
