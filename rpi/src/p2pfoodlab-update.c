@@ -642,7 +642,7 @@ static void poweroff_maybe(json_object_t config, event_t* events, int test)
         }
 }
 
-static void upload_data(json_object_t config, const char* filename)
+static void upload_data(json_object_t config, const char* filename, int test)
 {
         struct stat buf;
         if (stat(filename, &buf) == -1) {
@@ -650,6 +650,10 @@ static void upload_data(json_object_t config, const char* filename)
         }
         if (((buf.st_mode & S_IFMT) != S_IFREG) 
             || (buf.st_size == 0)) {
+                return;
+        }
+        if (test) {
+                log_debug("Upload datapoints (filesize=%d)", (int) buf.st_size); 
                 return;
         }
 
@@ -726,7 +730,7 @@ int main(int argc, char **argv)
 
         handle_events(config, events, _test);
 
-        upload_data(config, _data_file);
+        upload_data(config, _data_file, _test);
 
         poweroff_maybe(config, events, _test);
 
