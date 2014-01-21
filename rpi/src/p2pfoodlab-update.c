@@ -679,7 +679,7 @@ static void upload_data(json_object_t config, const char* filename, int test)
                 return;
         }
 
-        opensensordata_set_key(osd, json_string_value(server));
+        opensensordata_set_key(osd, json_string_value(key));
 
         int ret = opensensordata_put_datapoints(osd, filename);
         if (ret != 0) {
