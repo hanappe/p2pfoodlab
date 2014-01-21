@@ -575,7 +575,7 @@ static void handle_events(json_object_t config, event_t* events, int test)
         while ((e != NULL) &&
                (e->minute == cur_minute)) {
                 if (test) 
-                        printf("EXEC %s\n", (e->type == UPDATE_SENSORS)? "update sensors" : "update camera");
+                        log_info("EXEC update %s", (e->type == UPDATE_SENSORS)? "sensors" : "camera");
                 else
                         event_exec(e, config);
                 e = e->next;
@@ -683,7 +683,9 @@ static void upload_data(json_object_t config, const char* filename, int test)
 
         int ret = opensensordata_put_datapoints(osd, filename);
         if (ret != 0) {
-                log_err("Upload failed"); 
+                log_err("Uploading of datapoints failed"); 
+                char* resp = opensensordata_get_response(osd);
+                if (resp) log_err("%s", resp); 
         }
 
         delete_opensensordata(osd);

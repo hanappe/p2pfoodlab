@@ -35,6 +35,9 @@ struct _opensensordata_t {
         char* url;
         char* cache;
         char* key;
+        char* response;
+        int response_length;
+        int response_index;
         CURL* curl;
 };
 
@@ -47,6 +50,8 @@ opensensordata_t* new_opensensordata(const char* url)
         osd->cache = NULL;
         osd->key = NULL;
         osd->curl = NULL;
+        osd->response = NULL;
+        osd->response_length = 0;
         return osd;
 }
 
@@ -58,6 +63,8 @@ void delete_opensensordata(opensensordata_t* osd)
                 free(osd->cache);
         if (osd->key)
                 free(osd->key);
+        if (osd->response)
+                free(osd->response);
         free(osd);
 }
 
@@ -75,10 +82,36 @@ void opensensordata_set_key(opensensordata_t* osd, const char* key)
         osd->key = strdup(key);
 }
 
+static void opensensordata_append(opensensordata_t* osd, char c)
+{
+	if (osd->response_index >= osd->response_length) {
+		int newlen = 2 * osd->response_length;
+		if (newlen == 0) {
+			newlen = 128;
+		}
+		char* newbuf = (char*) calloc(newlen, sizeof(char));
+		if (newbuf == NULL) {
+			return;
+		}
+		if (osd->response != NULL) {
+			memcpy(newbuf, osd->response, osd->response_length);
+			free(osd->response);
+		}
+		osd->response = newbuf;
+		osd->response_length = newlen;
+	}
+
+	osd->response[osd->response_index++] = (char) (c & 0xff);
+}
+
 static size_t opensensordata_write_function(void *ptr, size_t size, size_t nmemb, void* data)
 {
-        //opensensordata_t* osd = (opensensordata_t*) data;
-        return size * nmemb;
+        opensensordata_t* osd = (opensensordata_t*) data;
+        int len = size * nmemb;
+        char* s = (char*) ptr;
+        for (int i = 0; i < len; i++) 
+                opensensordata_append(osd, s[i]);
+        return len;
 }
 
 static int opensensordata_put_file(opensensordata_t* osd, 
@@ -86,6 +119,14 @@ static int opensensordata_put_file(opensensordata_t* osd,
                                    const char* filename,
                                    const char* mime_type)
 {
+        if (osd->response)
+                free(osd->response);
+
+        osd->response = NULL;
+        osd->response_index = 0;
+        osd->response_length = 0;
+
+
         if ((osd->url == NULL) || (strlen(osd->url) == 0)) {
                 log_err("OpenSensorData: Invalid URL.");
                 return -1;
@@ -222,4 +263,13 @@ int opensensordata_map_datastream(opensensordata_t* osd, const char* name)
         }
         
         return id;
+}
+
+char* opensensordata_get_response(opensensordata_t* osd)
+{
+        if ((osd->response == NULL)
+            || (osd->response_length == 0))
+                return NULL;
+        opensensordata_append(osd, '\0');
+        return osd->response;
 }
