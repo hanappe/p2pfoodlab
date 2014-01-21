@@ -639,7 +639,7 @@ static void poweroff_maybe(json_object_t config, event_t* events, int test)
                 log_info("Next event in %d minute(s)", delta);
         } else if ((delta < 60) && ((delta % 10) == 0)) {
                 log_info("Next event in %d minute(s)", delta);
-        } else if ((delta % 60) == 0) {
+        } else if ((delta >= 60) && (delta % 60) == 0) {
                 log_info("Next event in %d minute(s)", delta);
         }  
 
