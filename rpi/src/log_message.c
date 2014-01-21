@@ -85,7 +85,7 @@ static void log_(int level, const char* s)
         case LOG_ERROR: type = "Error"; break;
         }
 
-        fprintf(_log_file, "[%s] %s: %s", time, type, s);
+        fprintf(_log_file, "[%s] %s: %s\n", time, type, s);
         fflush(_log_file);
 }
 

@@ -73,10 +73,10 @@ static event_t* new_event(int minute, event_type_t type)
 
 static void event_print(event_t* e)
 {
-        printf("%02d:%02d %s\n", 
-               e->minute / 60, 
-               e->minute % 60, 
-               (e->type == UPDATE_SENSORS)? "sensors" : "camera");
+        log_debug("%02d:%02d %s", 
+                  e->minute / 60, 
+                  e->minute % 60, 
+                  (e->type == UPDATE_SENSORS)? "sensors" : "camera");
 }
 
 static void event_update_sensors()
@@ -136,20 +136,20 @@ static void event_update_camera(json_object_t config)
 {
         json_object_t camera_obj = json_object_get(config, "camera");
         if (json_isnull(camera_obj)) {
-                log_err("Could not find the camera configuration\n"); 
+                log_err("Could not find the camera configuration"); 
                 return;
         }
 
         json_object_t device_str = json_object_get(camera_obj, "device");
         if (!json_isstring(device_str)) {
-                log_err("Invalid device configuration\n"); 
+                log_err("Invalid device configuration"); 
                 return;
         }        
         const char* device = json_string_value(device_str);
 
         json_object_t size_str = json_object_get(camera_obj, "size");
         if (!json_isstring(size_str)) {
-                log_err("Image size is not a string\n"); 
+                log_err("Image size is not a string"); 
                 return;
         }        
 
@@ -170,7 +170,7 @@ static void event_update_camera(json_object_t config)
         int error = camera_capture(camera);
         if (error) {
                 delete_camera(camera);
-                log_err("Failed to grab the image\n"); 
+                log_err("Failed to grab the image"); 
                 return;
         }
 
@@ -215,7 +215,7 @@ static void event_update_camera(json_object_t config)
 
         fclose(fp);
 
-        log_info("Finished\n");
+        log_info("Finished");
 
         return;
 }
@@ -312,7 +312,7 @@ static void print_version(FILE* fp)
 
 static void parse_arguments(int argc, char **argv)
 {
-        static const char short_options [] = "hvtc:l:";
+        static const char short_options [] = "hvtDc:l:";
 
         static const struct option
                 long_options [] = {
@@ -321,6 +321,7 @@ static void parse_arguments(int argc, char **argv)
                 { "config",      required_argument, NULL, 'c' },
                 { "log",         required_argument, NULL, 'l' },
                 { "test",        no_argument, NULL, 't' },
+                { "debug",       no_argument, NULL, 'D' },
                 { 0, 0, 0, 0 }
         };
 
@@ -345,6 +346,9 @@ static void parse_arguments(int argc, char **argv)
                 case 't':
                         _test = 1;
                         break;
+                case 'D':
+                        log_set_level(LOG_DEBUG);
+                        break;
                 case 'c':
                         config_file = optarg;
                         break;
@@ -360,7 +364,8 @@ static void parse_arguments(int argc, char **argv)
 
 static event_t* add_periodic_events(int period, event_t* list, int type)
 {
-        printf("add_periodic_events %d\n", period);
+        log_debug("Add periodic events (period %d):\n", period);
+
         int minutes_day = 24 * 60;
         int minute = 0;
         while (minute < minutes_day) {
@@ -373,17 +378,18 @@ static event_t* add_periodic_events(int period, event_t* list, int type)
 
 static event_t* add_fixed_events(json_object_t fixed, event_t* list, int type)
 {
-        printf("add_fixed_events\n");
+        log_debug("Add fixed events");
+
         int num = json_array_length(fixed);
         for (int i = 0; i < num; i++) {
                 json_object_t time = json_array_get(fixed, i);
                 if (!json_isobject(time)) {
-                        log_err("Camera fixed update time setting is invalid\n"); 
+                        log_err("Camera fixed update time setting is invalid"); 
                         continue;
                 }
                 json_object_t hs = json_object_get(time, "h");
                 if (!json_isstring(hs)) {
-                        log_err("Camera fixed update time setting is invalid\n"); 
+                        log_err("Camera fixed update time setting is invalid"); 
                         continue;
                 }
                 if (json_string_equals(hs, "")) {
@@ -396,7 +402,7 @@ static event_t* add_fixed_events(json_object_t fixed, event_t* list, int type)
                 }
                 json_object_t ms = json_object_get(time, "m");
                 if (!json_isstring(ms)) {
-                        log_err("Camera fixed update time setting is invalid\n"); 
+                        log_err("Camera fixed update time setting is invalid"); 
                         continue;
                 }
                 if (json_string_equals(ms, "")) {
@@ -415,35 +421,40 @@ static event_t* add_fixed_events(json_object_t fixed, event_t* list, int type)
 
 static event_t* add_camera_events(json_object_t config, event_t* list)
 {
+        log_debug("Camera events");
+
         json_object_t camera = json_object_get(config, "camera");
         if (!json_isobject(camera)) {
-                log_err("Camera settings are not a JSON object, as expected\n"); 
+                log_err("Camera settings are not a JSON object, as expected"); 
                 return list;
         }
         json_object_t enabled = json_object_get(camera, "enable");
         if (!json_isstring(enabled)) {
-                log_err("Camera enabled setting is not a JSON string, as expected\n"); 
+                log_err("Camera enabled setting is not a JSON string, as expected"); 
                 return list;
         }
         if (!json_string_equals(enabled, "yes")) {
+                log_debug("Camera not enabled");
                 return list;
         }
         json_object_t update = json_object_get(camera, "update");
         if (!json_isstring(update)) {
-                log_err("Camera update setting is not a JSON string, as expected\n"); 
+                log_err("Camera update setting is not a JSON string, as expected"); 
                 return list;
         }
+
         if (json_string_equals(update, "fixed")) {
                 json_object_t fixed = json_object_get(camera, "fixed");
                 if (!json_isarray(fixed)) {
-                        log_err("Camera fixed settings are not a JSON array, as expected\n"); 
+                        log_err("Camera fixed settings are not a JSON array, as expected"); 
                         return list;
                 }
                 return add_fixed_events(fixed, list, UPDATE_CAMERA);
+
         } else if (json_string_equals(update, "periodical")) {
                 json_object_t period = json_object_get(camera, "period");
                 if (!json_isstring(period)) {
-                        log_err("Camera period setting is not a JSON string, as expected\n"); 
+                        log_err("Camera period setting is not a JSON string, as expected"); 
                         return list;
                 }
                 int value = atoi(json_string_value(period));
@@ -452,6 +463,7 @@ static event_t* add_camera_events(json_object_t config, event_t* list)
                         return list;
                 }
                 return add_periodic_events(value, list, UPDATE_CAMERA);
+
         } else {
                 log_err("Invalid camera update setting: '%s'\n", 
                            json_string_value(update)); 
@@ -462,21 +474,23 @@ static event_t* add_camera_events(json_object_t config, event_t* list)
 
 static event_t* add_sensor_events(json_object_t config, event_t* list)
 {
+        log_debug("Sensor events");
+
         json_object_t sensors = json_object_get(config, "sensors");
         if (!json_isobject(sensors)) {
-                log_err("Sensors settings are not a JSON object, as expected\n"); 
+                log_err("Sensors settings are not a JSON object, as expected"); 
                 return list;
         }
         json_object_t upload = json_object_get(sensors, "upload");
         if (!json_isstring(upload)) {
-                log_err("Sensors upload setting is not a JSON string, as expected\n"); 
+                log_err("Sensors upload setting is not a JSON string, as expected"); 
                 return list;
         }
 
         if (json_string_equals(upload, "fixed")) {
                 json_object_t fixed = json_object_get(sensors, "fixed");
                 if (!json_isarray(fixed)) {
-                        log_err("Sensors fixed settings are not a JSON array, as expected\n"); 
+                        log_err("Sensors fixed settings are not a JSON array, as expected"); 
                         return list;
                 }
                 return add_fixed_events(fixed, list, UPDATE_SENSORS);
@@ -484,7 +498,7 @@ static event_t* add_sensor_events(json_object_t config, event_t* list)
         } else if (json_string_equals(upload, "periodical")) {
                 json_object_t period = json_object_get(sensors, "period");
                 if (!json_isstring(period)) {
-                        log_err("Sensors period setting is not a JSON string, as expected\n"); 
+                        log_err("Sensors period setting is not a JSON string, as expected"); 
                         return list;
                 }
                 int value = atoi(json_string_value(period));
@@ -507,12 +521,12 @@ static int poweroff_enabled(json_object_t config)
 {
         json_object_t power = json_object_get(config, "power");
         if (!json_isobject(power)) {
-                log_err("Power settings are not a JSON object, as expected\n"); 
+                log_err("Power settings are not a JSON object, as expected"); 
                 return 0;
         }
         json_object_t poweroff = json_object_get(power, "poweroff");
         if (!json_isstring(poweroff)) {
-                log_err("Poweroff setting is not a JSON string, as expected\n"); 
+                log_err("Poweroff setting is not a JSON string, as expected"); 
                 return 0;
         }
         if (json_string_equals(poweroff, "yes")) {
@@ -525,10 +539,10 @@ static void do_poweroff(int minutes)
 {
         int err = arduino_set_poweroff(minutes);
         if (err != 0) return;
-        log_info("Poweroff\n"); 
+        log_info("Poweroff"); 
         char* argv[] = { "/usr/bin/sudo", "/sbin/poweroff", NULL};
         execv(argv[0], argv);
-        log_err("Failed to poweroff\n");         
+        log_err("Failed to poweroff");         
 }
 
 int main(int argc, char **argv)
@@ -562,19 +576,19 @@ int main(int argc, char **argv)
         events = add_camera_events(config, events);
         events = add_sensor_events(config, events);
         if (events == NULL) {
-                log_err("No events!\n"); 
+                log_err("No events!"); 
                 exit(1);
         }
-        /* eventlist_print(events); */
+        eventlist_print(events);
 
         t = time(NULL);
         localtime_r(&t, &tm);
-        printf("now: %02d:%02d\n", tm.tm_hour, tm.tm_min);
+        log_debug("current time: %02d:%02d\n", tm.tm_hour, tm.tm_min);
         int cur_minute = tm.tm_hour * 60 + tm.tm_min;
 
         event_t* e = eventlist_get_next(events, cur_minute);
         if (e == NULL) {
-                log_err("No events!\n"); 
+                log_err("No events!"); 
                 exit(1);
         }
 
@@ -597,7 +611,7 @@ int main(int argc, char **argv)
         else
                 delta = e->minute - cur_minute;
 
-        printf("delta=%d\n", delta);
+        log_debug("next event in %d minutes\n", delta);
 
         eventlist_delete_all(events);
 

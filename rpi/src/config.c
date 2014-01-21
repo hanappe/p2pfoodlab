@@ -19,8 +19,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
+#include <stdlib.h>
 #include "config.h"
 #include "log_message.h"
+#include "arduino-api.h"
 
 json_object_t config_load(const char* file)
 {
