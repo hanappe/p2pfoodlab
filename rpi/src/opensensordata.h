@@ -26,9 +26,18 @@
 extern "C" {
 #endif
 
-int opensensordata_get_datastreams(const char* osd_dir,
-                                   unsigned char enabled, 
-                                   int* ids);
+
+typedef struct _opensensordata_t opensensordata_t;
+
+opensensordata_t* new_opensensordata(const char* url);
+void delete_opensensordata(opensensordata_t* osd);
+
+void opensensordata_set_cache_dir(opensensordata_t* osd, const char* dir);
+void opensensordata_set_key(opensensordata_t* osd, const char* key);
+int opensensordata_put_datapoints(opensensordata_t* osd, const char* filename);
+int opensensordata_put_photo(opensensordata_t* osd, int photostream, const char* id, const char* filename);
+int opensensordata_map_datastream(opensensordata_t* osd, const char* name);
+
 
 #ifdef __cplusplus
 }

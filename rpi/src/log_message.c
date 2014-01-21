@@ -26,7 +26,7 @@
 #include <sys/time.h>
 #include "log_message.h"
 
-static int _log_level = 0;
+static int _log_level = LOG_INFO;
 static FILE* _log_file = NULL;
 
 int log_set_file(const char* filename)

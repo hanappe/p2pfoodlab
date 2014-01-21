@@ -307,7 +307,7 @@ static int arduino_get_sensors_(int arduino, unsigned char* enabled, unsigned ch
         *period = _period;
         usleep(10000);
 
-        log_info("Enabled sensors: %x; Period: %d\n", (int) _enabled, (int) _period); 
+        log_info("Enabled sensors: %x; Period: %d", (int) _enabled, (int) _period); 
 
         return 0;
 }
@@ -341,7 +341,7 @@ static int download_data(int arduino,
 
         FILE* fp = fopen(filename, "a");
         if (fp == NULL) {
-                log_err("Failed to open the output file: %s\n", filename); 
+                log_err("Failed to open the output file: %s", filename); 
                 return -1;
         }
 
@@ -370,7 +370,7 @@ static int download_data(int arduino,
                         if (arduino_read_float(arduino, &value) != 0) 
                                 goto error_recovery;
                         if (datastreams[i] > 0)
-                                fprintf(fp, "%d,%s,%f\n", datastreams[i], time, value);
+                                fprintf(fp, "%d,%s,%f", datastreams[i], time, value);
                 }
         }
 
@@ -402,7 +402,7 @@ int arduino_store_data(int* datastreams,
                 arduino_resume_(arduino, 0);
                 goto error_recovery;
         }
-        log_info("Current time on the arduino: %u msec\n", millis); 
+        log_info("Current time on the arduino: %u msec", millis); 
 
         time_t delta = now - ((millis + 500) / 1000);
 
@@ -420,7 +420,7 @@ int arduino_store_data(int* datastreams,
                 arduino_resume_(arduino, 0);
                 goto error_recovery;
         }
-        log_info("Found %d measurement frames\n", numFrames); 
+        log_info("Found %d measurement frames", numFrames); 
         
         for (int attempt = 0; attempt < 4; attempt++) {
                 err = download_data(arduino, 
@@ -520,9 +520,9 @@ int arduino_set_poweroff(int minutes)
                         continue;
                 }
 
-                log_info("Arduino: Current time: %u min\n", millis / 60000);
-                log_info("Arduino: Power off at: %u min\n", off); 
-                log_info("Arduino: Wake up at: %u min\n", on); 
+                log_info("Arduino: Current time: %u min", millis / 60000);
+                log_info("Arduino: Power off at: %u min", off); 
+                log_info("Arduino: Wake up at: %u min", on); 
                 
                 arduino_disconnect(arduino);
                 err = 0;

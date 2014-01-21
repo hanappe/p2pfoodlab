@@ -30,17 +30,20 @@
 #include <getopt.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "json.h"
 #include "log_message.h"
 #include "arduino-api.h"
 #include "camera.h"
+#include "config.h"
 #include "opensensordata.h"
 
-static char* config_file = "/var/p2pfoodlab/etc/config.json";
-static char* log_file = "/var/p2pfoodlab/log.txt";
-static char* osd_dir = "/var/p2pfoodlab/etc/opensensordata";
-static char* data_file = "/var/p2pfoodlab/datapoints.csv";
-static char* img_dir = "/var/p2pfoodlab/photostream";
+static char* _config_file = "/var/p2pfoodlab/etc/config.json";
+static char* _log_file = "/var/p2pfoodlab/log.txt";
+static char* _osd_dir = "/var/p2pfoodlab/etc/opensensordata";
+static char* _data_file = "/var/p2pfoodlab/datapoints.csv";
+static char* _img_dir = "/var/p2pfoodlab/photostream";
 static int _test = 0;
 
 #define VERSION_MAJOR 1
@@ -79,6 +82,41 @@ static void event_print(event_t* e)
                   (e->type == UPDATE_SENSORS)? "sensors" : "camera");
 }
 
+static int map_datastreams(const char* _osd_dir,
+                           unsigned char enabled, 
+                           int* ids)
+{
+        opensensordata_t* osd = new_opensensordata("");
+        opensensordata_set_cache_dir(osd, _osd_dir);
+
+        int count = 0;
+        if (enabled & RHT03_1_FLAG) {
+                ids[count++] = opensensordata_map_datastream(osd, "t");
+                ids[count++] = opensensordata_map_datastream(osd, "rh");
+        }
+        if (enabled & RHT03_2_FLAG) {
+                ids[count++] = opensensordata_map_datastream(osd, "tx");
+                ids[count++] = opensensordata_map_datastream(osd, "rhx");
+        }
+        if (enabled & SHT15_1_FLAG) {
+                ids[count++] = opensensordata_map_datastream(osd, "t2");
+                ids[count++] = opensensordata_map_datastream(osd, "rh2");
+        }
+        if (enabled & SHT15_2_FLAG) {
+                ids[count++] = opensensordata_map_datastream(osd, "tx2");
+                ids[count++] = opensensordata_map_datastream(osd, "rhx2");
+        }
+        if (enabled & LUMINOSITY_FLAG) {
+                ids[count++] = opensensordata_map_datastream(osd, "lum");
+        }
+        if (enabled & SOIL_FLAG) {
+                ids[count++] = opensensordata_map_datastream(osd, "soil");
+        }
+
+        delete_opensensordata(osd);
+        return count;
+}
+
 static void event_update_sensors()
 {
         unsigned char enabled;
@@ -89,7 +127,7 @@ static void event_update_sensors()
                 return;
 
         int datastreams[16];
-        int num_datastreams = opensensordata_get_datastreams(osd_dir, enabled, datastreams);
+        int num_datastreams = map_datastreams(_osd_dir, enabled, datastreams);
         if (num_datastreams == -1) 
                 return;
 
@@ -99,29 +137,29 @@ static void event_update_sensors()
 
         err = arduino_store_data(datastreams,
                                  num_datastreams,
-                                 data_file);
+                                 _data_file);
 
         return;
 }
 
-typedef struct _image_size_t {
-        const char* symbol;
-        unsigned int width;
-        unsigned int height;
-} image_size_t;
-
-static image_size_t image_sizes[] = {
-        { "320x240", 320, 240 },
-        { "640x480", 640, 480 },
-        { "960x720", 960, 720 },
-        { "1024x768", 1024, 768 },
-        { "1280x720", 1280, 720 },
-        { "1280x960", 1280, 960 },
-        { "1920x1080", 1920, 1080 },
-        { NULL, 0, 0 }};
-
 static int get_image_size(const char* symbol, unsigned int* width, unsigned int* height)
 {
+        typedef struct _image_size_t {
+                const char* symbol;
+                unsigned int width;
+                unsigned int height;
+        } image_size_t;
+        
+        static image_size_t image_sizes[] = {
+                { "320x240", 320, 240 },
+                { "640x480", 640, 480 },
+                { "960x720", 960, 720 },
+                { "1024x768", 1024, 768 },
+                { "1280x720", 1280, 720 },
+                { "1280x960", 1280, 960 },
+                { "1920x1080", 1920, 1080 },
+                { NULL, 0, 0 }};
+
         for (int i = 0; image_sizes[i].symbol != 0; i++) {
                 if (strcmp(image_sizes[i].symbol, symbol) == 0) {
                         *width = image_sizes[i].width;
@@ -129,6 +167,7 @@ static int get_image_size(const char* symbol, unsigned int* width, unsigned int*
                         return 0;
                 }
         }
+
         return -1;
 }
 
@@ -181,7 +220,7 @@ static void event_update_camera(json_object_t config)
         gettimeofday(&tv, NULL);
         localtime_r(&tv.tv_sec, &r);
         snprintf(filename, 512, "%s/%04d%02d%02d-%02d%02d%02d.jpg",
-                 img_dir,
+                 _img_dir,
                  1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, 
                  r.tm_hour, r.tm_min, r.tm_sec);
 
@@ -217,7 +256,6 @@ static void event_update_camera(json_object_t config)
 
         return;
 }
-
 
 static void event_exec(event_t* e, json_object_t config)
 {
@@ -295,6 +333,9 @@ static void usage(FILE* fp, int argc, char** argv)
                  "-h | --help          Print this message\n"
                  "-v | --version       Print version\n"
                  "-c | --config        Configuration file\n"
+                 "-l | --log           Log file ('-' for stderr)\n"
+                 "-t | --test          Test run\n"
+                 "-D | --debug         Print debug message\n"
                   "",
                  argv[0]);
 }
@@ -348,10 +389,10 @@ static void parse_arguments(int argc, char **argv)
                         log_set_level(LOG_DEBUG);
                         break;
                 case 'c':
-                        config_file = optarg;
+                        _config_file = optarg;
                         break;
                 case 'l':
-                        log_file = optarg;
+                        _log_file = optarg;
                         break;
                 default:
                         usage(stderr, argc, argv);
@@ -515,6 +556,32 @@ static event_t* add_sensor_events(json_object_t config, event_t* list)
         return list; // not reached
 }
 
+static void handle_events(json_object_t config, event_t* events, int test)
+{
+        time_t t;
+        struct tm tm;
+
+        t = time(NULL);
+        localtime_r(&t, &tm);
+        log_debug("current time: %02d:%02d.", tm.tm_hour, tm.tm_min);
+        int cur_minute = tm.tm_hour * 60 + tm.tm_min;
+
+        event_t* e = eventlist_get_next(events, cur_minute);
+        if (e == NULL) {
+                log_err("No events!"); 
+                return;
+        }
+
+        while ((e != NULL) &&
+               (e->minute == cur_minute)) {
+                if (test) 
+                        printf("EXEC %s\n", (e->type == UPDATE_SENSORS)? "update sensors" : "update camera");
+                else
+                        event_exec(e, config);
+                e = e->next;
+        }
+}
+
 static int poweroff_enabled(json_object_t config)
 {
         json_object_t power = json_object_get(config, "power");
@@ -543,41 +610,10 @@ static void do_poweroff(int minutes)
         log_err("Failed to poweroff");         
 }
 
-int main(int argc, char **argv)
+static void poweroff_maybe(json_object_t config, event_t* events, int test)
 {
-        char buffer[512];
-        event_t* events = NULL;
         time_t t;
         struct tm tm;
-
-        parse_arguments(argc, argv);
-
-        FILE* log = NULL;
-        if (strcmp(log_file, "-") == 0) {
-                log = stderr;
-        } else {
-                log = fopen(log_file, "a");
-        }
-        if (log == NULL) {
-                fprintf(stderr, "Failed to open the log file ('%s')", log_file);
-                log_set_filep(stderr);
-        } else {
-                log_set_filep(log);
-        }
-
-        json_object_t config = json_load(config_file, buffer, 512);
-        if (json_isnull(config)) {
-                log_err("%s", buffer); 
-                exit(1);
-        } 
-
-        events = add_camera_events(config, events);
-        events = add_sensor_events(config, events);
-        if (events == NULL) {
-                log_err("No events!"); 
-                exit(1);
-        }
-        eventlist_print(events);
 
         t = time(NULL);
         localtime_r(&t, &tm);
@@ -585,23 +621,10 @@ int main(int argc, char **argv)
         int cur_minute = tm.tm_hour * 60 + tm.tm_min;
 
         event_t* e = eventlist_get_next(events, cur_minute);
-        if (e == NULL) {
-                log_err("No events!"); 
-                exit(1);
-        }
-
-        while ((e != NULL) &&
-               (e->minute == cur_minute)) {
-                if (_test) 
-                        printf("EXEC %s\n", (e->type == UPDATE_SENSORS)? "update sensors" : "update camera");
-                else
-                        event_exec(e, config);
-                e = e->next;
-        }
-
-        if (e == NULL) {
+        if (e == NULL)
                 e = eventlist_get_next(events, 0);
-        } 
+        if (e == NULL)
+                return;
 
         int delta;
         if (e->minute < cur_minute) 
@@ -611,14 +634,103 @@ int main(int argc, char **argv)
 
         log_debug("next event in %d minute(s)", delta);
 
-        eventlist_delete_all(events);
-
         if ((delta > 2) && poweroff_enabled(config)) {
-                if (_test) 
+                if (test) 
                         printf("POWEROFF %d\n", delta - 2);
                 else
                         do_poweroff(delta - 3);
         }
+}
+
+static void upload_data(json_object_t config, const char* filename)
+{
+        struct stat buf;
+        if (stat(filename, &buf) == -1) {
+                return;
+        }
+        if (((buf.st_mode & S_IFMT) != S_IFREG) 
+            || (buf.st_size == 0)) {
+                return;
+        }
+
+        json_object_t osd_config = json_object_get(config, "opensensordata");
+        if (!json_isobject(osd_config)) {
+                log_err("OpenSensorData settings are not a JSON object, as expected"); 
+                return;
+        }
+        json_object_t server = json_object_get(osd_config, "server");
+        if (!json_isstring(server)) {
+                log_err("OpenSensorData server setting is not a JSON string, as expected"); 
+                return;
+        }
+        json_object_t key = json_object_get(osd_config, "key");
+        if (!json_isstring(key)) {
+                log_err("OpenSensorData key is not a JSON string, as expected"); 
+                return;
+        }
+
+        opensensordata_t* osd = new_opensensordata(json_string_value(server));
+        if (osd == NULL) {
+                log_err("Out of memory"); 
+                return;
+        }
+
+        opensensordata_set_key(osd, json_string_value(server));
+
+        int ret = opensensordata_put_datapoints(osd, filename);
+        if (ret != 0) {
+                log_err("Upload failed"); 
+        }
+
+        delete_opensensordata(osd);
+}
+
+static event_t* build_eventlist(json_object_t config)
+{
+        event_t* events = NULL;
+        events = add_camera_events(config, events);
+        events = add_sensor_events(config, events);
+        return events;
+}
+
+static void init_log(const char* file)
+{
+        FILE* log = NULL;
+        if (strcmp(file, "-") == 0) {
+                log = stderr;
+        } else {
+                log = fopen(file, "a");
+        }
+        if (log == NULL) {
+                fprintf(stderr, "Failed to open the log file ('%s')", file);
+                log_set_filep(stderr);
+        } else {
+                log_set_filep(log);
+        }
+}
+
+int main(int argc, char **argv)
+{
+        parse_arguments(argc, argv);
+
+        init_log(_log_file);
+
+        json_object_t config = config_load(_config_file);
+        if (json_isnull(config)) {
+                log_err("Failed to load the config file"); 
+                exit(1);
+        } 
+
+        event_t* events = build_eventlist(config);
+        eventlist_print(events);
+
+        handle_events(config, events, _test);
+
+        upload_data(config, _data_file);
+
+        poweroff_maybe(config, events, _test);
+
+        eventlist_delete_all(events);
 
         return 0;
 }
