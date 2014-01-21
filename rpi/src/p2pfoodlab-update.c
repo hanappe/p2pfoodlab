@@ -609,11 +609,11 @@ int main(int argc, char **argv)
         else
                 delta = e->minute - cur_minute;
 
-        log_debug("next event in %d minutes", delta);
+        log_debug("next event in %d minute(s)", delta);
 
         eventlist_delete_all(events);
 
-        if ((delta > 5) && poweroff_enabled(config)) {
+        if ((delta > 3) && poweroff_enabled(config)) {
                 if (_test) 
                         printf("POWEROFF %d\n", delta - 3);
                 else
