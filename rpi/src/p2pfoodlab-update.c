@@ -655,7 +655,7 @@ static void upload_data(json_object_t config, const char* filename, int test)
 {
         struct stat buf;
         if (stat(filename, &buf) == -1) {
-                log_info("No datapoints to upload");
+                log_debug("No datapoints to upload");
                 return;
         }
         if ((buf.st_mode & S_IFMT) != S_IFREG) {
@@ -663,7 +663,7 @@ static void upload_data(json_object_t config, const char* filename, int test)
                 return;
         }
         if (buf.st_size == 0) {
-                log_info("Datapoints file is empty");
+                log_debug("Datapoints file is empty");
                 return;
         }
         if (test) {
