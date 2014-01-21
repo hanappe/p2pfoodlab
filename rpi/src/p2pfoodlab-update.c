@@ -41,6 +41,7 @@ static char* log_file = "/var/p2pfoodlab/log.txt";
 static char* osd_dir = "/var/p2pfoodlab/etc/opensensordata";
 static char* data_file = "/var/p2pfoodlab/datapoints.csv";
 static char* img_dir = "/var/p2pfoodlab/photostream";
+static int _test = 0;
 
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 0
@@ -300,7 +301,7 @@ static void usage(FILE* fp, int argc, char** argv)
                  argv[0]);
 }
 
-static void printVersion(FILE* fp)
+static void print_version(FILE* fp)
 {
         fprintf (fp,
                  "P2P Food Lab Sensorbox\n"
@@ -309,9 +310,9 @@ static void printVersion(FILE* fp)
                  VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 }
 
-static void parseArguments(int argc, char **argv)
+static void parse_arguments(int argc, char **argv)
 {
-        static const char short_options [] = "hvc:";
+        static const char short_options [] = "hvtc:l:";
 
         static const struct option
                 long_options [] = {
@@ -319,6 +320,7 @@ static void parseArguments(int argc, char **argv)
                 { "version",     no_argument, NULL, 'v' },
                 { "config",      required_argument, NULL, 'c' },
                 { "log",         required_argument, NULL, 'l' },
+                { "test",        no_argument, NULL, 't' },
                 { 0, 0, 0, 0 }
         };
 
@@ -338,8 +340,11 @@ static void parseArguments(int argc, char **argv)
                         usage(stdout, argc, argv);
                         exit(EXIT_SUCCESS);
                 case 'v':
-                        printVersion(stdout);
+                        print_version(stdout);
                         exit(EXIT_SUCCESS);
+                case 't':
+                        _test = 1;
+                        break;
                 case 'c':
                         config_file = optarg;
                         break;
@@ -533,7 +538,7 @@ int main(int argc, char **argv)
         time_t t;
         struct tm tm;
 
-        parseArguments(argc, argv);
+        parse_arguments(argc, argv);
 
         FILE* log = NULL;
         if (strcmp(log_file, "-") == 0) {
@@ -575,8 +580,10 @@ int main(int argc, char **argv)
 
         while ((e != NULL) &&
                (e->minute == cur_minute)) {
-                event_print(e);
-                event_exec(e, config);
+                if (_test) 
+                        printf("EXEC %s\n", (e->type == UPDATE_SENSORS)? "update sensors" : "update camera");
+                else
+                        event_exec(e, config);
                 e = e->next;
         }
 
@@ -595,8 +602,10 @@ int main(int argc, char **argv)
         eventlist_delete_all(events);
 
         if ((delta > 5) && poweroff_enabled(config)) {
-                printf("poweroff\n");
-                do_poweroff(delta - 3);
+                if (_test) 
+                        printf("POWEROFF %d\n", delta - 3);
+                else
+                        do_poweroff(delta - 3);
         }
 
         return 0;
