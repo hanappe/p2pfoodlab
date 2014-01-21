@@ -633,7 +633,15 @@ static void poweroff_maybe(json_object_t config, event_t* events, int test)
         else
                 delta = e->minute - cur_minute;
 
-        log_info("Next event in %d minute(s)", delta);
+        if ((delta < 10) && (delta > 0)) {
+                log_info("Next event in %d minute(s)", delta);
+        } else if ((delta < 60) && ((delta % 10) == 0)) {
+                log_info("Next event in %d minute(s)", delta);
+        } else if ((delta < 60) && ((delta % 10) == 0)) {
+                log_info("Next event in %d minute(s)", delta);
+        } else if ((delta % 60) == 0) {
+                log_info("Next event in %d minute(s)", delta);
+        }  
 
         if ((delta > 2) && poweroff_enabled(config)) {
                 if (test) 
@@ -647,10 +655,15 @@ static void upload_data(json_object_t config, const char* filename, int test)
 {
         struct stat buf;
         if (stat(filename, &buf) == -1) {
+                log_info("No datapoints to upload");
                 return;
         }
-        if (((buf.st_mode & S_IFMT) != S_IFREG) 
-            || (buf.st_size == 0)) {
+        if ((buf.st_mode & S_IFMT) != S_IFREG) {
+                log_info("Datapoints file is not a regular file!");
+                return;
+        }
+        if (buf.st_size == 0) {
+                log_info("Datapoints file is empty");
                 return;
         }
         if (test) {
