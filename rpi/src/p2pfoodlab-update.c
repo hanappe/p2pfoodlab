@@ -681,11 +681,15 @@ static void upload_data(json_object_t config, const char* filename, int test)
 
         opensensordata_set_key(osd, json_string_value(key));
 
+        log_debug("Uploading datapoints (filesize=%d)", (int) buf.st_size); 
+
         int ret = opensensordata_put_datapoints(osd, filename);
         if (ret != 0) {
                 log_err("Uploading of datapoints failed"); 
                 char* resp = opensensordata_get_response(osd);
                 if (resp) log_err("%s", resp); 
+        } else {
+                log_debug("Upload successful"); 
         }
 
         delete_opensensordata(osd);
