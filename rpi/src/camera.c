@@ -961,7 +961,7 @@ static int camera_init(camera_t* camera)
 
         CLEAR(fmt);
 
-        printf("Opening video device %dx%d.", camera->width, camera->height);
+        log_info("Camera: Opening video device %dx%d.", camera->width, camera->height);
 
         // v4l2_format
         fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
