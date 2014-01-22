@@ -177,6 +177,9 @@ int main(int argc, char **argv)
 
         } else if (strcmp(_command, "sensors") == 0) {
                 sensorbox_update_sensors(box);
+                
+        } else {
+                usage(stderr, argc, argv);
         }
 
         delete_sensorbox(box);
