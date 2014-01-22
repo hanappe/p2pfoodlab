@@ -321,9 +321,6 @@ static int sensorbox_init_camera(sensorbox_t* box)
                 return -1;
         }
 
-        log_info("Grabbing %s image from %s", 
-                 json_string_value(size_str), device);
-
         box->camera = new_camera(device, IO_METHOD_MMAP,
                                  width, height, 90);
 
