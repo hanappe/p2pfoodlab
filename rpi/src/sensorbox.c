@@ -396,7 +396,7 @@ static void sensorbox_handle_event(sensorbox_t* box, event_t* e)
         }
 }
 
-static void sensorbox_update_camera(sensorbox_t* box)
+void sensorbox_update_camera(sensorbox_t* box)
 {
         if (box->camera == NULL)
                 return;
