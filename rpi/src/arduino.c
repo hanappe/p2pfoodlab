@@ -127,6 +127,8 @@ static int arduino_suspend_(arduino_t* arduino)
 
 static int arduino_resume_(arduino_t* arduino, int reset)
 {
+        int err;
+
         if (reset) 
                 log_info("Arduino: Clearing the memory and resuming measurements"); 
         else
@@ -135,12 +137,18 @@ static int arduino_resume_(arduino_t* arduino, int reset)
         unsigned char c = CMD_RESUME;
         if (reset) c |= 0x01;
 
-        if (i2c_smbus_write_byte(arduino->fd, c) == -1) {
-                log_err("Arduino: Failed to send the 'transfer done' command. This is not good... You may have to restart the device.");
-                return -1;
+        for (int attempt = 0; attempt < 20; attempt++) {
+                err = i2c_smbus_write_byte(arduino->fd, c);
+                if (err == 0) 
+                        break;
+                usleep(10000);
         }
-        usleep(10000);
-        return 0;
+
+        if (err != 0) {
+                log_err("Arduino: Failed to send the 'transfer done' command. This is not good... You may have to restart the device.");
+        }
+
+        return err;
 }
 
 static int arduino_read_float(arduino_t* arduino, float* value)
@@ -456,10 +464,13 @@ int arduino_store_data(arduino_t* arduino,
                 if (err == 0) break;
         }
 
-        arduino_resume_(arduino, 0);
-
-        if (err == 0) 
+        if (err == 0) {
                 log_info("Arduino: Download successful"); 
+                arduino_resume_(arduino, 1);
+        } else {
+                log_info("Arduino: Download failed"); 
+                arduino_resume_(arduino, 0);
+        }
 
         arduino_disconnect(arduino);
         return err;

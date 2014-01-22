@@ -94,6 +94,8 @@ sensorbox_t* new_sensorbox(const char* dir)
                 return NULL;
         }
 
+        eventlist_print(box->events); 
+
         return box;
 }
 
@@ -629,6 +631,9 @@ void sensorbox_upload_photos(sensorbox_t* box)
                         continue;
 
                 log_info("Sensorbox: Uploading photo '%s'", filename);
+
+                if (box->test)
+                        continue;
 
                 int err = opensensordata_put_photo(box->osd, photostream, 
                                                    entry->d_name, filename);
