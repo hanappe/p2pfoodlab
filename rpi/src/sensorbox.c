@@ -723,9 +723,9 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
                 log_info("Next event in %d minute(s)", delta);
         }  
 
-        if ((delta > 2) && sensorbox_poweroff_enabled(box)) {
+        if ((delta > 3) && sensorbox_poweroff_enabled(box)) {
                 if (box->test) 
-                        printf("POWEROFF %d\n", delta - 2);
+                        printf("POWEROFF %d\n", delta - 3);
                 else
                         sensorbox_poweroff(box, delta - 3);
         }
