@@ -731,3 +731,7 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
         }
 }
 
+int sensorbox_millis(sensorbox_t* box, unsigned long* m) 
+{
+        return arduino_millis(box->arduino, m);
+}

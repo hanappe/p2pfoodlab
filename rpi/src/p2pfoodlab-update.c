@@ -63,7 +63,8 @@ static void usage(FILE* fp, int argc, char** argv)
                  "  camera             Grab a photo\n"
                  "  upload-data        Upload the datapoints\n"
                  "  upload-photos      Upload the photos\n"
-                  "",
+                 "  millis             Get the current time on the arduino\n"
+                 "",
                  argv[0]);
 }
 
@@ -177,6 +178,15 @@ int main(int argc, char **argv)
 
         } else if (strcmp(_command, "sensors") == 0) {
                 sensorbox_update_sensors(box);
+
+        } else if (strcmp(_command, "millis") == 0) {
+                unsigned long m;
+                int err = sensorbox_millis(box, &m); 
+                if (err) {
+                        delete_sensorbox(box);
+                        exit(1);
+                }
+                printf("%lu\n", m);
                 
         } else {
                 usage(stderr, argc, argv);
