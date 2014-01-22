@@ -181,6 +181,8 @@ static int arduino_set_poweroff_(arduino_t* arduino, int minutes)
         c[1] = (minutes & 0x0000ff00) >> 8;
         c[2] = (minutes & 0x000000ff);
 
+        log_info("Arduino: Request poweroff, wakeup in %d minutes", minutes); 
+
         int n = write(arduino->fd, c, 3);
         if (n != 3) {
                 log_err("Arduino: set_poweroff: Failed to write the data (%d/3 bytes written)", n); 
