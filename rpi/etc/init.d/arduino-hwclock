@@ -16,17 +16,33 @@ set -e
 
 DATEFILE=/var/p2pfoodlab/etc/arduino-hwclock.date
 MILLISFILE=/var/p2pfoodlab/etc/arduino-hwclock.millis
+MILLIS_EXEC="/var/p2pfoodlab/bin/p2pfoodlab-update millis"
 
 save_date() {
     date -u '+%Y-%m-%d %H:%M:%S' > $DATEFILE
-    /var/p2pfoodlab/bin/arduino millis > $MILLISFILE
+    MILLIS=$($MILLIS_EXEC)
+    if [ $? -eq 0 ]; then
+        echo $MILLIS > $MILLISFILE
+    else
+        echo "Obtaining current Arduino time failed"
+        echo "none" > $MILLISFILE
+    fi
 }
 
 restore_date() {
     if [ -e $MILLISFILE ] ; then
 
         SAVED_MILLIS=$(cat $MILLISFILE)
+        if [ "x$SAVED_MILLIS" == "none" ]; then
+            echo "Saving Arduino time failed at shutdown"
+            return;
+        fi
         NOW_MILLIS=$(/var/p2pfoodlab/bin/arduino millis)
+        if [ $? -ne 0 ]; then
+            echo "Obtaining current Arduino time failed"
+            return;
+        fi
+        
         if [ $NOW_MILLIS -le $SAVED_MILLIS ] ; then
             DELTA=$(echo "(4294967296 + $NOW_MILLIS - $SAVED_MILLIS) / 1000" | bc)
         else
