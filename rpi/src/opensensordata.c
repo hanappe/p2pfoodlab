@@ -195,13 +195,14 @@ static int opensensordata_put_file(opensensordata_t* osd,
                 return -1;
         }
         if (response_code != 200) {
-                log_err("OpenSensorData: Upload failed (HTTP code %d).", response_code);
+                log_err("OpenSensorData: HTTP PUT request failed (HTTP code %d).", response_code);
                 curl_slist_free_all(header_lines);
                 curl_easy_cleanup(osd->curl);
                 osd->curl = NULL;
                 return -1;
         }
-
+        log_debug("OpenSensorData: HTTP PUT request successful (HTTP code %d).", response_code);
+                
         curl_slist_free_all(header_lines);
         curl_easy_cleanup(osd->curl);
         osd->curl = NULL;

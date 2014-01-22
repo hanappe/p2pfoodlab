@@ -636,7 +636,7 @@ void sensorbox_upload_photos(sensorbox_t* box)
                 int err = opensensordata_put_photo(box->osd, photostream, 
                                                    entry->d_name, filename);
                 if (err != 0) {
-                        log_err("Sensorbox: Uploading of datapoints failed"); 
+                        log_err("Sensorbox: Uploading of photo failed"); 
                         char* resp = opensensordata_get_response(box->osd);
                         if (resp) 
                                 log_err("%s", resp); 
