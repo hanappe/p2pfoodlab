@@ -20,33 +20,23 @@
 
 */
 
-#ifndef _CAMERA_H_
-#define _CAMERA_H_
+#ifndef _SENSORBOX_H_
+#define _SENSORBOX_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum {
-        IO_METHOD_READ,
-        IO_METHOD_MMAP,
-        IO_METHOD_USERPTR,
-} io_method;
+typedef struct _sensorbox_t sensorbox_t;
 
-typedef struct _camera_t camera_t;
+sensorbox_t* new_sensorbox(const char* dir);
+int delete_sensorbox(sensorbox_t* sensorbox);
 
-camera_t* new_camera(const char* dev, 
-                     io_method io,
-                     unsigned int width, 
-                     unsigned int height, 
-                     int jpeg_quality);
-
-int delete_camera(camera_t* camera);
-
-int camera_capture(camera_t* camera);
-
-int camera_getimagesize(camera_t* camera);
-unsigned char* camera_getimagebuffer(camera_t* camera);
+void sensorbox_test_run(sensorbox_t* sensorbox);
+void sensorbox_handle_events(sensorbox_t* box);
+void sensorbox_upload_data(sensorbox_t* box);
+void sensorbox_upload_photos(sensorbox_t* box);
+void sensorbox_poweroff_maybe(sensorbox_t* box);
 
 #ifdef __cplusplus
 }

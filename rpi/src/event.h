@@ -20,33 +20,32 @@
 
 */
 
-#ifndef _CAMERA_H_
-#define _CAMERA_H_
+#ifndef _EVENT_H_
+#define _EVENT_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum {
-        IO_METHOD_READ,
-        IO_METHOD_MMAP,
-        IO_METHOD_USERPTR,
-} io_method;
+typedef enum _event_type_t {
+        UPDATE_SENSORS = 0,
+        UPDATE_CAMERA = 1
+} event_type_t;
 
-typedef struct _camera_t camera_t;
+typedef struct _event_t event_t;
 
-camera_t* new_camera(const char* dev, 
-                     io_method io,
-                     unsigned int width, 
-                     unsigned int height, 
-                     int jpeg_quality);
+struct _event_t {
+        int minute;
+        event_type_t type;
+        event_t* next;
+};
 
-int delete_camera(camera_t* camera);
-
-int camera_capture(camera_t* camera);
-
-int camera_getimagesize(camera_t* camera);
-unsigned char* camera_getimagebuffer(camera_t* camera);
+event_t* new_event(int minute, event_type_t type);
+void event_print(event_t* e);
+event_t* eventlist_insert(event_t* events, event_t* e);
+void eventlist_print(event_t* events);
+void eventlist_delete_all(event_t* events);
+event_t* eventlist_get_next(event_t* events, int minute);
 
 #ifdef __cplusplus
 }

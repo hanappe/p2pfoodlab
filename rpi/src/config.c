@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include "config.h"
 #include "log_message.h"
-#include "arduino-api.h"
+#include "arduino.h"
 
 json_object_t config_load(const char* file)
 {

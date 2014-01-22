@@ -36,7 +36,8 @@ void opensensordata_set_cache_dir(opensensordata_t* osd, const char* dir);
 void opensensordata_set_key(opensensordata_t* osd, const char* key);
 int opensensordata_put_datapoints(opensensordata_t* osd, const char* filename);
 int opensensordata_put_photo(opensensordata_t* osd, int photostream, const char* id, const char* filename);
-int opensensordata_map_datastream(opensensordata_t* osd, const char* name);
+int opensensordata_get_datastream_id(opensensordata_t* osd, const char* name);
+int opensensordata_get_photostream_id(opensensordata_t* osd, const char* name);
 char* opensensordata_get_response(opensensordata_t* osd);
 
 

@@ -27,7 +27,7 @@
 #include <curl/curl.h>
 #include "json.h"
 #include "config.h"
-#include "arduino-api.h"
+#include "arduino.h"
 #include "opensensordata.h"
 #include "log_message.h"
 
@@ -225,7 +225,7 @@ int opensensordata_put_photo(opensensordata_t* osd,
         return opensensordata_put_file(osd, path, filename, "image/jpeg");
 }
 
-int opensensordata_map_datastream(opensensordata_t* osd, const char* name)
+static int opensensordata_get_id(opensensordata_t* osd, const char* name)
 {
         char buffer[512];
         char filename[512];
@@ -263,6 +263,16 @@ int opensensordata_map_datastream(opensensordata_t* osd, const char* name)
         }
         
         return id;
+}
+
+int opensensordata_get_datastream_id(opensensordata_t* osd, const char* name)
+{
+        return opensensordata_get_id(osd, name);
+}
+
+int opensensordata_get_photostream_id(opensensordata_t* osd, const char* name)
+{
+        return opensensordata_get_id(osd, name);
 }
 
 char* opensensordata_get_response(opensensordata_t* osd)
