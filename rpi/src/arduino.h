@@ -39,6 +39,8 @@ typedef struct _arduino_t arduino_t;
 arduino_t* new_arduino(int bus, int address);
 int delete_arduino(arduino_t* arduino);
 
+int arduino_millis(arduino_t* arduino, unsigned long* m);
+
 int arduino_set_sensors(arduino_t* arduino,
                         unsigned char enabled, 
                         unsigned char period);
@@ -54,9 +56,9 @@ int arduino_store_data(arduino_t* arduino,
 
 int arduino_set_poweroff(arduino_t* arduino, int minutes);
 
-int arduino_pump(arduino_t* arduino, int seconds);
+int arduino_get_poweroff(arduino_t* arduino, unsigned long* off, unsigned long* on);
 
-int arduino_millis(arduino_t* arduino, unsigned long* m);
+int arduino_pump(arduino_t* arduino, int seconds);
 
 #ifdef __cplusplus
 }

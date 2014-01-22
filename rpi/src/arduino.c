@@ -199,7 +199,7 @@ static int arduino_set_poweroff_(arduino_t* arduino, int minutes)
         return 0;
 }
 
-static int arduino_get_poweroff(arduino_t* arduino, unsigned long* off, unsigned long* on)
+static int arduino_get_poweroff_(arduino_t* arduino, unsigned long* off, unsigned long* on)
 {
         unsigned char c[4];
 
@@ -545,7 +545,7 @@ int arduino_set_poweroff(arduino_t* arduino, int minutes)
                 /*         arduino_disconnect(arduino); */
                 /*         continue; */
                 /* } */
-                /* if (arduino_get_poweroff(arduino, &off, &on) != 0) { */
+                /* if (arduino_get_poweroff_(arduino, &off, &on) != 0) { */
                 /*         arduino_disconnect(arduino); */
                 /*         continue; */
                 /* } */
@@ -553,6 +553,28 @@ int arduino_set_poweroff(arduino_t* arduino, int minutes)
                 /* log_info("Arduino: Current time: %u min", millis / 60000); */
                 /* log_info("Arduino: Power off at: %u min", off);  */
                 /* log_info("Arduino: Wake up at: %u min", on);  */
+                
+                arduino_disconnect(arduino);
+                err = 0;
+                break;
+        }
+
+        return err;
+}
+
+int arduino_get_poweroff(arduino_t* arduino, unsigned long* off, unsigned long* on)
+{
+        int err = -1;
+                
+        for (int attempt = 0; attempt < 5; attempt++) {
+                
+                err = arduino_connect(arduino);
+                if (err != 0) continue;
+
+                if (arduino_get_poweroff_(arduino, off, on) != 0) {
+                        arduino_disconnect(arduino);
+                        continue;
+                }
                 
                 arduino_disconnect(arduino);
                 err = 0;
