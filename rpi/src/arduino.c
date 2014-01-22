@@ -90,7 +90,7 @@ static int arduino_connect(arduino_t* arduino)
 {
         char *fileName = (arduino->bus == 0)? "/dev/i2c-0" : "/dev/i2c-1";
  
-        log_info("Arduino: Connecting"); 
+        log_debug("Arduino: Connecting"); 
 
         if ((arduino->fd = open(fileName, O_RDWR)) < 0) {
                 log_err("Arduino: Failed to open the I2C device"); 
@@ -108,14 +108,14 @@ static int arduino_connect(arduino_t* arduino)
 
 static void arduino_disconnect(arduino_t* arduino)
 {
-        log_info("Arduino: Disconnecting"); 
+        log_debug("Arduino: Disconnecting"); 
         if (arduino->fd > 0)
                 close(arduino->fd);
 }
 
 static int arduino_suspend_(arduino_t* arduino)
 {
-        log_info("Arduino: Sending start transfer"); 
+        log_debug("Arduino: Sending start transfer"); 
 
         if (i2c_smbus_write_byte(arduino->fd, CMD_SUSPEND) == -1) {
                 log_err("Arduino: Failed to send the 'start transfer' command");
@@ -183,10 +183,16 @@ static int arduino_set_poweroff_(arduino_t* arduino, int minutes)
 
         log_info("Arduino: Request poweroff, wakeup in %d minutes", minutes); 
 
-        int n = write(arduino->fd, c, 3);
-        if (n != 3) {
-                log_err("Arduino: set_poweroff: Failed to write the data (%d/3 bytes written)", n); 
-                return -1;
+        int n = 0;
+
+        while (n < 3) {
+                int m = write(arduino->fd, c + n, 3 - n);
+                if (m == -1) {
+                        log_err("Arduino: set_poweroff: Failed to write the data (%d/3 bytes written): %s", 
+                                n, strerror(errno)); 
+                        return -1;
+                }
+                n += m;
         }
         usleep(10000);
 
