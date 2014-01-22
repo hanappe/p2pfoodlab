@@ -146,6 +146,9 @@ int main(int argc, char **argv)
         if (box == NULL) 
                 exit(1);
 
+        if (_test) 
+                sensorbox_test_run(box);
+
         sensorbox_handle_events(box);
         sensorbox_upload_data(box);
         sensorbox_upload_photos(box);

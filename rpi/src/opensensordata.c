@@ -176,7 +176,7 @@ static int opensensordata_put_file(opensensordata_t* osd,
         
         CURLcode res = curl_easy_perform(osd->curl);
         if (res != CURLE_OK) {
-                log_err("Failed to upload the data.");
+                log_err("OpenSensorData: Failed to upload the data.");
                 fclose(fp);
                 curl_slist_free_all(header_lines);
                 curl_easy_cleanup(osd->curl);
@@ -188,14 +188,14 @@ static int opensensordata_put_file(opensensordata_t* osd,
         long response_code = -1;
         res = curl_easy_getinfo(osd->curl, CURLINFO_RESPONSE_CODE, &response_code);
         if (res != CURLE_OK) {
-                log_err("Failed to obtain curl's response code.");
+                log_err("OpenSensorData: Failed to obtain curl's response code.");
                 curl_slist_free_all(header_lines);
                 curl_easy_cleanup(osd->curl);
                 osd->curl = NULL;
                 return -1;
         }
         if (response_code != 200) {
-                log_err("Upload failed (HTTP code %d).", response_code);
+                log_err("OpenSensorData: Upload failed (HTTP code %d).", response_code);
                 curl_slist_free_all(header_lines);
                 curl_easy_cleanup(osd->curl);
                 osd->curl = NULL;
@@ -243,14 +243,14 @@ static int opensensordata_get_id(opensensordata_t* osd, const char* name)
                 log_err("%s", buffer); 
                 return -1;
         } else if (!json_isobject(def)) {
-                log_err("Invalid datastream definition: %s", filename); 
+                log_err("OpenSensorData: Invalid datastream definition: %s", filename); 
                 return -1;
         }
 
         int id = -1;
         json_object_t v = json_object_get(def, "id");
         if (json_isnull(v)) {
-                log_err("Invalid datastream id: %s", filename); 
+                log_err("OpenSensorData: Invalid datastream id: %s", filename); 
                 return -1;
         }
         if (json_isstring(v)) {
@@ -258,7 +258,7 @@ static int opensensordata_get_id(opensensordata_t* osd, const char* name)
         } else if (json_isnumber(v)) {
                 id = json_number_value(v);
         } else {
-                log_err("Invalid datastream id: %s", filename); 
+                log_err("OpenSensorData: Invalid datastream id: %s", filename); 
                 return -1;
         }
         

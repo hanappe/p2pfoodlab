@@ -190,7 +190,7 @@ static int get_image_size(const char* symbol, unsigned int* width, unsigned int*
 
 static int sensorbox_add_periodic_events(sensorbox_t* box, int period, int type)
 {
-        log_debug("Add periodic events (period %d).", period);
+        log_debug("Sensorbox: Adding periodic events (period %d).", period);
 
         int minutes_day = 24 * 60;
         int minute = 0;
@@ -206,7 +206,7 @@ static int sensorbox_add_periodic_events(sensorbox_t* box, int period, int type)
 
 static int sensorbox_add_fixed_events(sensorbox_t* box, json_object_t fixed, int type)
 {
-        log_debug("Add fixed events");
+        log_debug("Sensorbox: Adding fixed events");
 
         int num = json_array_length(fixed);
         for (int i = 0; i < num; i++) {
@@ -638,17 +638,16 @@ void sensorbox_upload_photos(sensorbox_t* box)
                 int err = opensensordata_put_photo(box->osd, photostream, 
                                                    entry->d_name, filename);
                 if (err != 0) {
-                        log_info("Sensorbox: Upload failed");
                         continue;
                 }
 
                 snprintf(backupfile, 512, "%s/backup/%s", box->home_dir, entry->d_name);
                 backupfile[511] = 0;
 
-                log_info("Copying photo to %s", backupfile);
+                log_info("Sensorbox: Copying photo to %s", backupfile);
                 
                 if (rename(filename, backupfile) == -1) {
-                        log_err("Failed to copy photo to %s", backupfile); 
+                        log_err("Sensorbox: Failed to copy photo to %s", backupfile); 
                 }
         }
         
