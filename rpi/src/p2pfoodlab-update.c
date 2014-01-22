@@ -39,6 +39,7 @@
 static char* _home_dir = "/var/p2pfoodlab";
 static char* _log_file = "/var/p2pfoodlab/log.txt";
 static int _test = 0;
+static char* _command = "update";
 
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 0
@@ -47,7 +48,7 @@ static int _test = 0;
 static void usage(FILE* fp, int argc, char** argv)
 {
         fprintf (fp,
-                 "Usage: %s [options]\n\n"
+                 "Usage: %s [options] [command]\n\n"
                  "Options:\n"
                  "-h | --help          Print this message\n"
                  "-v | --version       Print version\n"
@@ -55,6 +56,13 @@ static void usage(FILE* fp, int argc, char** argv)
                  "-l | --log           Log file ('-' for stderr, default: /var/p2pfoodlab/log.txt)\n"
                  "-t | --test          Test run\n"
                  "-D | --debug         Print debug message\n"
+                 "Commands:\n"
+                 "  update             Parse the config, update sensors and/or camera if necessary,\n"
+                 "                     upload data and photos [default]\n"
+                 "  sensors            Store the latest sensor values\n"
+                 "  camera             Grab a photo\n"
+                 "  upload-data        Upload the datapoints\n"
+                 "  upload-photos      Upload the photos\n"
                   "",
                  argv[0]);
 }
@@ -140,6 +148,9 @@ int main(int argc, char **argv)
 {
         parse_arguments(argc, argv);
 
+        if (optind < argc) 
+                _command = argv[optind];
+
         init_log(_log_file);
 
         sensorbox_t* box = new_sensorbox(_home_dir);
@@ -149,10 +160,24 @@ int main(int argc, char **argv)
         if (_test) 
                 sensorbox_test_run(box);
 
-        sensorbox_handle_events(box);
-        sensorbox_upload_data(box);
-        sensorbox_upload_photos(box);
-        sensorbox_poweroff_maybe(box);
+        if (strcmp(_command, "update") == 0) {
+                sensorbox_handle_events(box);
+                sensorbox_upload_data(box);
+                sensorbox_upload_photos(box);
+                sensorbox_poweroff_maybe(box);
+
+        } else if (strcmp(_command, "upload-data") == 0) {
+                sensorbox_upload_data(box);
+
+        } else if (strcmp(_command, "upload-photos") == 0) {
+                sensorbox_upload_photos(box);
+
+        } else if (strcmp(_command, "camera") == 0) {
+                sensorbox_update_camera(box);
+
+        } else if (strcmp(_command, "sensors") == 0) {
+                sensorbox_update_sensors(box);
+        }
 
         delete_sensorbox(box);
 

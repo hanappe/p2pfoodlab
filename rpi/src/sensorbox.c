@@ -60,8 +60,6 @@ static int sensorbox_init_camera(sensorbox_t* box);
 static void sensorbox_handle_event(sensorbox_t* box, event_t* e);
 static int sensorbox_poweroff_enabled(sensorbox_t* box);
 static void sensorbox_poweroff(sensorbox_t* box, int minutes);
-static void sensorbox_update_sensors(sensorbox_t* box);
-static void sensorbox_update_camera(sensorbox_t* box);
 
 sensorbox_t* new_sensorbox(const char* dir)
 {
@@ -489,7 +487,7 @@ static int sensorbox_map_datastreams(sensorbox_t* box,
         return count;
 }
 
-static void sensorbox_update_sensors(sensorbox_t* box)
+void sensorbox_update_sensors(sensorbox_t* box)
 {
         unsigned char enabled;
         unsigned char period;
@@ -638,6 +636,10 @@ void sensorbox_upload_photos(sensorbox_t* box)
                 int err = opensensordata_put_photo(box->osd, photostream, 
                                                    entry->d_name, filename);
                 if (err != 0) {
+                        log_err("Sensorbox: Uploading of datapoints failed"); 
+                        char* resp = opensensordata_get_response(box->osd);
+                        if (resp) 
+                                log_err("%s", resp); 
                         continue;
                 }
 
