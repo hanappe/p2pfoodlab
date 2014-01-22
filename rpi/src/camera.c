@@ -84,6 +84,14 @@ typedef struct _buffer_t {
         size_t length;
 } buffer_t;
 
+enum {
+        CAMERA_CLEAN,
+        CAMERA_OPEN,
+        CAMERA_INIT,
+        CAMERA_CAPTURING,
+        CAMERA_ERROR
+};
+
 typedef struct _camera_t {
         io_method io;
         int fd;
@@ -98,7 +106,7 @@ typedef struct _camera_t {
         unsigned char* jpeg_buffer;
         int jpeg_buffer_size;
         int image_size;
-        int capture_ready;
+        int state;
 } camera_t;
 
 static int camera_prepare(camera_t* camera);
@@ -155,28 +163,48 @@ camera_t* new_camera(const char* dev,
         camera->jpeg_buffer = NULL;
         camera->jpeg_buffer_size = 0;
         camera->image_size = 0;
-        camera->capture_ready = 0;
+        camera->state = CAMERA_CLEAN;
 
         return camera;
 }
 
+int delete_camera(camera_t* camera)
+{
+        if (camera) {
+                camera_capturestop(camera);
+                camera_close(camera);
+                camera_cleanup(camera);
+                free(camera);
+        }
+        return 0;
+}
+
 static int camera_prepare(camera_t* camera)
 {
-        if (camera_open(camera) != 0) {
+        if (camera->state == CAMERA_ERROR)
+                return -1;
+
+        if ((camera->state == CAMERA_CLEAN) 
+            && (camera_open(camera) != 0)) {
+                camera->state = CAMERA_ERROR;
                 return -1;
         }
-        if (camera_init(camera) != 0) {
+
+        if ((camera->state == CAMERA_OPEN) 
+            && (camera_init(camera) != 0)) {
+                camera->state = CAMERA_ERROR;
                 camera_close(camera);
                 camera_cleanup(camera);
                 return -1;
         }        
-        if (camera_capturestart(camera) != 0) {
+
+        if ((camera->state == CAMERA_INIT) 
+            && (camera_capturestart(camera) != 0)) {
+                camera->state = CAMERA_ERROR;
                 camera_close(camera);
                 camera_cleanup(camera);
                 return -1;
         }
-
-        camera->capture_ready = 1;
 
         return 0;
 }
@@ -185,7 +213,7 @@ int camera_capture(camera_t* camera)
 {
         int error, again;
 
-        if ((camera->capture_ready == 0) 
+        if ((camera->state != CAMERA_CAPTURING) 
             && (camera_prepare(camera) != 0)) {
                 return -1;
         }
@@ -241,18 +269,6 @@ unsigned char* camera_getimagebuffer(camera_t* camera)
 {
         return camera->jpeg_buffer;
 }
-
-int delete_camera(camera_t* camera)
-{
-        if (camera) {
-                camera_capturestop(camera);
-                camera_close(camera);
-                camera_cleanup(camera);
-                free(camera);
-        }
-        return 0;
-}
-
 
 /**
    Convert from YUV422 format to RGB888. Formulae are described on http://en.wikipedia.org/wiki/YUV
@@ -558,6 +574,9 @@ static int camera_capturestop(camera_t* camera)
 #endif
 #if defined(IO_MMAP) || defined(IO_USERPTR)
                 type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                
+                if (camera->fd == -1)
+                        return 0;
 
                 if (-1 == xioctl(camera->fd, VIDIOC_STREAMOFF, &type)) {
                         log_err("Camera: VIDIOC_STREAMOFF error %d, %s", errno, strerror(errno));
@@ -575,6 +594,11 @@ static int camera_capturestart(camera_t* camera)
 {
         unsigned int i;
         enum v4l2_buf_type type;
+
+        if (camera->state != CAMERA_INIT) {
+                log_err("Camera: Not in the init state");
+                return -1;
+        }
 
         switch (camera->io) {
 #ifdef IO_READ    
@@ -640,6 +664,8 @@ static int camera_capturestart(camera_t* camera)
 #endif
         }
 
+        camera->state = CAMERA_CAPTURING;
+
         return 0;
 }
 
@@ -653,7 +679,8 @@ static int camera_cleanup(camera_t* camera)
         switch (camera->io) {
 #ifdef IO_READ
         case IO_METHOD_READ:
-                free(camera->buffers[0].start);
+                if ((camera->n_buffers > 0) && camera->buffers)
+                        free(camera->buffers[0].start);
                 break;
 #endif
 
@@ -674,8 +701,9 @@ static int camera_cleanup(camera_t* camera)
                 break;
 #endif
         }
-
-        free(camera->buffers);
+        
+        if (camera->buffers)
+                free(camera->buffers);
 
         if (camera->device_name != NULL)
                 free(camera->device_name);
@@ -822,6 +850,11 @@ static int camera_open(camera_t* camera)
 {
         struct stat st;
 
+        if (camera->state != CAMERA_CLEAN) {
+                log_err("Camera: Not in the clean state");
+                return -1;
+        }
+
         // stat file
 
         if (-1 == stat(camera->device_name, &st)) {
@@ -844,6 +877,8 @@ static int camera_open(camera_t* camera)
                 return -1;
         }
 
+        camera->state = CAMERA_OPEN;
+
         return 0;
 }
 
@@ -854,6 +889,11 @@ static int camera_init(camera_t* camera)
         struct v4l2_crop crop;
         struct v4l2_format fmt;
         unsigned int min;
+
+        if (camera->state != CAMERA_OPEN) {
+                log_err("Camera: Not in the open state");
+                return -1;
+        }
 
         if (-1 == xioctl(camera->fd, VIDIOC_QUERYCAP, &cap)) {
                 if (EINVAL == errno) {
@@ -976,11 +1016,16 @@ static int camera_init(camera_t* camera)
 #endif
         }
 
+        camera->state = CAMERA_INIT;
+
         return 0;
 }
 
 static int camera_close(camera_t* camera)
 {
+        if (camera->fd == -1)
+                return 0;
+
         int oldfd = camera->fd;
         camera->fd = -1;
         return close(oldfd);
