@@ -712,6 +712,9 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
 
         if (delta == 0) {
                 return;
+        } else if (delta == 1) {
+                log_info("Next event in 1 minute");
+                return;
         } else if (delta <= 5) {
                 log_info("Next event in %d minute(s)", delta);
         } else if ((delta < 60) && ((delta % 10) == 0)) {

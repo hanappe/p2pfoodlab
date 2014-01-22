@@ -183,7 +183,7 @@ static int arduino_set_poweroff_(arduino_t* arduino, int minutes)
 
         int n = write(arduino->fd, c, 3);
         if (n != 3) {
-                log_err("Arduino: Failed to write the data"); 
+                log_err("Arduino: set_poweroff: Failed to write the data (%d/3 bytes written)", n); 
                 return -1;
         }
         usleep(10000);
@@ -199,7 +199,7 @@ static int arduino_get_poweroff(arduino_t* arduino, unsigned long* off, unsigned
 
         int n = write(arduino->fd, c, 1);
         if (n != 1) {
-                log_err("Arduino: Failed to write the data"); 
+                log_err("Arduino: get_poweroff: Failed to write the data"); 
                 return -1;
         }
         usleep(10000);
@@ -240,7 +240,7 @@ static int arduino_pump_(arduino_t* arduino, int seconds)
         for (int attempt = 0; attempt < 4; attempt++) {
                 err = i2c_smbus_write_byte(arduino->fd, c);
                 if (err == 0) break;
-                log_err("Arduino: Failed to send the 'pump on' command.");
+                log_err("Arduino: pump: Failed to send the 'pump on' command.");
                 usleep(2000);
         }
         if (err != 0) return -1;
@@ -532,19 +532,19 @@ int arduino_set_poweroff(arduino_t* arduino, int minutes)
                         continue;
                 }
 
-                unsigned long millis, off, on;
-                if (arduino_millis_(arduino, &millis) != 0) {
-                        arduino_disconnect(arduino);
-                        continue;
-                }
-                if (arduino_get_poweroff(arduino, &off, &on) != 0) {
-                        arduino_disconnect(arduino);
-                        continue;
-                }
+                /* unsigned long millis, off, on; */
+                /* if (arduino_millis_(arduino, &millis) != 0) { */
+                /*         arduino_disconnect(arduino); */
+                /*         continue; */
+                /* } */
+                /* if (arduino_get_poweroff(arduino, &off, &on) != 0) { */
+                /*         arduino_disconnect(arduino); */
+                /*         continue; */
+                /* } */
 
-                log_info("Arduino: Current time: %u min", millis / 60000);
-                log_info("Arduino: Power off at: %u min", off); 
-                log_info("Arduino: Wake up at: %u min", on); 
+                /* log_info("Arduino: Current time: %u min", millis / 60000); */
+                /* log_info("Arduino: Power off at: %u min", off);  */
+                /* log_info("Arduino: Wake up at: %u min", on);  */
                 
                 arduino_disconnect(arduino);
                 err = 0;
