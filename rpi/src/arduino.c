@@ -608,11 +608,11 @@ int arduino_millis(arduino_t* arduino, unsigned long* m)
                 
                 err = arduino_connect(arduino);
                 if (err != 0) 
-                        return -1;
+                        continue;
 
                 if (arduino_millis_(arduino, m) != 0) {
                         arduino_disconnect(arduino);
-                        return -1;
+                        continue;
                 }
 
                 arduino_disconnect(arduino);
