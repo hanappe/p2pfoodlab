@@ -677,7 +677,7 @@ static void sensorbox_poweroff(sensorbox_t* box, int minutes)
         if (err != 0) 
                 return;
 
-        if (0) {
+        if (1) {
                 log_info("Sensorbox: Powering off"); 
                 char* argv[] = { "/usr/bin/sudo", "/sbin/poweroff", NULL};
                 execv(argv[0], argv);
