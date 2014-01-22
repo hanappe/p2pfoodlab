@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ### BEGIN INIT INFO
 # Provides:          arduino-hwclock
@@ -33,7 +33,7 @@ restore_date() {
     if [ -e $MILLISFILE ] ; then
 
         SAVED_MILLIS=$(cat $MILLISFILE)
-        if [ "x$SAVED_MILLIS" == "none" ]; then
+        if [ "x$SAVED_MILLIS" == "xnone" ]; then
             echo "Saving Arduino time failed at shutdown"
             return;
         fi
@@ -59,6 +59,7 @@ restore_date() {
 
         if [ $NOW_SECONDS -le $ESTIMATED_SECONDS ] ; then
             echo date -u -s "$ESTIMATED_DATE"
+            date -u -s "$ESTIMATED_DATE"
         fi
     fi
 }
