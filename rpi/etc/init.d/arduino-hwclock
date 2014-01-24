@@ -2,8 +2,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          arduino-hwclock
-# Required-Start:    $network $named $time $local_fs kmod fake-hwclock
-# Required-Stop:     $network $named $time $local_fs kmod fake-hwclock
+# Required-Start:    $network $named $time $local_fs kmod fake-hwclock ntp
+# Required-Stop:     $network $named $time $local_fs kmod fake-hwclock ntp
 # Should-Stop:       
 # X-Start-Before:    
 # Default-Start:     2 3 4 5
