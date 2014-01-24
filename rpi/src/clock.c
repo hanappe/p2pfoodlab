@@ -115,7 +115,7 @@ int clock_set(sensorbox_t* box)
         log_info("Clock: Setting system time.");
 
         if (network_connected() == 1) {
-                log_info("Clock: Connected to network. Let ntpd do its job.");
+                log_info("Clock: Connected to network. Let ntpd do the job.");
                 return 0;
         }
 
