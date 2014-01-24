@@ -128,6 +128,7 @@ static int arduino_disconnect(arduino_t* arduino)
 static int arduino_send_(arduino_t* arduino, acmd_t* cmd)
 {
         int sent = write(arduino->fd, cmd->s, cmd->sn);
+        log_debug("Arduino: write %d bytes", cmd->sn);
         if (sent != cmd->sn) {
                 log_err("Arduino: %s: Failed to write the data", cmd->name); 
                 return -1;
@@ -136,7 +137,7 @@ static int arduino_send_(arduino_t* arduino, acmd_t* cmd)
 
         for (int i = 0; i < cmd->rn; i++) {
                 int v = i2c_smbus_read_byte(arduino->fd);
-                log_debug("Arduino: Read[%d]=%d", i, v);
+                log_debug("Arduino: read[%d]=%d", i, v);
                 if (v == -1) {
                         log_err("Arduino: %s: Failed to read the return value", cmd->name);
                         return -1;
