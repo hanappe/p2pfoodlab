@@ -96,7 +96,7 @@ int delete_arduino(arduino_t* arduino)
 static int arduino_connect(arduino_t* arduino)
 {
         char *fileName = (arduino->bus == 0)? "/dev/i2c-0" : "/dev/i2c-1";
- 
+
         log_debug("Arduino: Connecting"); 
 
         if ((arduino->fd = open(fileName, O_RDWR)) < 0) {
@@ -302,6 +302,7 @@ static int arduino_read_float(arduino_t* arduino, float* value)
         for (int i = 0; i < 4; i++) {
                 int v = i2c_smbus_read_byte(arduino->fd);
                 if (v == -1) {
+                        log_err("Arduino: Failed to read the float value"); 
                         return -1;
                 }
                 c[i] = (unsigned char) (v & 0xff);
@@ -416,7 +417,7 @@ int arduino_store_data(arduino_t* arduino,
                                             nframes,
                                             filename);
                 if (err == 0) 
-                        continue;
+                        break;
         }
 
         if (err == 0) {
@@ -424,7 +425,7 @@ int arduino_store_data(arduino_t* arduino,
                 err = arduino_resume_(arduino, 1);
         } else {
                 log_info("Arduino: Download failed"); 
-                arduino_resume_(arduino, 0);
+                err = arduino_resume_(arduino, 0);
         }
 
         arduino_disconnect(arduino);
