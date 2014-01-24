@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include <time.h>
 #include <sys/time.h>
 #include "arduino.h"
@@ -196,7 +197,7 @@ int clock_set(sensorbox_t* box)
 
         err = clock_settime(CLOCK_REALTIME, &tp);
         if (err != 0) {
-                log_err("Clock: Failed to set time");
+                log_err("Clock: Failed to set time: %s", strerror(errno));
                 return err;
         }
 
