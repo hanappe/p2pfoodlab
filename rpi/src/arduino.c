@@ -136,6 +136,7 @@ static int arduino_send_(arduino_t* arduino, acmd_t* cmd)
 
         for (int i = 0; i < cmd->rn; i++) {
                 int v = i2c_smbus_read_byte(arduino->fd);
+                log_debug("Arduino: Read[%d]=%d", i, v);
                 if (v == -1) {
                         log_err("Arduino: %s: Failed to read the return value", cmd->name);
                         return -1;
@@ -274,7 +275,7 @@ static int arduino_get_sensors_(arduino_t* arduino, unsigned char* enabled, unsi
         *enabled = cmd.r[0];
         *period = cmd.r[1];
 
-        log_info("Arduino: Enabled sensors: %x - Period: %d", (int) cmd.r[0], (int) cmd.r[1]); 
+        log_info("Arduino: Enabled sensors: 0x%02x, period: %d", (int) cmd.r[0], (int) cmd.r[1]); 
 
         return 0;
 }
