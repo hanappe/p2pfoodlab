@@ -29,8 +29,9 @@ extern "C" {
 #include "json.h"
 
 json_object_t config_load(const char* file);
-int config_get_enabled_sensors(json_object_t config);
-int config_get_sensors_period(json_object_t config);
+int config_get_sensors(json_object_t config,
+                       unsigned char* enabled, 
+                       unsigned char* period);
 
 #ifdef __cplusplus
 }
