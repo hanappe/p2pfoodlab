@@ -231,7 +231,7 @@ static int arduino_pump_(arduino_t* arduino, int seconds)
 
 static int arduino_millis_(arduino_t* arduino, unsigned long* m)
 {
-        log_info("Arduino: Getting the current time on the Arduino"); 
+        log_debug("Arduino: Getting the current time on the Arduino"); 
 
         acmd_t cmd = { "millis", 
                        1, { CMD_GET_MILLIS }, 
