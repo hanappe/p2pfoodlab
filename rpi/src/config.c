@@ -54,38 +54,41 @@ int config_get_sensors(json_object_t config,
                        unsigned char* enabled, 
                        unsigned char* period)
 {
-        unsigned char _enabled; 
-        unsigned char _period;
+        unsigned char _enabled = 0; 
+        unsigned char _period = 0;
 
         *enabled = 0;
         *period = 0;
 
         json_object_t sensors_config = json_object_get(config, "sensors");
         if (json_isnull(sensors_config) || !json_isobject(sensors_config)) {
-                log_err("Failed to get the sensors configuration"); 
+                log_err("Config: Failed to get the sensors configuration"); 
                 return -1;
         } 
 
         for (int i = 0; sensorlist[i].name != NULL; i++) {
                 json_object_t s = json_object_get(sensors_config, sensorlist[i].name);
                 if (!json_isstring(s)) {
-                        log_err("Sensorbox: Sensor setting is not a JSON string, as expected (%s)", 
+                        log_err("Config: Sensor setting is not a JSON string, as expected (%s)", 
                                 sensorlist[i].name); 
                         return -1;
                 }
                 if (json_string_equals(s, "yes")) {
+                        log_info("Config: sensor %s enabled", sensorlist[i].name); 
                         _enabled |= sensorlist[i].flag;
+                } else {
+                        log_info("Config: sensor %s disabled", sensorlist[i].name); 
                 }
         }
 
         json_object_t p = json_object_get(sensors_config, "update");
         if (!json_isstring(p)) {
-                log_err("Sensorbox: Sensor update setting is not a JSON string, as expected"); 
+                log_err("Config: Sensor update setting is not a JSON string, as expected"); 
                 return -1;
         }
         int v = atoi(json_string_value(p));
         if ((v < 0) || (v > 255)) {
-                log_err("Sensorbox: Invalid sensor update setting: %d", v); 
+                log_err("Config: Invalid sensor update setting: %d", v); 
                 return -1;
         }
         _period = (v & 0xff);
