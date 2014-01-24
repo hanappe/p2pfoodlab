@@ -2,66 +2,26 @@
 
 ### BEGIN INIT INFO
 # Provides:          arduino-hwclock
-# Required-Start:    $local_fs kmod fake-hwclock
-# Required-Stop:     $local_fs kmod fake-hwclock
+# Required-Start:    $network $named $time $local_fs kmod fake-hwclock
+# Required-Stop:     $network $named $time $local_fs kmod fake-hwclock
 # Should-Stop:       
 # X-Start-Before:    
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Restore / save the current clock
+# Short-Description: Restore / save the current clock using Arduino's internal millis counter
 # Description:       
 ### END INIT INFO
 
 set -e
 
-DATEFILE=/var/p2pfoodlab/etc/arduino-hwclock.date
-MILLISFILE=/var/p2pfoodlab/etc/arduino-hwclock.millis
-MILLIS_EXEC="/var/p2pfoodlab/bin/p2pfoodlab-update millis"
+P2PFOODLAB_UPDATE="/var/p2pfoodlab/bin/p2pfoodlab-update"
 
 save_date() {
-    date -u '+%Y-%m-%d %H:%M:%S' > $DATEFILE
-    MILLIS=$($MILLIS_EXEC)
-    if [ $? -eq 0 ]; then
-        echo $MILLIS > $MILLISFILE
-    else
-        echo "Obtaining current Arduino time failed"
-        echo "none" > $MILLISFILE
-    fi
+    $P2PFOODLAB_UPDATE update-clock
 }
 
 restore_date() {
-    if [ -e $MILLISFILE ] ; then
-
-        SAVED_MILLIS=$(cat $MILLISFILE)
-        if [ "x$SAVED_MILLIS" == "xnone" ]; then
-            echo "Saving Arduino time failed at shutdown"
-            return;
-        fi
-        NOW_MILLIS=$(/var/p2pfoodlab/bin/arduino millis)
-        if [ $? -ne 0 ]; then
-            echo "Obtaining current Arduino time failed"
-            return;
-        fi
-        
-        if [ $NOW_MILLIS -le $SAVED_MILLIS ] ; then
-            DELTA=$(echo "(4294967296 + $NOW_MILLIS - $SAVED_MILLIS) / 1000" | bc)
-        else
-            DELTA=$(echo "($NOW_MILLIS - $SAVED_MILLIS) / 1000" | bc)
-        fi
-
-        SAVED_DATE=$(cat $DATEFILE)
-        SAVED_SECONDS=$(date -u -d "$SAVED_DATE" '+%s')
-
-        ESTIMATED_SECONDS=$(expr $SAVED_SECONDS + $DELTA)
-        ESTIMATED_DATE=$(date -u -d "@$ESTIMATED_SECONDS")
-
-        NOW_SECONDS=$(date -u '+%s')
-
-        if [ $NOW_SECONDS -le $ESTIMATED_SECONDS ] ; then
-            echo date -u -s "$ESTIMATED_DATE"
-            date -u -s "$ESTIMATED_DATE"
-        fi
-    fi
+    $P2PFOODLAB_UPDATE set-clock
 }
 
 case "${1:-}" in
