@@ -478,23 +478,41 @@ static int sensorbox_map_datastreams(sensorbox_t* box,
                 ids[count++] = opensensordata_get_datastream_id(box->osd, "soil");
         }
         for (i = 0; i < count; i++) {
-                if (ids[i] == -1) 
+                if (ids[i] == -1) {                        
                         return -1;
+                }
         }
         return count;
 }
 
 void sensorbox_update_sensors(sensorbox_t* box)
 {
-        unsigned char enabled;
-        unsigned char period;
+        unsigned char enabled_a;
+        unsigned char period_a;
+        unsigned char enabled_c;
+        unsigned char period_c;
+        int err;
 
-        int err = arduino_get_sensors(box->arduino, &enabled, &period);
+        err = config_get_sensors(box->config, &enabled_c, &period_c);
+        if (err != 0) 
+                return;
+        
+        err = arduino_get_sensors(box->arduino, &enabled_a, &period_a);
         if (err != 0) 
                 return;
 
+        if ((enabled_c != enabled_a) || (period_c != period_a)) {
+                log_info("Sensorbox: Sensor settings differ between Arduino and config file"); 
+                log_info("Sensorbox: Arduino: sensors: 0x%02x, period %d", enabled_a, period_a); 
+                log_info("Sensorbox: config:  sensors: 0x%02x, period %d", enabled_c, period_c); 
+                err = arduino_set_sensors(box->arduino, enabled_c, period_c);
+                if (err != 0) {
+                        // Do nothing
+                }
+         }
+
         int datastreams[16];
-        int num_datastreams = sensorbox_map_datastreams(box, enabled, datastreams);
+        int num_datastreams = sensorbox_map_datastreams(box, enabled_a, datastreams);
         if (num_datastreams == -1) 
                 return;
 

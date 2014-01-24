@@ -24,6 +24,20 @@
 #include "log_message.h"
 #include "arduino.h"
 
+typedef struct _sensor_t {
+        char* name;
+        int flag;
+} sensor_t;
+
+sensor_t sensorlist[] = {
+        { "rht03_1", RHT03_1_FLAG },
+        { "rht03_2", RHT03_2_FLAG },
+        { "sht15_1", SHT15_1_FLAG },
+        { "sht15_2", SHT15_2_FLAG },
+        { "light", LUMINOSITY_FLAG },
+        { "soil", SOIL_FLAG },
+        { NULL, 0 } };
+
 json_object_t config_load(const char* file)
 {
         char buffer[512];
@@ -36,112 +50,50 @@ json_object_t config_load(const char* file)
         return config;
 }
 
-int config_get_enabled_sensors(json_object_t config)
+int config_get_sensors(json_object_t config, 
+                       unsigned char* enabled, 
+                       unsigned char* period)
 {
-        json_object_t enable;
-        int b = 0;
+        unsigned char _enabled; 
+        unsigned char _period;
 
-        json_object_t sensors = json_object_get(config, "sensors");
-        if (json_isnull(sensors) || !json_isobject(sensors)) {
+        *enabled = 0;
+        *period = 0;
+
+        json_object_t sensors_config = json_object_get(config, "sensors");
+        if (json_isnull(sensors_config) || !json_isobject(sensors_config)) {
                 log_err("Failed to get the sensors configuration"); 
                 return -1;
         } 
 
-        enable = json_object_get(sensors, "rht03_1");
-        if (json_isnull(enable)) 
-                log_warn("Failed to read rht03_1 settings"); 
-        else if (json_isstring(enable) && json_string_equals(enable, "yes")) {
-                log_info("internal RHT03 sensor enabled"); 
-                b |= RHT03_1_FLAG;
-        } else {
-                log_info("internal RHT03 sensor disabled"); 
+        for (int i = 0; sensorlist[i].name != NULL; i++) {
+                json_object_t s = json_object_get(sensors_config, sensorlist[i].name);
+                if (!json_isstring(s)) {
+                        log_err("Sensorbox: Sensor setting is not a JSON string, as expected (%s)", 
+                                sensorlist[i].name); 
+                        return -1;
+                }
+                if (json_string_equals(s, "yes")) {
+                        _enabled |= sensorlist[i].flag;
+                }
         }
 
-        enable = json_object_get(sensors, "rht03_2");
-        if (json_isnull(enable)) 
-                log_warn("Failed to read rht03_2 settings"); 
-        else if (json_isstring(enable) && json_string_equals(enable, "yes")) {
-                log_info("external RHT03 sensor enabled"); 
-                b |= RHT03_2_FLAG;
-        } else {
-                log_info("external RHT03 sensor disabled"); 
-        }
-
-        enable = json_object_get(sensors, "sht15_1");
-        if (json_isnull(enable))
-                log_warn("Failed to read sht15_1 settings");
-        else if (json_isstring(enable) && json_string_equals(enable, "yes")) {
-                log_info("internal SHT15 sensor enabled");
-                b |= SHT15_1_FLAG;
-        } else {
-                log_info("internal SHT15 sensor disabled");
-        }
-
-        enable = json_object_get(sensors, "sht15_2");
-        if (json_isnull(enable))
-                log_warn("Failed to read sht15_2 settings");
-        else if (json_isstring(enable) && json_string_equals(enable, "yes")) {
-                log_info("external SHT15 sensor enable");
-                b |= SHT15_2_FLAG;
-        } else {
-                log_info("external SHT15 sensor disabled");
-        }
-
-        enable = json_object_get(sensors, "light");
-        if (json_isnull(enable)) 
-                log_warn("Failed to read light sensor settings"); 
-        else if (json_isstring(enable) && json_string_equals(enable, "yes")) {
-                log_info("luminosity sensor enabled"); 
-                b |= LUMINOSITY_FLAG;
-        } else {
-                log_info("luminosity sensors disabled"); 
-        }
-
-        enable = json_object_get(sensors, "soil");
-        if (json_isnull(enable)) 
-                log_warn("Failed to read soil humidity settings"); 
-        else if (json_isstring(enable) && json_string_equals(enable, "yes")) {
-                log_info("soil humidity sensor enabled"); 
-                b |= SOIL_FLAG;
-        } else {
-                log_info("soil humidity sensor disabled"); 
-        }
-
-        return b;
-}
-
-int config_get_sensors_period(json_object_t config)
-{
-        int period;
-        json_object_t s;
-
-        json_object_t sensors = json_object_get(config, "sensors");
-        if (json_isnull(sensors) || !json_isobject(sensors)) {
-                log_err("Failed to get the sensors configuration"); 
-                return -1;
-        } 
-
-        s = json_object_get(sensors, "update");
-        if (json_isnull(s) || !json_isstring(s)) {
-                log_err("Failed to read sensors update period"); 
-                return 0;
-        } else if (json_string_equals(s, "debug")) {
-                period = 1;
-        } else {
-                period = atoi(json_string_value(s));
-        }
-
-        if (period > 255) {
-                log_warn("Invalid update period %d > 255\n", period);
-                return -1;
-        } else if (period < 1) {
-                log_warn("Invalid update period %d < 255\n", period);
+        json_object_t p = json_object_get(sensors_config, "update");
+        if (!json_isstring(p)) {
+                log_err("Sensorbox: Sensor update setting is not a JSON string, as expected"); 
                 return -1;
         }
+        int v = atoi(json_string_value(p));
+        if ((v < 0) || (v > 255)) {
+                log_err("Sensorbox: Invalid sensor update setting: %d", v); 
+                return -1;
+        }
+        _period = (v & 0xff);
 
-        log_info("Sensors update period is %d\n", period);
+        *enabled = _enabled;
+        *period = _period;
 
-        return period;
+        return 0;
 }
 
 
