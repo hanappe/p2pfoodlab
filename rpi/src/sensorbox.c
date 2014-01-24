@@ -753,3 +753,9 @@ int sensorbox_millis(sensorbox_t* box, unsigned long* m)
 {
         return arduino_millis(box->arduino, m);
 }
+
+const char* sensorbox_getdir(sensorbox_t* box)
+{
+        return box->home_dir;
+}
+

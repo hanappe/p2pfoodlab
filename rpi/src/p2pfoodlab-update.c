@@ -34,6 +34,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "log_message.h"
+#include "clock.h"
 #include "sensorbox.h"
 
 static char* _home_dir = "/var/p2pfoodlab";
@@ -166,6 +167,7 @@ int main(int argc, char **argv)
                 sensorbox_upload_data(box);
                 sensorbox_upload_photos(box);
                 sensorbox_poweroff_maybe(box);
+                clock_update(box);
 
         } else if (strcmp(_command, "upload-data") == 0) {
                 sensorbox_upload_data(box);
@@ -178,6 +180,12 @@ int main(int argc, char **argv)
 
         } else if (strcmp(_command, "sensors") == 0) {
                 sensorbox_update_sensors(box);
+
+        } else if (strcmp(_command, "update-clock") == 0) {
+                clock_update(box);
+
+        } else if (strcmp(_command, "set-clock") == 0) {
+                clock_set(box);
 
         } else if (strcmp(_command, "millis") == 0) {
                 unsigned long m;

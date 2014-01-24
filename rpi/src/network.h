@@ -19,32 +19,22 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
-
-#ifndef _SENSORBOX_H_
-#define _SENSORBOX_H_
+#ifndef _NETWORK_H_
+#define _NETWORK_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct _sensorbox_t sensorbox_t;
+int network_connected();
 
-sensorbox_t* new_sensorbox(const char* dir);
-int delete_sensorbox(sensorbox_t* sensorbox);
-
-const char* sensorbox_getdir(sensorbox_t* box);
-void sensorbox_test_run(sensorbox_t* sensorbox);
-void sensorbox_handle_events(sensorbox_t* box);
-void sensorbox_upload_data(sensorbox_t* box);
-void sensorbox_upload_photos(sensorbox_t* box);
-void sensorbox_poweroff_maybe(sensorbox_t* box);
-void sensorbox_update_sensors(sensorbox_t* box);
-void sensorbox_update_camera(sensorbox_t* box);
-int sensorbox_millis(sensorbox_t* box, unsigned long* m);
-
+/* int network_ifup(const char* iface); */
+/* int network_ifdown(const char* iface); */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif 
+#endif
+
+

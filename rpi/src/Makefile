@@ -16,8 +16,8 @@ ${prefix}/bin/config-get: config-get.c json.c json.h logMessage.c logMessage.h
 ${prefix}/bin/arduino: arduino-cli.c json.c json.h logMessage.c logMessage.h
 	gcc -g -Wall -O0 -std=c99 arduino-cli.c json.c logMessage.c -lm -o $@
 
-${prefix}/bin/p2pfoodlab-update: p2pfoodlab-update.c json.c json.h log_message.c log_message.h arduino.c arduino.h camera.c camera.h opensensordata.c opensensordata.h config.c config.h event.c event.h sensorbox.c sensorbox.h
-	gcc -g -Wall -O0 -std=c99 -DIO_READ -DIO_MMAP -DIO_USERPTR p2pfoodlab-update.c json.c log_message.c arduino.c camera.c opensensordata.c config.c event.c sensorbox.c -ljpeg -lcurl -lm -o $@
+${prefix}/bin/p2pfoodlab-update: p2pfoodlab-update.c json.c json.h log_message.c log_message.h arduino.c arduino.h camera.c camera.h opensensordata.c opensensordata.h config.c config.h event.c event.h sensorbox.c sensorbox.h network.c network.h clock.c clock.h
+	gcc -g -Wall -O0 -std=c99 -DIO_READ -DIO_MMAP -DIO_USERPTR p2pfoodlab-update.c json.c log_message.c arduino.c camera.c opensensordata.c config.c event.c sensorbox.c network.c clock.c -ljpeg -lcurl -lm -o $@
 
 clean:
 	rm -f ${programs}
