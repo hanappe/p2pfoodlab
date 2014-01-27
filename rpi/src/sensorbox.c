@@ -501,10 +501,11 @@ int sensorbox_check_sensors(sensorbox_t* box)
         if (err != 0) 
                 return err;
 
+        log_info("Sensorbox: Arduino: sensors: 0x%02x, period %d", enabled_a, period_a); 
+        log_info("Sensorbox: Config:  sensors: 0x%02x, period %d", enabled_c, period_c); 
+
         if ((enabled_c != enabled_a) || (period_c != period_a)) {
                 log_info("Sensorbox: Sensor settings differ between Arduino and config file"); 
-                log_info("Sensorbox: Arduino: sensors: 0x%02x, period %d", enabled_a, period_a); 
-                log_info("Sensorbox: config:  sensors: 0x%02x, period %d", enabled_c, period_c); 
                 err = arduino_set_sensors(box->arduino, enabled_c, period_c);
         }
 
