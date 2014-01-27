@@ -38,8 +38,8 @@ void sensorbox_handle_events(sensorbox_t* box);
 void sensorbox_upload_data(sensorbox_t* box);
 void sensorbox_upload_photos(sensorbox_t* box);
 void sensorbox_poweroff_maybe(sensorbox_t* box);
-void sensorbox_check_sensors(sensorbox_t* box);
-void sensorbox_update_sensors(sensorbox_t* box);
+int sensorbox_check_sensors(sensorbox_t* box);
+int sensorbox_update_sensors(sensorbox_t* box);
 void sensorbox_update_camera(sensorbox_t* box);
 int sensorbox_millis(sensorbox_t* box, unsigned long* m);
 

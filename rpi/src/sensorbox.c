@@ -495,11 +495,11 @@ int sensorbox_check_sensors(sensorbox_t* box)
 
         err = config_get_sensors(box->config, &enabled_c, &period_c);
         if (err != 0) 
-                return;
+                return err;
         
         err = arduino_get_sensors(box->arduino, &enabled_a, &period_a);
         if (err != 0) 
-                return;
+                return err;
 
         if ((enabled_c != enabled_a) || (period_c != period_a)) {
                 log_info("Sensorbox: Sensor settings differ between Arduino and config file"); 
@@ -511,16 +511,24 @@ int sensorbox_check_sensors(sensorbox_t* box)
         return err;
 }
 
-void sensorbox_update_sensors(sensorbox_t* box)
+int sensorbox_update_sensors(sensorbox_t* box)
 {
+        unsigned char enabled_a;
+        unsigned char period_a;
+        int err;
+
+        err = arduino_get_sensors(box->arduino, &enabled_a, &period_a);
+        if (err != 0) 
+                return err;
+
         int datastreams[16];
         int num_datastreams = sensorbox_map_datastreams(box, enabled_a, datastreams);
         if (num_datastreams == -1) 
-                return;
+                return -1;
 
         log_info("Sensorbox: Found %d datastreams", num_datastreams); 
         if (num_datastreams == 0)
-                return;
+                return 0;
 
         char* datafile = sensorbox_path(box, "datapoints.csv");
 
@@ -529,7 +537,7 @@ void sensorbox_update_sensors(sensorbox_t* box)
                                  num_datastreams,
                                  datafile);
 
-        return;
+        return err;
 }
 
 void sensorbox_test_run(sensorbox_t* box)
