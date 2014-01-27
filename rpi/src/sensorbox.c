@@ -485,7 +485,7 @@ static int sensorbox_map_datastreams(sensorbox_t* box,
         return count;
 }
 
-void sensorbox_update_sensors(sensorbox_t* box)
+int sensorbox_check_sensors(sensorbox_t* box)
 {
         unsigned char enabled_a;
         unsigned char period_a;
@@ -506,11 +506,13 @@ void sensorbox_update_sensors(sensorbox_t* box)
                 log_info("Sensorbox: Arduino: sensors: 0x%02x, period %d", enabled_a, period_a); 
                 log_info("Sensorbox: config:  sensors: 0x%02x, period %d", enabled_c, period_c); 
                 err = arduino_set_sensors(box->arduino, enabled_c, period_c);
-                if (err != 0) {
-                        // Do nothing
-                }
-         }
+        }
 
+        return err;
+}
+
+void sensorbox_update_sensors(sensorbox_t* box)
+{
         int datastreams[16];
         int num_datastreams = sensorbox_map_datastreams(box, enabled_a, datastreams);
         if (num_datastreams == -1) 
@@ -547,7 +549,7 @@ void sensorbox_handle_events(sensorbox_t* box)
 
         event_t* e = eventlist_get_next(box->events, cur_minute);
         if (e == NULL) {
-                log_err("No events!"); 
+                log_info("No more events for today."); 
                 return;
         }
 

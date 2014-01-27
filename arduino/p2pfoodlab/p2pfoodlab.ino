@@ -56,8 +56,10 @@
 #define DEBUG 1
 
 #if DEBUG
+#define DebugPrint(_s) { Serial.println(_s); } 
 #define DebugPrintValue(_s,_v) { Serial.print(_s); Serial.println(_v); } 
 #else
+#define DebugPrint(_s) 
 #define DebugPrintValue(_s,_w)
 #endif
 
@@ -78,6 +80,12 @@ unsigned long poweroff_at = 0;
 unsigned long wakeup_at = 0;
 unsigned long curtime = 0;
 unsigned long suspend_start = 0;
+unsigned long cmd_at = 0;
+unsigned long poweroff_minutes = 0;
+
+unsigned char new_sensors = RHT03_1_FLAG;
+unsigned short new_period = 1; 
+
 
 /* The timestamps and sensor data is pushed onto the stack until the
    RPi downloads it. */
@@ -85,12 +93,12 @@ unsigned long suspend_start = 0;
 unsigned short frames = 0;
 unsigned short sp = 0;
 float stack[STACK_SIZE];
+unsigned char stack_reset = 0;
 
 DHT22 rht03_1(RHT03_1_PIN);
 DHT22 rht03_2(RHT03_2_PIN);
 
-
-void stack_reset()
+void stack_clear()
 {
         sp = 0;
         frames = 0;
@@ -116,40 +124,45 @@ void receive_data(int byteCount)
         command = c[0];
         send_byte = 0;
 
+        /* DebugPrint("RX"); */
+
+
         if ((command & CMD_MASK) == CMD_SET_SENSORS) {
+                /* DebugPrint("RX: Set sensors"); */
                 if (byteCount >= 3) {
+                        new_sensors = c[1];
+                        new_period = c[2];
+                        /*
                         unsigned char old = enabled_sensors;
                         enabled_sensors = c[1];
                         period = c[2];
-                        /* Serial.print("enabled_sensors "); */
-                        /* Serial.println(enabled_sensors); */
                         if (old != enabled_sensors) {
-                                /* Serial.println("set sensors: resetting stack"); */
-                                stack_reset();
+                                stack_reset = 1;
                         }
+                        */
                 }
 
         } else if ((command & CMD_MASK) == CMD_GET_MILLIS) {
-                //Serial.println("Get millis");
+                /* DebugPrint("RX: Get millis"); */
                 curtime = millis();
 
         } else if ((command & CMD_MASK) == CMD_SUSPEND) {
-                //Serial.println("Suspend");
+                /* DebugPrint("RX: Suspend"); */
                 do_update = 0; // Stop the main loop
                 suspend_start = millis();
 
         } else if ((command & CMD_MASK) == CMD_TRANSFER) {
-                //Serial.println("TX");
+                /* DebugPrint("RX: Transfer"); */
                 send_index = 0;
 
         } else if ((command & CMD_MASK) == CMD_RESUME) {
-                //Serial.println("Resume");
+                /* DebugPrint("RX: Resume"); */
                 unsigned char reset = command & 0x0f;
-                if (reset) stack_reset();
+                if (reset) stack_reset = 2;
                 do_update = 1; // Start the main loop
 
         } else if ((command & CMD_MASK) == CMD_PUMP) {
-                Serial.println("PUMP");
+                /* DebugPrint("RX: Pump"); */
                 if ((command & ARG_MASK) == 0)
                         digitalWrite(PUMP_PIN, LOW);
                 else
@@ -157,29 +170,18 @@ void receive_data(int byteCount)
                 send_index = 0;
 
         } else if ((command & CMD_MASK) == CMD_SET_POWEROFF) {
-                unsigned long now = millis() / 60000; // in minutes
+                /* DebugPrint("RX: Set poweroff"); */
                 if (byteCount >= 3) {
-                        unsigned long minutes = (c[1] << 8) | c[2];
-                        if (minutes <  2) minutes = 2;
-                        poweroff_at = now + 1;
-                        wakeup_at = now + minutes;
-                        if (poweroff_at == 0) poweroff_at = 1;
-                        if (poweroff_at >= MINUTE_OVERFLOW) poweroff_at -= MINUTE_OVERFLOW;
-                        if (wakeup_at == 0) wakeup_at = 1;
-                        if (wakeup_at >= MINUTE_OVERFLOW) wakeup_at -= MINUTE_OVERFLOW;
+                        poweroff_minutes = (c[1] << 8) | c[2];
                 }
-        Serial.println("Set poweroff/wakeup");
-        Serial.print("bytecount="); 
-        Serial.println(byteCount); 
-
-        Serial.print("poweroff_at ");
-        Serial.println(poweroff_at);
-
-        Serial.print("wakeup_at ");
-        Serial.println(wakeup_at);
 
         } else if ((command & CMD_MASK) == CMD_GET_POWEROFF) {
-                // Nothing to do.
+                /* DebugPrint("RX: Get poweroff"); */
+                
+                cmd_at = millis() / 60000; // in minutes
+
+        } else if ((command & CMD_MASK) == CMD_GET_SENSORS) {
+                /* DebugPrint("RX: Get sensors"); */
         }
 }
 
@@ -196,7 +198,7 @@ void send_data()
                 }                
                 Wire.write(c);
                 send_byte++;
-                //Serial.println("millis[]");
+                //DebugPrint("millis[]");
 
         } else if ((command & CMD_MASK) == CMD_GET_FRAMES) {
                 unsigned char c;
@@ -249,21 +251,22 @@ void send_data()
                 }
         } else if ((command & CMD_MASK) == CMD_GET_POWEROFF) {
                 unsigned char c;
+                // The values of poweroff_at and wakeup_at are return
+                // in minutes relative to the current time.
                 switch (send_byte) {
-                case 0: c = (poweroff_at & 0xff000000) >> 24; break;
-                case 1: c = (poweroff_at & 0x00ff0000) >> 16; break;
-                case 2: c = (poweroff_at & 0x0000ff00) >> 8; break;
-                case 3: c = (poweroff_at & 0x000000ff); break;
-                case 4: c = (wakeup_at & 0xff000000) >> 24; break;
-                case 5: c = (wakeup_at & 0x00ff0000) >> 16; break;
-                case 6: c = (wakeup_at & 0x0000ff00) >> 8; break;
-                case 7: c = (wakeup_at & 0x000000ff); break;
+                case 0: c = ((poweroff_at - cmd_at) & 0xff000000) >> 24; break;
+                case 1: c = ((poweroff_at - cmd_at) & 0x00ff0000) >> 16; break;
+                case 2: c = ((poweroff_at - cmd_at) & 0x0000ff00) >> 8; break;
+                case 3: c = ((poweroff_at - cmd_at) & 0x000000ff); break;
+                case 4: c = ((wakeup_at - cmd_at) & 0xff000000) >> 24; break;
+                case 5: c = ((wakeup_at - cmd_at) & 0x00ff0000) >> 16; break;
+                case 6: c = ((wakeup_at - cmd_at) & 0x0000ff00) >> 8; break;
+                case 7: c = ((wakeup_at - cmd_at) & 0x000000ff); break;
                 default: c = 0;
                 }                
                 Wire.write(c);
                 send_byte++;
                 //Serial.println("millis[]");
-
         }
 }
 
@@ -289,9 +292,7 @@ void setup()
         pinMode(PUMP_PIN, OUTPUT);
         digitalWrite(PUMP_PIN, LOW);
 
-#if DEBUG
-        Serial.println("Ready.");  
-#endif
+        DebugPrint("Ready.");  
 }
 
 float get_luminosity()
@@ -321,41 +322,34 @@ int get_rht03(DHT22* sensor, float* t, float* h)
 
 void measure_sensors(float start)
 {  
-
-        //Serial.println("measure_sensors");
+        DebugPrint("  measure_sensors");
 
         stack_push(start);
 
         if (enabled_sensors & LUMINOSITY_FLAG) {
                 float luminosity = get_luminosity(); 
                 stack_push(luminosity);
-                DebugPrintValue("lum ", luminosity);
+                DebugPrintValue("  lum ", luminosity);
         }
         if (enabled_sensors & RHT03_1_FLAG) {
-
-                //Serial.println("RHT03_1");
-
                 float t, rh; 
                 if (get_rht03(&rht03_1, &t, &rh) == 0) {
                         stack_push(t);
                         stack_push(rh);
-                        DebugPrintValue("t ", t);
-                        DebugPrintValue("rh ", rh);
+                        DebugPrintValue("  t ", t);
+                        DebugPrintValue("  rh ", rh);
                 } else {
                         stack_push(-300.0f);
                         stack_push(-1.0f);
                 }
         }
         if (enabled_sensors & RHT03_2_FLAG) {
-
-                //Serial.println("RHT03_2");
-
                 float t, rh; 
                 if (get_rht03(&rht03_2, &t, &rh) == 0) {
                         stack_push(t);
                         stack_push(rh);
-                        DebugPrintValue("t ", t);
-                        DebugPrintValue("rh ", rh);
+                        DebugPrintValue("  tx ", t);
+                        DebugPrintValue("  rhx ", rh);
                 } else {
                         stack_push(-300.0f);
                         stack_push(-1.0f);
@@ -367,28 +361,77 @@ void measure_sensors(float start)
 
 #define TIME_ELAPSED(__cur,__alarm)  ((__cur >= __alarm) && (__cur < __alarm + 3))
 
+void blink(int count, int msec)
+{  
+        int i;
+        for (i = 0; i < count; i++) {
+                digitalWrite(13, HIGH);
+                delay(msec); 
+                digitalWrite(13, LOW);
+                delay(100); 
+        }                
+        delay(1000); 
+}
+
 void loop()
 {  
         unsigned long now = millis();
         unsigned long minutes = now / 60000;
 
-        Serial.println("loop");
+        DebugPrint("--begin loop XX--"); 
 
+        blink(1, 100);
+
+        if (enabled_sensors != new_sensors) {
+                DebugPrintValue("  new sensor settings: ", new_sensors);
+                enabled_sensors = new_sensors;
+                stack_reset = 1;
+        }
+
+        if (new_period != period) {
+                DebugPrintValue("  new period: ", new_period);
+                period = new_period;
+        }
+
+        /* Handle a stack reset request after a data transfer or a
+           change in the sensor configuration. */
+        if (stack_reset != 0) {
+                DebugPrintValue("  stack reset: ", stack_reset); 
+                stack_clear();
+                stack_reset = 0;
+        }
+
+        /* Update the poweroff and wakeup values, if necessary. */
+        if (poweroff_minutes > 0) {
+                DebugPrintValue("  poweroff: delta=", poweroff_minutes); 
+                unsigned long now = millis() / 60000; // in minutes
+                if (poweroff_minutes <  2) poweroff_minutes = 2;
+                poweroff_at = now + 1;
+                wakeup_at = now + poweroff_minutes;
+                if (poweroff_at == 0) poweroff_at = 1;
+                if (poweroff_at >= MINUTE_OVERFLOW) poweroff_at -= MINUTE_OVERFLOW;
+                if (wakeup_at == 0) wakeup_at = 1;
+                if (wakeup_at >= MINUTE_OVERFLOW) wakeup_at -= MINUTE_OVERFLOW;
+                poweroff_minutes = 0;
+        }
+
+
+
+        DebugPrintValue("  minutes      ", minutes); 
+        DebugPrintValue("  stack size   ", sp); 
+        DebugPrintValue("  stack frames ", frames); 
+        DebugPrintValue("  measure_at   ", measure_at);
+        DebugPrintValue("  period       ", period);
+        DebugPrintValue("  poweroff_at  ", poweroff_at);
+        DebugPrintValue("  wakeup_at    ", wakeup_at);
+
+        /* Don't do anything if a data transfer is active. */
         if (!do_update) {
-                /* We're transferring data. Do short sleeps until the
-                   transfer is done. */
-                digitalWrite(13, HIGH);
-                delay(100); 
-                digitalWrite(13, LOW);
-                delay(100);                 
-                digitalWrite(13, HIGH);
-                delay(100); 
-                digitalWrite(13, LOW);
-                delay(100); 
-                digitalWrite(13, HIGH);
-                delay(100); 
-                digitalWrite(13, LOW);
-                delay(100); 
+                
+                DebugPrint("  TRANSFER ACTIVE"); 
+
+                /* Do short sleeps until the transfer is done. */
+                blink(2, 200);
 
                 /* In case the data download failed and the arduino
                    was not resumed correctly, start measuring again
@@ -396,46 +439,39 @@ void loop()
                 if (now - suspend_start > 60000) 
                         do_update = 1;
 
+                DebugPrint("--end loop--"); 
+                DebugPrint(""); 
                 return;
         }
 
-        digitalWrite(13, HIGH);
-
-#if DEBUG
-        Serial.println("----"); 
-        Serial.print("minute ");
-        Serial.println(minutes); 
-
-        Serial.print("poweroff_at ");
-        Serial.println(poweroff_at);
-
-        Serial.print("wakeup_at ");
-        Serial.println(wakeup_at);
-#endif
+        blink(3, 100);
 
         if (TIME_ELAPSED(minutes, measure_at)) {
+                digitalWrite(13, HIGH);
                 measure_sensors((float) now / 1000.0f);
                 measure_at += period;
                 if (measure_at >= MINUTE_OVERFLOW) 
                         measure_at -= MINUTE_OVERFLOW;
+                digitalWrite(13, LOW);
         }
         if ((poweroff_at != 0) && TIME_ELAPSED(minutes, poweroff_at)) {
                 digitalWrite(RPi_PIN, LOW);
+                DebugPrint("  POWEROFF"); 
                 poweroff_at = 0;
         }
         if ((wakeup_at != 0) && TIME_ELAPSED(minutes, wakeup_at)) {
                 digitalWrite(RPi_PIN, HIGH);
+                DebugPrint("  WAKEUP"); 
                 wakeup_at = 0;
         }
 
-        delay(100); 
-        digitalWrite(13, LOW);
+        DebugPrint("--end loop--"); 
+        DebugPrint(""); 
 
         /* Subtract the time it took to take the measurements
            from the half minute sleep. */
         unsigned long sleep = 30000 - (millis() - now); 
         if (sleep <= 30000)
                 delay(sleep); 
-        //delay(3000); 
 }
 

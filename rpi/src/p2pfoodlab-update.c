@@ -163,6 +163,7 @@ int main(int argc, char **argv)
                 sensorbox_test_run(box);
 
         if (strcmp(_command, "update") == 0) {
+                sensorbox_check_sensors(box);
                 sensorbox_handle_events(box);
                 sensorbox_upload_data(box);
                 sensorbox_upload_photos(box);
