@@ -124,12 +124,12 @@ int main(int argc, char** argv)
         int ret;
 
         if ((client = open("/dev/i2c-1", O_RDWR)) < 0) {
-                fprintf(stderr, "Failed to open the I2C device"); 
+                fprintf(stderr, "Failed to open the I2C device.\n");
                 return 1;
         }
 
         if (ioctl(client, I2C_SLAVE, 0x04) < 0) {
-                fprintf(stderr, "Unable to get bus access to talk to slave");
+                fprintf(stderr, "Unable to get bus access to talk to slave.\n");
                 close(client);
                 return 1;
         }
@@ -138,10 +138,21 @@ int main(int argc, char** argv)
 
         ret = arduino_read_time(client, &time);
         if (!ret) {
-		fprintf(stdout, "time: %lu (0x%04x)", 
+		fprintf(stdout, "time: %lu (0x%04x)\n", 
                         time, (unsigned int) time);
         } else {
-                fprintf(stderr, "Failed to read the time"); 
+                fprintf(stderr, "Failed to read the time.\n"); 
+                close(client);
+                return 1;
+        }
+
+        time = 0x05060708;
+
+        ret = arduino_set_time(client, time);
+        if (!ret) {
+		fprintf(stdout, "The time has been set.\n");
+        } else {
+                fprintf(stderr, "Failed to set the time.\n"); 
                 close(client);
                 return 1;
         }
