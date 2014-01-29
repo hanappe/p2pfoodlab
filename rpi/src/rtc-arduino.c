@@ -140,7 +140,13 @@ int main(int argc, char** argv)
         if (!ret) {
 		fprintf(stdout, "time: %lu (0x%04x)", 
                         time, (unsigned int) time);
+        } else {
+                fprintf(stderr, "Failed to read the time"); 
+                close(client);
+                return 1;
         }
+
+        close(client);
         
 	return ret;
 }
