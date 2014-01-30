@@ -293,7 +293,7 @@ static int arduino_get_frames_(arduino_t* arduino, int* frames)
 	unsigned long value;
 	int ret;
 
-	ret = arduino_read(arduino, &value, DS1374_REG_TOD0, 4);
+	ret = arduino_read(arduino, &value, CMD_FRAMES, 2);
 	if (!ret)
 		*frames = (int) value;
 
@@ -366,6 +366,15 @@ static int arduino_set_period_(arduino_t* arduino,
         log_info("Arduino: Configuring period and update period"); 
         unsigned long value = period;
         return arduino_write(arduino, value, CMD_PERIOD, 1);
+}
+
+static int arduino_read_timestamp(arduino_t* arduino, time_t* timestamp)
+{
+        unsigned long v;
+        int ret = arduino_read(arduino, &v, CMD_READ, 4);
+        if (!ret) 
+                *timestamp = (time_t) v;
+        return ret;
 }
 
 static int arduino_read_float(arduino_t* arduino, float* value)
@@ -511,16 +520,14 @@ int arduino_read_data(arduino_t* arduino,
 
         for (int frame = 0; frame < nframes; frame++) {
                 
-                unsigned long t;
                 time_t timestamp;
                 float value;
         
-                if (arduino_read(arduino, &t, CMD_READ, 4) != 0) {
+                if (arduino_read_timestamp(arduino, &timestamp) != 0) {
                         arduino_insist_set_state_(arduino, STATE_MEASURING);
                         arduino_disconnect(arduino);
                         return -1;
                 }
-                timestamp = (time_t) t;
 
                 for (int i = 0; i < num_datastreams; i++) {
                         if (arduino_read_float(arduino, &value) != 0) {
