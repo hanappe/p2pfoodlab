@@ -262,16 +262,11 @@ static int arduino_set_state_(arduino_t* arduino, int state)
 {
         log_info("Arduino: Set state to %d", state); 
 	unsigned long value = (unsigned long) state;
-	return arduino_write(arduino, value, CMD_STATE, state);
-}
-
-static int arduino_insist_set_state_(arduino_t* arduino, int state)
-{
-        log_info("Arduino: Insisting to set state to %d", state); 
         int err;
-        for (int i = 0; i < 5; i++) {
-                err = arduino_set_state_(arduino, state);
-                if (err == 0)
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+                err = arduino_write(arduino, value, CMD_STATE, state);
+                if (!err)
                         break;
         }
         return err;
@@ -295,9 +290,13 @@ static int arduino_get_frames_(arduino_t* arduino, int* frames)
 	unsigned long value;
 	int ret;
 
-	ret = arduino_read(arduino, &value, CMD_FRAMES, 2);
-	if (!ret)
-		*frames = (int) value;
+        for (int attempt = 0; attempt < 5; attempt++) {
+                ret = arduino_read(arduino, &value, CMD_FRAMES, 2);
+                if (!ret) {
+                        *frames = (int) value;
+                        break;
+                }
+        }
 
 	return ret;
 }
@@ -408,49 +407,59 @@ int arduino_read_data(arduino_t* arduino,
 
         err = arduino_connect(arduino);
         if (err != 0) 
-                return err;
+                return -1;
 
         err = arduino_set_state_(arduino, STATE_SUSPEND);
         if (err != 0) {
                 arduino_disconnect(arduino);
-                return err;
+                return -1;
         }
         
         if (arduino_get_frames_(arduino, &nframes) != 0) {
                 arduino_disconnect(arduino);
-                return err;
+                return -1;
         }
         log_info("Arduino: Found %d measurement frames", nframes); 
 
-        if (arduino_start_transfer(arduino) != 0) {
-                arduino_disconnect(arduino);
-                return -1;
-        }
+        for (int attempt = 0; attempt < 5; attempt++) {
 
-        for (int frame = 0; frame < nframes; frame++) {
-                
-                time_t timestamp;
-                float value;
-        
-                if (arduino_read_timestamp(arduino, &timestamp) != 0) {
-                        arduino_insist_set_state_(arduino, STATE_MEASURING);
+                log_info("Arduino: Download attempt %d", attempt + 1); 
+
+                if (arduino_start_transfer(arduino) != 0) {
                         arduino_disconnect(arduino);
-                        return -1;
+                        continue;
                 }
 
-                for (int i = 0; i < num_datastreams; i++) {
-                        if (arduino_read_float(arduino, &value) != 0) {
-                                arduino_insist_set_state_(arduino, STATE_MEASURING);
+                for (int frame = 0; frame < nframes; frame++) {
+                
+                        time_t timestamp;
+                        float value;
+        
+                        if (arduino_read_timestamp(arduino, &timestamp) != 0) {
+                                arduino_set_state_(arduino, STATE_MEASURING);
                                 arduino_disconnect(arduino);
-                                return -1;
+                                continue;
                         }
+
+                        for (int i = 0; i < num_datastreams; i++) {
+                                if (arduino_read_float(arduino, &value) != 0) {
+                                        arduino_set_state_(arduino, STATE_MEASURING);
+                                        arduino_disconnect(arduino);
+                                        continue;
+                                }
                         
-                        callback(ptr, datastreams[i], timestamp, value);
+                                callback(ptr, datastreams[i], timestamp, value);
+                        }
                 }
+
+                if (!err)
+                        break;
         }
 
-        log_info("Arduino: Download successful"); 
-        err = arduino_insist_set_state_(arduino, STATE_RESETSTACK);
+        if (!err) 
+                log_info("Arduino: Download successful"); 
+
+        err = arduino_set_state_(arduino, STATE_RESETSTACK);
 
         //arduino_disconnect(arduino);
         return err;
@@ -576,7 +585,7 @@ int arduino_get_frames(arduino_t* arduino, int* frames)
         if (err != 0) {
                 arduino_disconnect(arduino);
                 return err;
-        }                
+        }
 
         //return arduino_disconnect(arduino);
         return 0;
