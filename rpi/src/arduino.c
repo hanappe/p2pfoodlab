@@ -419,7 +419,8 @@ int arduino_read_data(arduino_t* arduino,
                 return -1;
         }
         
-        if (arduino_get_frames_(arduino, &nframes) != 0) {
+        err = arduino_get_frames_(arduino, &nframes);
+        if (err != 0) {
                 arduino_disconnect(arduino);
                 return -1;
         }
@@ -439,14 +440,16 @@ int arduino_read_data(arduino_t* arduino,
                         time_t timestamp;
                         float value;
         
-                        if (arduino_read_timestamp(arduino, &timestamp) != 0) {
+                        err = arduino_read_timestamp(arduino, &timestamp);
+                        if (err != 0) {
                                 arduino_set_state_(arduino, STATE_MEASURING);
                                 //arduino_disconnect(arduino);
                                 continue;
                         }
 
                         for (int i = 0; i < num_datastreams; i++) {
-                                if (arduino_read_float(arduino, &value) != 0) {
+                                err = arduino_read_float(arduino, &value);
+                                if (err != 0) {
                                         arduino_set_state_(arduino, STATE_MEASURING);
                                         //arduino_disconnect(arduino);
                                         continue;
@@ -456,20 +459,18 @@ int arduino_read_data(arduino_t* arduino,
                         }
                 }
 
-                if (!err)
+                if (err == 0)
                         break;
         }
 
-        if (!err) {
+        if (err == 0) {
                 log_info("Arduino: Download successful"); 
                 err = arduino_set_state_(arduino, STATE_RESETSTACK);
         } else {
                 log_info("Arduino: Download failed"); 
                 err = arduino_set_state_(arduino, STATE_MEASURING);
-        }
-
-        if (err)
                 arduino_disconnect(arduino);
+        }
 
         return err;
 }
