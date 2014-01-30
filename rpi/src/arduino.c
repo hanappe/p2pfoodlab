@@ -145,7 +145,6 @@ static int arduino_connect(arduino_t* arduino)
                 return -1;
         }
 
-        usleep(10000);
         return 0;
 }
 
