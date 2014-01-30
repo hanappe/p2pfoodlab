@@ -268,8 +268,8 @@ static int arduino_set_state_(arduino_t* arduino, int state)
         int err;
 
         for (int attempt = 0; attempt < 5; attempt++) {
-                err = arduino_write(arduino, value, CMD_STATE, state);
-                if (!err)
+                err = arduino_write(arduino, value, CMD_STATE, 1);
+                if (err == 0)
                         break;
         }
         return err;
