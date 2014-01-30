@@ -19,6 +19,23 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
+/*
+    This file uses code from rtc-ds1374.c (Linux kernel).
+    The original rtc-ds1374.c license can be found below. 
+*/
+/*
+ * RTC client/driver for the Maxim/Dallas DS1374 Real-Time Clock over I2C
+ *
+ * Based on code by Randy Vinson <rvinson@mvista.com>,
+ * which was based on the m41t00.c by Mark Greer <mgreer@mvista.com>.
+ *
+ * Copyright (C) 2006-2007 Freescale Semiconductor
+ *
+ * 2005 (c) MontaVista Software, Inc. This file is licensed under
+ * the terms of the GNU General Public License version 2. This program
+ * is licensed "as is" without any warranty of any kind, whether express
+ * or implied.
+ */
 
 #define _BSD_SOURCE
 
@@ -42,16 +59,34 @@
 #include "opensensordata.h"
 #include "arduino.h"
 
-#define CMD_SET_POWEROFF 0x00
-#define CMD_SET_SENSORS 0x10
-#define CMD_SUSPEND 0x20
-#define CMD_RESUME 0x30
-#define CMD_GET_SENSORS 0x40
-#define CMD_GET_MILLIS 0x50
-#define CMD_GET_FRAMES 0x60
-#define CMD_TRANSFER 0x70
-#define CMD_PUMP 0x80
-#define CMD_GET_POWEROFF 0x90
+#define DS1374_REG_TOD0		0x00 /* Time of Day */
+#define DS1374_REG_TOD1		0x01
+#define DS1374_REG_TOD2		0x02
+#define DS1374_REG_TOD3		0x03
+#define DS1374_REG_WDALM0	0x04 /* Watchdog/Alarm */
+#define DS1374_REG_WDALM1	0x05
+#define DS1374_REG_WDALM2	0x06
+#define DS1374_REG_CR		0x07 /* Control */
+#define DS1374_REG_CR_AIE	0x01 /* Alarm Int. Enable */
+#define DS1374_REG_CR_WDALM	0x20 /* 1=Watchdog, 0=Alarm */
+#define DS1374_REG_CR_WACE	0x40 /* WD/Alarm counter enable */
+#define DS1374_REG_SR		0x08 /* Status */
+#define DS1374_REG_SR_OSF	0x80 /* Oscillator Stop Flag */
+#define DS1374_REG_SR_AF	0x01 /* Alarm Flag */
+#define DS1374_REG_TCR		0x09 /* Trickle Charge */
+
+#define CMD_POWEROFF            0x0a
+#define CMD_SENSORS             0x0b
+#define CMD_STATE               0x0c
+#define CMD_FRAMES              0x0d
+#define CMD_READ                0x0e
+#define CMD_PUMP                0x0f
+#define CMD_PERIOD              0x10
+#define CMD_START               0x11
+
+#define STATE_MEASURING         0
+#define STATE_RESETSTACK        1
+#define STATE_SUSPEND           2
 
 typedef struct _acmd_t acmd_t;
 
@@ -125,198 +160,203 @@ static int arduino_disconnect(arduino_t* arduino)
         return 0;
 }
 
-static int arduino_send_(arduino_t* arduino, acmd_t* cmd)
+static int arduino_read(arduino_t* arduino, unsigned long *value,
+                        int reg, int nbytes)
 {
-        int sent = write(arduino->fd, cmd->s, cmd->sn);
-        log_debug("Arduino: write %d bytes", cmd->sn);
-        if (sent != cmd->sn) {
-                log_err("Arduino: %s: Failed to write the data", cmd->name); 
-                return -1;
-        }
-        usleep(10000);
+	unsigned char buf[4];
+	int ret;
+	int i;
 
-        for (int i = 0; i < cmd->rn; i++) {
-                int v = i2c_smbus_read_byte(arduino->fd);
-                log_debug("Arduino: read[%d]=%d", i, v);
-                if (v == -1) {
-                        log_err("Arduino: %s: Failed to read the return value", cmd->name);
-                        return -1;
-                }
-                cmd->r[i] = (unsigned char) (v & 0xff);
-                usleep(10000);
-        }
-        return 0;
+	if (nbytes > 4) {
+		return -1;
+	}
+
+	ret = i2c_smbus_read_i2c_block_data(arduino->fd, reg, nbytes, buf);
+
+	if (ret < 0)
+		return ret;
+	if (ret < nbytes)
+		return -1;
+
+        *value = 0;
+	for (i = 0; i < nbytes; i++)
+		*value = (*value << 8) | buf[i];
+
+	return 0;
 }
 
-static int arduino_repeat_send_(arduino_t* arduino, acmd_t* cmd, int attempts)
+static int arduino_write(arduino_t* arduino, 
+                         unsigned long value,
+                         int reg, int nbytes)
 {
-        int err = -1;
-        for (int attempt = 0; attempt < attempts; attempt++) {
-                err = arduino_send_(arduino, cmd);
-                if (err == 0) 
-                        break;
-        }
-        return err;
+	unsigned char buf[4];
+	int i;
+
+	if (nbytes > 4) {
+		return -1;
+	}
+
+	for (i = nbytes - 1; i >= 0; i--) {
+		buf[i] = value & 0xff;
+		value >>= 8;
+	}
+
+	return i2c_smbus_write_i2c_block_data(arduino->fd, reg, nbytes, buf);
 }
 
-static int arduino_suspend_(arduino_t* arduino)
+static int arduino_set_time_(arduino_t* arduino, time_t time)
 {
-        log_debug("Arduino: Sending start transfer"); 
-        acmd_t cmd = { "suspend", 1, { CMD_SUSPEND }, 0, {} };
-        return arduino_repeat_send_(arduino, &cmd, 5);
+	unsigned long itime;
+
+        itime = (unsigned long) time;
+	return arduino_write(arduino, itime, DS1374_REG_TOD0, 4);
 }
 
-static int arduino_resume_(arduino_t* arduino, int reset)
+static int arduino_get_time_(arduino_t* arduino, time_t *time)
 {
-        if (reset) 
-                log_info("Arduino: Clearing the memory and resuming measurements"); 
-        else
-                log_info("Arduino: Resuming measurements"); 
+	unsigned long itime;
+	int ret;
 
-        unsigned char c = CMD_RESUME;
-        if (reset) c |= 0x01;
+	ret = arduino_read(arduino, &itime, DS1374_REG_TOD0, 4);
+	if (!ret)
+		*time = (time_t) itime;
 
-        acmd_t cmd = { "resume", 1, { c }, 0, {} };
-        return arduino_repeat_send_(arduino, &cmd, 10);
+	return ret;
 }
 
 static int arduino_set_poweroff_(arduino_t* arduino, int minutes)
 {
         log_info("Arduino: Request poweroff, wakeup in %d minutes", minutes); 
+	unsigned long value;
 
-        acmd_t cmd = { "set_poweroff", 
-                       3, { CMD_SET_POWEROFF, (minutes & 0x0000ff00) >> 8, (minutes & 0x000000ff) }, 
-                       0, {} };
-
-        return arduino_repeat_send_(arduino, &cmd, 5);
+        value = (unsigned long) minutes;
+	return arduino_write(arduino, value, CMD_POWEROFF, 2);
 }
 
-static int arduino_get_poweroff_(arduino_t* arduino, unsigned long* off, unsigned long* on)
+static int arduino_get_poweroff_(arduino_t* arduino, int* minutes)
 {
-        acmd_t cmd = { "get_poweroff", 
-                       1, { CMD_GET_POWEROFF }, 
-                       8, {} };
+	unsigned long value;
+	int ret;
 
-        int err = arduino_repeat_send_(arduino, &cmd, 5);
-        if (err != 0) 
-                return err;
+	ret = arduino_read(arduino, &value, CMD_POWEROFF, 2);
+	if (!ret)
+		*minutes = (int) value;
 
-        *off = (unsigned long) (cmd.r[0] << 24) | (cmd.r[1] << 16) | (cmd.r[2] << 8) | (cmd.r[3] << 0);
-        *on = (unsigned long) (cmd.r[4] << 24) | (cmd.r[5] << 16) | (cmd.r[6] << 8) | (cmd.r[7] << 0);
+	return ret;
+}
 
-        return 0;
+static int arduino_set_state_(arduino_t* arduino, int state)
+{
+        log_info("Arduino: Set state to %d", state); 
+	unsigned long value;
+
+        value = (unsigned long) state;
+	return arduino_write(arduino, value, CMD_STATE, 1);
+}
+
+static int arduino_get_state_(arduino_t* arduino, int* state)
+{
+	unsigned long value;
+	int ret;
+
+	ret = arduino_read(arduino, &value, CMD_STATE, 1);
+	if (!ret)
+		*state = (int) value;
+
+	return ret;
+}
+
+static int arduino_get_frames_(arduino_t* arduino, int* frames)
+{
+        log_info("Arduino: Getting the number of data frames on the Arduino"); 
+	unsigned long value;
+	int ret;
+
+	ret = arduino_read(arduino, &value, DS1374_REG_TOD0, 4);
+	if (!ret)
+		*frames = (int) value;
+
+	return ret;
 }
 
 static int arduino_pump_(arduino_t* arduino, int seconds)
 {
-        int err;
-        acmd_t on_cmd = { "pump_on", 1, { CMD_PUMP | 0x01 }, 0, {} };
-        acmd_t off_cmd = { "pump_off", 1, { CMD_PUMP }, 0, {} };
+        /* int err; */
+        /* acmd_t on_cmd = { "pump_on", 1, { CMD_PUMP | 0x01 }, 0, {} }; */
+        /* acmd_t off_cmd = { "pump_off", 1, { CMD_PUMP }, 0, {} }; */
 
-        log_info("Arduino: Turning pump on"); 
-        err = arduino_repeat_send_(arduino, &on_cmd, 5);
-        if (err != 0) return err;
+        /* log_info("Arduino: Turning pump on");  */
+        /* err = arduino_repeat_send_(arduino, &on_cmd, 5); */
+        /* if (err != 0) return err; */
 
-        sleep(seconds);
+        /* sleep(seconds); */
 
-        log_info("Arduino: Turning pump off"); 
-        err = arduino_repeat_send_(arduino, &off_cmd, 5);
-        if (err != 0) {
-                log_err("Arduino: Failed to send the 'pump off' command. "
-                        "This is not good... You may have to restart the device.");
+        /* log_info("Arduino: Turning pump off");  */
+        /* err = arduino_repeat_send_(arduino, &off_cmd, 5); */
+        /* if (err != 0) { */
+        /*         log_err("Arduino: Failed to send the 'pump off' command. " */
+        /*                 "This is not good... You may have to restart the device."); */
+        /* } */
+
+        /* return err; */
+        return -1;
+}
+
+static int arduino_get_sensors_(arduino_t* arduino, 
+                                unsigned char* sensors)
+{
+        log_info("Arduino: Getting enabled sensors"); 
+
+        unsigned long value;
+        int ret = arduino_read(arduino, &value, CMD_SENSORS, 1);
+        if (!ret) {
+                *sensors = (unsigned char) value;
+                log_info("Arduino: Enabled sensors: 0x%02x", (int) value); 
         }
 
-        return err;
+        return ret;
 }
 
-static int arduino_millis_(arduino_t* arduino, unsigned long* m)
-{
-        log_debug("Arduino: Getting the current time on the Arduino"); 
-
-        acmd_t cmd = { "millis", 
-                       1, { CMD_GET_MILLIS }, 
-                       4, {} };
-
-        int err = arduino_repeat_send_(arduino, &cmd, 5);
-        if (err != 0) 
-                return err;
-
-        *m = (unsigned long) (cmd.r[0] << 24) | (cmd.r[1] << 16) | (cmd.r[2] << 8) | (cmd.r[3] << 0);
-
-        return err;
-}
-
-static int arduino_get_frames(arduino_t* arduino)
-{
-        log_info("Arduino: Getting the number of data frames on the Arduino"); 
-
-        acmd_t cmd = { "get_frames", 
-                       1, { CMD_GET_FRAMES }, 
-                       2, {} };
-
-        int err = arduino_repeat_send_(arduino, &cmd, 5);
-        if (err != 0) 
-                return -1;
-
-        return (int) (cmd.r[0] << 8) | (cmd.r[1] << 0);
-}
-
-static int arduino_get_sensors_(arduino_t* arduino, unsigned char* enabled, unsigned char* period)
-{
-        log_info("Arduino: Getting enabled sensors and update period"); 
-
-        acmd_t cmd = { "get_sensors", 
-                       1, { CMD_GET_SENSORS }, 
-                       2, {} };
-
-        int err = arduino_repeat_send_(arduino, &cmd, 5);
-        if (err != 0) 
-                return -1;
-
-        *enabled = cmd.r[0];
-        *period = cmd.r[1];
-
-        log_info("Arduino: Enabled sensors: 0x%02x, period: %d", (int) cmd.r[0], (int) cmd.r[1]); 
-
-        return 0;
-}
-
-static int arduino_set_sensors_(arduino_t* arduino, unsigned char enabled, unsigned char period)
+static int arduino_set_sensors_(arduino_t* arduino, 
+                                unsigned char sensors)
 {
         log_info("Arduino: Configuring sensors and update period"); 
+        unsigned long value = sensors;
+        return arduino_write(arduino, value, CMD_SENSORS, 1);
+}
 
-        acmd_t cmd = { "set_sensors", 
-                       3, { CMD_SET_SENSORS, enabled, period }, 
-                       0, {} };
+static int arduino_get_period_(arduino_t* arduino, 
+                                unsigned char* period)
+{
+        log_info("Arduino: Getting period"); 
 
-        return arduino_repeat_send_(arduino, &cmd, 5);
+        unsigned long value;
+        int ret = arduino_read(arduino, &value, CMD_PERIOD, 1);
+        if (ret) {
+                *period = (unsigned char) value;
+                log_info("Arduino: period: 0x%02x", (int) value); 
+        }
+        return ret;
+}
+
+static int arduino_set_period_(arduino_t* arduino, 
+                                unsigned char period)
+{
+        log_info("Arduino: Configuring period and update period"); 
+        unsigned long value = period;
+        return arduino_write(arduino, value, CMD_PERIOD, 1);
 }
 
 static int arduino_read_float(arduino_t* arduino, float* value)
 {
-
-        /* Read the four bytes of the floating point value. We do four
-           separate reads of one byte because this is the only call
-           that seems to work successfully with the Arduino. */
-        unsigned char c[4];
-        for (int i = 0; i < 4; i++) {
-                int v = i2c_smbus_read_byte(arduino->fd);
-                if (v == -1) {
-                        log_err("Arduino: Failed to read the float value"); 
-                        return -1;
-                }
-                c[i] = (unsigned char) (v & 0xff);
-		usleep(10000);
-        }
-
-        unsigned int r = (c[0] << 24) | (c[1] << 16) | (c[2] << 8) | (c[3] << 0);
-        *value = *((float*) &r);
-
-        return 0;
+        unsigned long v;
+        int ret = arduino_read(arduino, &v, CMD_READ, 4);
+        if (!ret) 
+                *value = *((float*) &v);
+        return ret;
 }
 
 static int arduino_download_data(arduino_t* arduino, 
-                                 time_t delta, 
                                  int* datastreams, 
                                  int num_datastreams, 
                                  int nframes,
@@ -330,27 +370,28 @@ static int arduino_download_data(arduino_t* arduino,
                 return -1;
         }
 
-        if (i2c_smbus_write_byte(arduino->fd, CMD_TRANSFER) == -1) {
-                log_err("Arduino: Failed to send the 'transfer' command");
+        if (i2c_smbus_write_byte(arduino->fd, CMD_START) == -1) {
+                log_err("Arduino: Failed to send the 'start transfer' command");
                 goto error_recovery;
         }
-        usleep(10000);
 
         for (int frame = 0; frame < nframes; frame++) {
                 
-                float value;
+                unsigned long t;
         
-                if (arduino_read_float(arduino, &value) != 0) 
+                err = arduino_read(arduino, &t, CMD_READ, 4);
+                if (err) 
                         goto error_recovery;
 
-                time_t timestamp = (time_t) value + delta;
+                time_t timestamp = (time_t) t;
                 struct tm r;
                 char time[256];
 
                 localtime_r(&timestamp, &r);
                 snprintf(time, 256, "%04d-%02d-%02dT%02d:%02d:%02d",
                          1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, r.tm_hour, r.tm_min, r.tm_sec);
-                
+                float value;
+
                 for (int i = 0; i < num_datastreams; i++) {
                         if (arduino_read_float(arduino, &value) != 0) 
                                 goto error_recovery;
@@ -372,38 +413,19 @@ int arduino_store_data(arduino_t* arduino,
                        const char* filename)
 {
         int err = -1; 
-        time_t now = time(NULL);
-        unsigned long millis;
-        unsigned char enabled;
-        unsigned char period;
-        time_t delta;
+        int nframes; 
 
         err = arduino_connect(arduino);
         if (err != 0) 
                 return err;
 
-        err = arduino_suspend_(arduino);
+        err = arduino_set_state_(arduino, STATE_SUSPEND);
         if (err != 0) {
                 arduino_disconnect(arduino);
                 return err;
         }
         
-        err =  arduino_millis_(arduino, &millis);
-        if (err != 0) {
-                arduino_disconnect(arduino);
-                return err;
-        }
-        log_info("Arduino: Current time on the arduino: %u msec", millis); 
-        delta = now - ((millis + 500) / 1000);
-        
-        err = arduino_get_sensors_(arduino, &enabled, &period);
-        if (err != 0) {
-                arduino_disconnect(arduino);
-                return err;
-        }
-
-        int nframes = arduino_get_frames(arduino);
-        if (nframes == -1) {
+        if (arduino_get_frames_(arduino, &nframes) != 0) {
                 arduino_disconnect(arduino);
                 return err;
         }
@@ -411,7 +433,6 @@ int arduino_store_data(arduino_t* arduino,
 
         for (int attempt = 0; attempt < 5; attempt++) {
                 err = arduino_download_data(arduino, 
-                                            delta, 
                                             datastreams, 
                                             num_datastreams, 
                                             nframes,
@@ -422,17 +443,17 @@ int arduino_store_data(arduino_t* arduino,
 
         if (err == 0) {
                 log_info("Arduino: Download successful"); 
-                err = arduino_resume_(arduino, 1);
+                err = arduino_set_state_(arduino, STATE_RESETSTACK);
         } else {
                 log_info("Arduino: Download failed"); 
-                err = arduino_resume_(arduino, 0);
+                err = arduino_set_state_(arduino, STATE_MEASURING);
         }
 
         arduino_disconnect(arduino);
         return err;
 }
 
-int arduino_set_sensors(arduino_t* arduino, unsigned char enabled, unsigned char period)
+int arduino_set_sensors(arduino_t* arduino, unsigned char sensors)
 {
         int err;
 
@@ -440,7 +461,7 @@ int arduino_set_sensors(arduino_t* arduino, unsigned char enabled, unsigned char
         if (err != 0) 
                 return err;
 
-        err = arduino_set_sensors_(arduino, enabled, period);
+        err = arduino_set_sensors_(arduino, sensors);
         if (err != 0) {
                 arduino_disconnect(arduino);
                 return err;
@@ -449,7 +470,7 @@ int arduino_set_sensors(arduino_t* arduino, unsigned char enabled, unsigned char
         return arduino_disconnect(arduino);
 }
 
-int arduino_get_sensors(arduino_t* arduino, unsigned char* enabled, unsigned char* period)
+int arduino_get_sensors(arduino_t* arduino, unsigned char* sensors)
 {
         int err;
 
@@ -457,7 +478,41 @@ int arduino_get_sensors(arduino_t* arduino, unsigned char* enabled, unsigned cha
         if (err != 0) 
                 return -1;
 
-        err = arduino_get_sensors_(arduino, enabled, period);
+        err = arduino_get_sensors_(arduino, sensors);
+        if (err != 0) {
+                arduino_disconnect(arduino);
+                return err;
+        }
+
+        return arduino_disconnect(arduino);
+}
+
+int arduino_set_period(arduino_t* arduino, unsigned char period)
+{
+        int err;
+
+        err = arduino_connect(arduino);
+        if (err != 0) 
+                return err;
+
+        err = arduino_set_period_(arduino, period);
+        if (err != 0) {
+                arduino_disconnect(arduino);
+                return err;
+        }
+
+        return arduino_disconnect(arduino);
+}
+
+int arduino_get_period(arduino_t* arduino, unsigned char* period)
+{
+        int err;
+
+        err = arduino_connect(arduino);
+        if (err != 0) 
+                return -1;
+
+        err = arduino_get_period_(arduino, period);
         if (err != 0) {
                 arduino_disconnect(arduino);
                 return err;
@@ -483,7 +538,7 @@ int arduino_set_poweroff(arduino_t* arduino, int minutes)
         return arduino_disconnect(arduino);
 }
 
-int arduino_get_poweroff(arduino_t* arduino, unsigned long* off, unsigned long* on)
+int arduino_get_poweroff(arduino_t* arduino, int* minutes)
 {
         int err;
 
@@ -491,7 +546,24 @@ int arduino_get_poweroff(arduino_t* arduino, unsigned long* off, unsigned long* 
         if (err != 0) 
                 return -1;
 
-        err = arduino_get_poweroff_(arduino, off, on);
+        err = arduino_get_poweroff_(arduino, minutes);
+        if (err != 0) {
+                arduino_disconnect(arduino);
+                return err;
+        }                
+
+        return arduino_disconnect(arduino);
+}
+
+int arduino_get_frames(arduino_t* arduino, int* frames)
+{
+        int err;
+
+        err = arduino_connect(arduino);
+        if (err != 0) 
+                return -1;
+
+        err = arduino_get_frames_(arduino, frames);
         if (err != 0) {
                 arduino_disconnect(arduino);
                 return err;
@@ -517,7 +589,7 @@ int arduino_pump(arduino_t* arduino, int seconds)
         return arduino_disconnect(arduino);
 }
 
-int arduino_millis(arduino_t* arduino, unsigned long* m)
+int arduino_set_time(arduino_t* arduino, time_t time)
 {
         int err;
 
@@ -525,12 +597,28 @@ int arduino_millis(arduino_t* arduino, unsigned long* m)
         if (err != 0) 
                 return -1;
 
-        err = arduino_millis_(arduino, m);
+        err = arduino_set_time_(arduino, time);
         if (err != 0) {
                 arduino_disconnect(arduino);
                 return err;
-        }
+        }                
 
         return arduino_disconnect(arduino);
 }
 
+int arduino_get_time(arduino_t* arduino, time_t *time)
+{
+        int err;
+
+        err = arduino_connect(arduino);
+        if (err != 0) 
+                return -1;
+
+        err = arduino_get_time_(arduino, time);
+        if (err != 0) {
+                arduino_disconnect(arduino);
+                return err;
+        }                
+
+        return arduino_disconnect(arduino);
+}

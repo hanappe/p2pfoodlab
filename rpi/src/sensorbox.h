@@ -23,6 +23,8 @@
 #ifndef _SENSORBOX_H_
 #define _SENSORBOX_H_
 
+#include <time.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,7 +43,8 @@ void sensorbox_poweroff_maybe(sensorbox_t* box);
 int sensorbox_check_sensors(sensorbox_t* box);
 int sensorbox_update_sensors(sensorbox_t* box);
 void sensorbox_update_camera(sensorbox_t* box);
-int sensorbox_millis(sensorbox_t* box, unsigned long* m);
+int sensorbox_get_time(sensorbox_t* box, time_t* m);
+int sensorbox_set_time(sensorbox_t* box, time_t m);
 
 
 #ifdef __cplusplus

@@ -23,6 +23,8 @@
 #ifndef _ARDUINO_API_H_
 #define _ARDUINO_API_H_
 
+#include <time.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,26 +41,36 @@ typedef struct _arduino_t arduino_t;
 arduino_t* new_arduino(int bus, int address);
 int delete_arduino(arduino_t* arduino);
 
-int arduino_millis(arduino_t* arduino, unsigned long* m);
+int arduino_get_time(arduino_t* arduino, time_t *time);
+int arduino_set_time(arduino_t* arduino, time_t time);
 
 int arduino_set_sensors(arduino_t* arduino,
-                        unsigned char enabled, 
-                        unsigned char period);
+                        unsigned char sensors);
 
 int arduino_get_sensors(arduino_t* arduino,
-                        unsigned char* enabled, 
-                        unsigned char* period);
+                        unsigned char* sensors);
+
+int arduino_set_period(arduino_t* arduino,
+                       unsigned char period);
+        
+int arduino_get_period(arduino_t* arduino,
+                       unsigned char* period);
+        
+int arduino_get_frames(arduino_t* arduino,
+                       int* frames);
+
+int arduino_set_poweroff(arduino_t* arduino, int minutes);
+
+int arduino_get_poweroff(arduino_t* arduino, int* minutes);
+
+/* int arduino_set_pump(arduino_t* arduino, int seconds); */
+
+/* int arduino_get_pump(arduino_t* arduino, int* seconds); */
 
 int arduino_store_data(arduino_t* arduino,
                        int* datastreams,
                        int num_datastreams,
                        const char* output_file);
-
-int arduino_set_poweroff(arduino_t* arduino, int minutes);
-
-int arduino_get_poweroff(arduino_t* arduino, unsigned long* off, unsigned long* on);
-
-int arduino_pump(arduino_t* arduino, int seconds);
 
 #ifdef __cplusplus
 }

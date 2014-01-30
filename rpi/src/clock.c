@@ -35,171 +35,186 @@
 
 static int clock_get_millis(sensorbox_t* box, unsigned long* m)
 {
-        unsigned long millis, test;
+        /* unsigned long millis, test; */
 
-        if (sensorbox_millis(box, &millis) != 0)
-                return -1;
+        /* if (sensorbox_millis(box, &millis) != 0) */
+        /*         return -1; */
 
-        for (int i = 0; i < 3; i++) {
-                if (sensorbox_millis(box, &test) != 0)
-                        return -1;
-                if (test < millis)
-                        return -1;
-                if (test > millis + 10000)
-                        return -1;
-        }
+        /* for (int i = 0; i < 3; i++) { */
+        /*         if (sensorbox_millis(box, &test) != 0) */
+        /*                 return -1; */
+        /*         if (test < millis) */
+        /*                 return -1; */
+        /*         if (test > millis + 10000) */
+        /*                 return -1; */
+        /* } */
 
-        *m = millis;
+        /* *m = millis; */
         return 0;
 }
 
 int clock_update(sensorbox_t* box)
 {
-        unsigned long millis;
-        char filename[512];
-        struct timespec tp;
-        time_t epoch;
-        FILE* fp;
-        int err;
+        /* unsigned long millis; */
+        /* char filename[512]; */
+        /* struct timespec tp; */
+        /* time_t epoch; */
+        /* FILE* fp; */
+        /* int err; */
 
-        if (clock_get_millis(box, &millis) != 0)
-                return -1;
+        /* if (clock_get_millis(box, &millis) != 0) */
+        /*         return -1; */
 
-        snprintf(filename, 511, "%s/etc/arduino.millis", sensorbox_getdir(box));
-        filename[511] = 0;
+        /* snprintf(filename, 511, "%s/etc/arduino.millis", sensorbox_getdir(box)); */
+        /* filename[511] = 0; */
 
-        fp = fopen(filename, "w");
-        if (fp == NULL) {
-                log_err("Clock: Failed to open file (%s)", filename);
-                return -1;
-        }
-        fprintf(fp, "%lu\n", millis);
-        fclose(fp);
+        /* fp = fopen(filename, "w"); */
+        /* if (fp == NULL) { */
+        /*         log_err("Clock: Failed to open file (%s)", filename); */
+        /*         return -1; */
+        /* } */
+        /* fprintf(fp, "%lu\n", millis); */
+        /* fclose(fp); */
 
-        err = clock_gettime(CLOCK_REALTIME, &tp);
-        if (err != 0) {
-                log_err("Clock: Failed to get the current time");
-                return -1;
-        }
-        epoch = tp.tv_sec;
+        /* err = clock_gettime(CLOCK_REALTIME, &tp); */
+        /* if (err != 0) { */
+        /*         log_err("Clock: Failed to get the current time"); */
+        /*         return -1; */
+        /* } */
+        /* epoch = tp.tv_sec; */
 
-        snprintf(filename, 511, "%s/etc/system.epoch", sensorbox_getdir(box));
-        filename[511] = 0;
+        /* snprintf(filename, 511, "%s/etc/system.epoch", sensorbox_getdir(box)); */
+        /* filename[511] = 0; */
 
-        fp = fopen(filename, "w");
-        if (fp == NULL) {
-                log_err("Clock: Failed to open file (%s)", filename);
-                return -1;
-        }
-        fprintf(fp, "%lu\n", epoch);
-        fclose(fp);
+        /* fp = fopen(filename, "w"); */
+        /* if (fp == NULL) { */
+        /*         log_err("Clock: Failed to open file (%s)", filename); */
+        /*         return -1; */
+        /* } */
+        /* fprintf(fp, "%lu\n", epoch); */
+        /* fclose(fp); */
 
         return 0;
 }
 
 int clock_set(sensorbox_t* box)
 {
-        unsigned long cur_millis;
-        unsigned long saved_millis;
-        time_t cur_epoch;
-        time_t saved_epoch;
-        time_t epoch;
-        unsigned long cur_seconds;
-        unsigned long saved_seconds;
-        struct timespec tp;
-        char filename[512];
-        FILE* fp;
-        int n;
-        int err;
+        /* unsigned long cur_millis; */
+        /* unsigned long saved_millis; */
+        /* time_t cur_epoch; */
+        /* time_t saved_epoch; */
+        /* time_t estimate_epoch; */
+        /* unsigned long cur_seconds; */
+        /* unsigned long saved_seconds; */
+        /* struct timespec tp; */
+        /* char filename[512]; */
+        /* FILE* fp; */
+        /* int n; */
+        /* int err; */
 
-        log_info("Clock: Setting system time.");
+        /* log_info("Clock: Setting system time."); */
 
-        if (network_connected() == 1) {
-                log_info("Clock: Connected to network. Let ntpd do the job.");
-                return 0;
-        }
+        /* if (network_connected() == 1) { */
+        /*         log_info("Clock: Connected to network. Let ntpd do the job."); */
+        /*         return 0; */
+        /* } */
 
-        /* Get saved millis */
-        snprintf(filename, 511, "%s/etc/arduino.millis", sensorbox_getdir(box));
-        filename[511] = 0;
+        /* /\* Get saved millis *\/ */
+        /* snprintf(filename, 511, "%s/etc/arduino.millis", sensorbox_getdir(box)); */
+        /* filename[511] = 0; */
 
-        fp = fopen(filename, "r");
-        if (fp == NULL) {
-                log_err("Clock: Failed to open file (%s)", filename);
-                return -1;
-        }
-        n = fscanf(fp, "%lu\n", &saved_millis);
-        if (n != 1) {
-                log_err("Clock: Failed to read the saved millis values (%s)", filename);
-                return -1;
-        }
-        fclose(fp);
+        /* fp = fopen(filename, "r"); */
+        /* if (fp == NULL) { */
+        /*         log_err("Clock: Failed to open file (%s)", filename); */
+        /*         return -1; */
+        /* } */
+        /* n = fscanf(fp, "%lu\n", &saved_millis); */
+        /* if (n != 1) { */
+        /*         log_err("Clock: Failed to read the saved millis values (%s)", filename); */
+        /*         return -1; */
+        /* } */
+        /* fclose(fp); */
 
-        /* Get the corresponding saved epoch */
-        snprintf(filename, 511, "%s/etc/system.epoch", sensorbox_getdir(box));
-        filename[511] = 0;
+        /* /\* Get the corresponding saved epoch *\/ */
+        /* snprintf(filename, 511, "%s/etc/system.epoch", sensorbox_getdir(box)); */
+        /* filename[511] = 0; */
 
-        fp = fopen(filename, "r");
-        if (fp == NULL) {
-                log_err("Clock: Failed to open file (%s)", filename);
-                return -1;
-        }
-        n = fscanf(fp, "%lu\n", &saved_epoch);
-        if (n != 1) {
-                log_err("Clock: Failed to read the saved epoch values (%s)", filename);
-                return -1;
-        }
-        fclose(fp);
+        /* fp = fopen(filename, "r"); */
+        /* if (fp == NULL) { */
+        /*         log_err("Clock: Failed to open file (%s)", filename); */
+        /*         return -1; */
+        /* } */
+        /* n = fscanf(fp, "%lu\n", &saved_epoch); */
+        /* if (n != 1) { */
+        /*         log_err("Clock: Failed to read the saved epoch values (%s)", filename); */
+        /*         return -1; */
+        /* } */
+        /* fclose(fp); */
 
+        /* /\* Get current millis on Arduino *\/ */
+        /* if (clock_get_millis(box, &cur_millis) != 0) */
+        /*         return -1; */
 
-        /* Get current millis */
-        if (clock_get_millis(box, &cur_millis) != 0)
-                return -1;
+        /* /\* Estimate current time *\/ */
+        /* cur_seconds = cur_millis / 1000; */
+        /* saved_seconds = saved_millis / 1000; */
 
-        /* Estimate current time */
-        cur_seconds = (cur_millis + 500) / 1000;
-        saved_seconds = (saved_millis + 500) / 1000;
+        /* /\* Arduino's clock may have wrapped around. *\/ */
+        /* if (cur_seconds < saved_seconds) */
+        /*         cur_seconds += 4294967; // 2^32 milliseconds = 4294967.296 seconds */
 
-        /* Arduino's clock may have wrapped around. */
-        if (cur_seconds < saved_seconds)
-                cur_seconds += 4294967; // 2^32 milliseconds = 4294967.296 seconds
+        /* estimate_epoch = saved_epoch + (cur_seconds - saved_seconds);  */
 
-        epoch = saved_epoch + (cur_seconds - saved_seconds); 
+        /* /\* Get current epoch *\/ */
+        /* err = clock_gettime(CLOCK_REALTIME, &tp); */
+        /* if (err != 0) { */
+        /*         log_err("Clock: Failed to get the current time"); */
+        /*         return -1; */
+        /* } */
+        /* cur_epoch = tp.tv_sec; */
 
+        /* log_info("Clock: Current system time:   %lu sec", cur_epoch); */
+        /* log_info("Clock: Saved Arduino time:    %lu sec", saved_seconds); */
+        /* log_info("Clock: Saved system time:     %lu sec", saved_epoch); */
+        /* log_info("Clock: Current Arduino time:  %lu sec", cur_seconds); */
+        /* log_info("Clock: Estimated system time: %lu sec", estimate_epoch); */
 
-        /* Get current epoch */
-        err = clock_gettime(CLOCK_REALTIME, &tp);
-        if (err != 0) {
-                log_err("Clock: Failed to get the current time");
-                return -1;
-        }
-        cur_epoch = tp.tv_sec;
+        /* /\* Don't change the time if estimated time is less than the current time *\/ */
+        /* if (estimate_epoch < cur_epoch) { */
+        /*         log_err("Clock: Not changing current time: estimate time smaller than current time"); */
+        /*         return 0; */
+        /* } */
 
-        /* Don't change the time is the difference is less than 30 seconds */
-        if ((epoch >= cur_epoch) && (epoch - cur_epoch < 30)) {
-                log_err("Clock: Not changing current time: difference is %lu seconds", epoch - cur_epoch);
-                return 0;
-        }
-        if ((epoch < cur_epoch) && (cur_epoch - epoch  < 30)) {
-                log_err("Clock: Not changing current time: difference is %lu seconds", cur_epoch - epoch);
-                return 0;
-        }
+        /* /\* Don't change the time if the difference is less than 30 seconds *\/ */
+        /* if (estimate_epoch - cur_epoch < 30) { */
+        /*         log_err("Clock: Not changing current time: difference is small: %lu seconds",  */
+        /*                 estimate_epoch - cur_epoch); */
+        /*         return 0; */
+        /* } */
 
-        log_info("Clock: Saved Arduino time:    %lu sec", saved_seconds);
-        log_info("Clock: Current Arduino time:  %lu sec", cur_seconds);
-        log_info("Clock: Saved system time:     %lu sec", saved_epoch);
-        log_info("Clock: Current system time:   %lu sec", cur_epoch);
-        log_info("Clock: Estimated system time: %lu sec", epoch);
+        /* /\* Don't change the time if the difference is larger than 24 hours *\/ */
+        /* if (estimate_epoch - cur_epoch > 24 * 60 * 60) { */
+        /*         log_err("Clock: Not changing current time: difference is too big: %lu seconds",  */
+        /*                 estimate_epoch - cur_epoch); */
+        /*         return 0; */
+        /* } */
 
-        /* Update system time */
-        tp.tv_sec = epoch;
-        tp.tv_nsec = 0;
+        /* unsigned long diff = estimate_epoch - cur_epoch; */
+        /* unsigned long h = diff / 3600; */
+        /* unsigned long m = (diff - h * 3600) / 60; */
+        /* unsigned long s = diff - h * 3600 - m * 60; */
 
-        err = clock_settime(CLOCK_REALTIME, &tp);
-        if (err != 0) {
-                log_err("Clock: Failed to set time: %s", strerror(errno));
-                return err;
-        }
+        /* log_info("Clock: Updating system time: advancing clock by %02lu h %02lu m %02lu s", h, m ,s); */
+
+        /* /\* Update system time *\/ */
+        /* tp.tv_sec = estimate_epoch; */
+        /* tp.tv_nsec = 0; */
+
+        /* err = clock_settime(CLOCK_REALTIME, &tp); */
+        /* if (err != 0) { */
+        /*         log_err("Clock: Failed to set time: %s", strerror(errno)); */
+        /*         return err; */
+        /* } */
 
         return 0;
 }

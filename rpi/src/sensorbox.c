@@ -487,26 +487,34 @@ static int sensorbox_map_datastreams(sensorbox_t* box,
 
 int sensorbox_check_sensors(sensorbox_t* box)
 {
-        unsigned char enabled_a;
+        unsigned char sensors_a;
         unsigned char period_a;
-        unsigned char enabled_c;
+        unsigned char sensors_c;
         unsigned char period_c;
         int err;
 
-        err = config_get_sensors(box->config, &enabled_c, &period_c);
+        err = config_get_sensors(box->config, &sensors_c, &period_c);
         if (err != 0) 
                 return err;
         
-        err = arduino_get_sensors(box->arduino, &enabled_a, &period_a);
+        err = arduino_get_sensors(box->arduino, &sensors_a);
+        if (err != 0) 
+                return err;
+        
+        err = arduino_get_period(box->arduino, &period_a);
         if (err != 0) 
                 return err;
 
-        log_info("Sensorbox: Arduino: sensors: 0x%02x, period %d", enabled_a, period_a); 
-        log_info("Sensorbox: Config:  sensors: 0x%02x, period %d", enabled_c, period_c); 
+        log_info("Sensorbox: Arduino: sensors: 0x%02x, period %d", sensors_a, period_a); 
+        log_info("Sensorbox: Config:  sensors: 0x%02x, period %d", sensors_c, period_c); 
 
-        if ((enabled_c != enabled_a) || (period_c != period_a)) {
+        if (sensors_c != sensors_a) {
                 log_info("Sensorbox: Sensor settings differ between Arduino and config file"); 
-                err = arduino_set_sensors(box->arduino, enabled_c, period_c);
+                err = arduino_set_sensors(box->arduino, sensors_c);
+        }
+        if (period_c != period_a) {
+                log_info("Sensorbox: Period settings differ between Arduino and config file"); 
+                err = arduino_set_period(box->arduino, period_c);
         }
 
         return err;
@@ -514,16 +522,20 @@ int sensorbox_check_sensors(sensorbox_t* box)
 
 int sensorbox_update_sensors(sensorbox_t* box)
 {
-        unsigned char enabled_a;
+        unsigned char sensors_a;
         unsigned char period_a;
         int err;
 
-        err = arduino_get_sensors(box->arduino, &enabled_a, &period_a);
+        err = arduino_get_sensors(box->arduino, &sensors_a);
+        if (err != 0) 
+                return err;
+
+        err = arduino_get_period(box->arduino, &period_a);
         if (err != 0) 
                 return err;
 
         int datastreams[16];
-        int num_datastreams = sensorbox_map_datastreams(box, enabled_a, datastreams);
+        int num_datastreams = sensorbox_map_datastreams(box, sensors_a, datastreams);
         if (num_datastreams == -1) 
                 return -1;
 
@@ -760,9 +772,14 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
         }
 }
 
-int sensorbox_millis(sensorbox_t* box, unsigned long* m) 
+int sensorbox_get_time(sensorbox_t* box, time_t* m) 
 {
-        return arduino_millis(box->arduino, m);
+        return arduino_get_time(box->arduino, m);
+}
+
+int sensorbox_set_time(sensorbox_t* box, time_t m) 
+{
+        return arduino_set_time(box->arduino, m);
 }
 
 const char* sensorbox_getdir(sensorbox_t* box)
