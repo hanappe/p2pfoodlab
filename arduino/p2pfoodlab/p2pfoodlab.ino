@@ -50,9 +50,9 @@
 #define CMD_PERIOD              0x10
 #define CMD_START               0x11
 
-#define STATE_MEASURING         0
-#define STATE_RESETSTACK        1
-#define STATE_SUSPEND           2
+#define STATE_MEASURING         1
+#define STATE_RESETSTACK        2
+#define STATE_SUSPEND           3
 
 #define RHT03_1_PIN             12
 #define RHT03_2_PIN             9
@@ -94,7 +94,7 @@ unsigned long last_minute = 0;
 unsigned long suspend_start = 0;
 unsigned char new_sensors = RHT03_1_FLAG;
 unsigned char new_period = 1; 
-unsigned char new_state = STATE_MEASURING; 
+unsigned char new_state = 0; 
 unsigned char new_pump = 0; 
 unsigned short new_wakeup = 0;
 unsigned char i2c_recv_buf[5];
@@ -446,12 +446,17 @@ void handle_updates()
                 period = new_period;
         }
 
-        if (state != new_state) {
-                DebugPrintValue("  new state settings: ", new_state);
-                state = new_state;
-                if (state == STATE_SUSPEND) {
-                        suspend_start = getminutes();
+        if (new_state != 0) {
+                if ((state != new_state)
+                    && ((new_state == STATE_MEASURING)
+                        || (new_state == STATE_RESETSTACK)
+                        || (new_state == STATE_SUSPEND))) {
+                        DebugPrintValue("  new state settings: ", new_state);
+                        state = new_state;
+                        if (state == STATE_SUSPEND) 
+                                suspend_start = getminutes();
                 }
+                new_state = 0;
         }
 
         if (new_wakeup != wakeup) {
@@ -543,6 +548,9 @@ void loop()
                 sleep = MAX_SLEEP - 1000 * (getseconds() - seconds); 
                 if (sleep > MAX_SLEEP)
                         sleep = 0;
+
+        } else {
+                state = STATE_MEASURING;
         }
 
         DebugPrint("--end loop--"); 
