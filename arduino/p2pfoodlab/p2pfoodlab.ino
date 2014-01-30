@@ -129,24 +129,29 @@ void stack_clear()
         frames = 0;
 }
 
+void stack_reset(int newsp)
+{
+        sp = newsp;
+}
+
 int stack_pushf(float value)
 {
         if (sp < STACK_SIZE) {
                 stack[sp++].f = value;
-                return 0;
+                return 1;
         }
         DebugPrint("  STACK FULL");
-        return -1;
+        return 0;
 }
 
 int stack_pushi(unsigned long value)
 {
         if (sp < STACK_SIZE) {
                 stack[sp++].i = value;
-                return 0;
+                return 1;
         }
         DebugPrint("  STACK FULL");
-        return 1;
+        return 0;
 }
 
 unsigned long getseconds()
@@ -382,49 +387,56 @@ void measure_sensors()
                 return;
         }
 
+        unsigned short old_sp = sp;        
+
         if (!stack_pushi(time(0)))
-                return;
+                goto reset_stack;
 
         if (sensors & LUMINOSITY_FLAG) {
                 float luminosity = get_luminosity(); 
                 if (!stack_pushf(luminosity))
-                        return;
+                        goto reset_stack;
                 DebugPrintValue("  lum ", luminosity);
         }
         if (sensors & RHT03_1_FLAG) {
                 float t, rh; 
                 if (get_rht03(&rht03_1, &t, &rh) == 0) {
                         if (!stack_pushf(t))
-                                return;
+                                goto reset_stack;
                         if (!stack_pushf(rh))
-                                return;
+                                goto reset_stack;
                         DebugPrintValue("  t ", t);
                         DebugPrintValue("  rh ", rh);
                 } else {
                         if (!stack_pushf(-300.0f))
-                                return;
+                                goto reset_stack;
                         if (!stack_pushf(-1.0f))
-                                return;
+                                goto reset_stack;
                 }
         }
         if (sensors & RHT03_2_FLAG) {
                 float t, rh; 
                 if (get_rht03(&rht03_2, &t, &rh) == 0) {
                         if (!stack_pushf(t))
-                                return;
+                                goto reset_stack;
                         if (!stack_pushf(rh))
-                                return;
+                                goto reset_stack;
                         DebugPrintValue("  tx ", t);
                         DebugPrintValue("  rhx ", rh);
                 } else {
                         if (!stack_pushf(-300.0f))
-                                return;
+                                goto reset_stack;
                         if (!stack_pushf(-1.0f))
-                                return;
+                                goto reset_stack;
                 }
         }
 
         frames++;
+        return;
+
+ reset_stack:
+        stack_reset(old_sp);
+        return;
 }
 
 void blink(int count, int msec)

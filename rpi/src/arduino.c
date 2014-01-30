@@ -166,22 +166,21 @@ static int arduino_read(arduino_t* arduino, unsigned long *value,
                         int reg, int nbytes)
 {
 	unsigned char buf[4];
-	int ret;
-	int i;
+	int i, n;
 
 	if (nbytes > 4) {
 		return -1;
 	}
 
-	ret = i2c_smbus_read_i2c_block_data(arduino->fd, reg, nbytes, buf);
+	n = i2c_smbus_read_i2c_block_data(arduino->fd, reg, nbytes, buf);
 
-	if (ret < 0) {
-                log_err("Arduino: failed to read the data");
-		return ret;
+	if (n < 0) {
+                log_err("Arduino: Failed to read the data");
+		return n;
 	}
-        if (ret < nbytes) {
-                log_err("Arduino: failed to read the data, got %d/%d bytes",
-                        ret, nbytes);
+        if (n < nbytes) {
+                log_err("Arduino: Failed to read the data, got %d/%d bytes",
+                        n, nbytes);
 		return -1;
         }
 
@@ -200,7 +199,7 @@ static int arduino_write(arduino_t* arduino,
 {
 	unsigned char buf[4];
 	int i;
-        int ret;
+        int err;
 
 	if (nbytes > 4) {
 		return -1;
@@ -211,14 +210,14 @@ static int arduino_write(arduino_t* arduino,
 		value >>= 8;
 	}
 
-	ret = i2c_smbus_write_i2c_block_data(arduino->fd, reg, nbytes, buf);
-        if (ret != 0) {
-                log_err("Arduino: failed to write the data");
+	err = i2c_smbus_write_i2c_block_data(arduino->fd, reg, nbytes, buf);
+        if (err != 0) {
+                log_err("Arduino: Failed to write the data");
         }
 
         usleep(10000);
 
-        return ret;
+        return err;
 }
 
 static int arduino_set_time_(arduino_t* arduino, time_t time)
@@ -232,13 +231,13 @@ static int arduino_set_time_(arduino_t* arduino, time_t time)
 static int arduino_get_time_(arduino_t* arduino, time_t *time)
 {
 	unsigned long itime;
-	int ret;
+	int err;
 
-	ret = arduino_read(arduino, &itime, DS1374_REG_TOD0, 4);
-	if (!ret)
+	err = arduino_read(arduino, &itime, DS1374_REG_TOD0, 4);
+	if (err == 0)
 		*time = (time_t) itime;
 
-	return ret;
+	return err;
 }
 
 static int arduino_set_poweroff_(arduino_t* arduino, int minutes)
@@ -253,13 +252,13 @@ static int arduino_set_poweroff_(arduino_t* arduino, int minutes)
 static int arduino_get_poweroff_(arduino_t* arduino, int* minutes)
 {
 	unsigned long value;
-	int ret;
+	int err;
 
-	ret = arduino_read(arduino, &value, CMD_POWEROFF, 2);
-	if (!ret)
+	err = arduino_read(arduino, &value, CMD_POWEROFF, 2);
+	if (err == 0)
 		*minutes = (int) value;
 
-	return ret;
+	return err;
 }
 
 static int arduino_set_state_(arduino_t* arduino, int state)
@@ -279,30 +278,30 @@ static int arduino_set_state_(arduino_t* arduino, int state)
 static int arduino_get_state_(arduino_t* arduino, int* state)
 {
 	unsigned long value;
-	int ret;
+	int err;
 
-	ret = arduino_read(arduino, &value, CMD_STATE, 1);
-	if (!ret)
+	err = arduino_read(arduino, &value, CMD_STATE, 1);
+	if (err == 0)
 		*state = (int) value;
 
-	return ret;
+	return err;
 }
 
 static int arduino_get_frames_(arduino_t* arduino, int* frames)
 {
         log_debug("Arduino: Getting the number of data frames on the Arduino"); 
 	unsigned long value;
-	int ret;
+	int err;
 
         for (int attempt = 0; attempt < 5; attempt++) {
-                ret = arduino_read(arduino, &value, CMD_FRAMES, 2);
-                if (!ret) {
+                err = arduino_read(arduino, &value, CMD_FRAMES, 2);
+                if (err == 0) {
                         *frames = (int) value;
                         break;
                 }
         }
 
-	return ret;
+	return err;
 }
 
 static int arduino_pump_(arduino_t* arduino, int seconds)
@@ -333,13 +332,13 @@ static int arduino_get_sensors_(arduino_t* arduino,
 {
         log_debug("Arduino: Getting enabled sensors"); 
         unsigned long value;
-        int ret = arduino_read(arduino, &value, CMD_SENSORS, 1);
-        if (!ret) {
+        int err = arduino_read(arduino, &value, CMD_SENSORS, 1);
+        if (err == 0) {
                 *sensors = (unsigned char) value;
                 log_info("Arduino: Enabled sensors: 0x%02x", (int) value); 
         }
 
-        return ret;
+        return err;
 }
 
 static int arduino_set_sensors_(arduino_t* arduino, 
@@ -354,14 +353,18 @@ static int arduino_get_period_(arduino_t* arduino,
                                 unsigned char* period)
 {
         log_info("Arduino: Getting period"); 
-
         unsigned long value;
-        int ret = arduino_read(arduino, &value, CMD_PERIOD, 1);
-        if (ret) {
-                *period = (unsigned char) value;
-                log_info("Arduino: period: 0x%02x", (int) value); 
+        int err;
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+                err = arduino_read(arduino, &value, CMD_PERIOD, 1);
+                if (err == 0) {
+                        *period = (unsigned char) value;
+                        log_info("Arduino: period: 0x%02x", (int) value); 
+                        break;
+                }
         }
-        return ret;
+        return err;
 }
 
 static int arduino_set_period_(arduino_t* arduino, 
@@ -376,20 +379,20 @@ static int arduino_read_timestamp(arduino_t* arduino, time_t* timestamp)
 {
         log_debug("Arduino: Read timestamp"); 
         unsigned long v;
-        int ret = arduino_read(arduino, &v, CMD_READ, 4);
-        if (!ret) 
+        int err = arduino_read(arduino, &v, CMD_READ, 4);
+        if (err == 0) 
                 *timestamp = (time_t) v;
-        return ret;
+        return err;
 }
 
 static int arduino_read_float(arduino_t* arduino, float* value)
 {
         log_debug("Arduino: Read float value"); 
         unsigned long v;
-        int ret = arduino_read(arduino, &v, CMD_READ, 4);
-        if (!ret) 
+        int err = arduino_read(arduino, &v, CMD_READ, 4);
+        if (err == 0) 
                 *value = *((float*) &v);
-        return ret;
+        return err;
 }
 
 static int arduino_start_transfer(arduino_t* arduino)
