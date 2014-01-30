@@ -375,6 +375,7 @@ static int arduino_set_period_(arduino_t* arduino,
 
 static int arduino_read_timestamp(arduino_t* arduino, time_t* timestamp)
 {
+        log_info("Arduino: Read timestamp"); 
         unsigned long v;
         int ret = arduino_read(arduino, &v, CMD_READ, 4);
         if (!ret) 
@@ -384,6 +385,7 @@ static int arduino_read_timestamp(arduino_t* arduino, time_t* timestamp)
 
 static int arduino_read_float(arduino_t* arduino, float* value)
 {
+        log_info("Arduino: Read float value"); 
         unsigned long v;
         int ret = arduino_read(arduino, &v, CMD_READ, 4);
         if (!ret) 
