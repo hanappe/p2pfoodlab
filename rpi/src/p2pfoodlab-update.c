@@ -185,17 +185,17 @@ int main(int argc, char **argv)
         } else if (strcmp(_command, "update-clock") == 0) {
                 clock_update(box);
 
-        } else if (strcmp(_command, "set-clock") == 0) {
-                clock_set(box);
+        } else if (strcmp(_command, "set-time") == 0) {
+                //clock_set(box);
+                time_t m = time(NULL);
+                sensorbox_set_time(box, m); 
 
-        } else if (strcmp(_command, "millis") == 0) {
-                unsigned long m;
-                int err = sensorbox_millis(box, &m); 
-                if (err) {
-                        delete_sensorbox(box);
-                        exit(1);
+        } else if (strcmp(_command, "get-time") == 0) {
+                time_t m;
+                int err = sensorbox_get_time(box, &m); 
+                if (!err) {
+                        printf("%lu\n", (unsigned long) m);
                 }
-                printf("%lu\n", m);
                 
         } else {
                 usage(stderr, argc, argv);

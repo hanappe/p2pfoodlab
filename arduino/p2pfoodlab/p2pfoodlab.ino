@@ -1,57 +1,75 @@
 /* 
 
-    P2P Food Lab Sensorbox
+   P2P Food Lab Sensorbox
 
-    Copyright (C) 2013  Sony Computer Science Laboratory Paris
-    Author: Peter Hanappe
+   Copyright (C) 2013  Sony Computer Science Laboratory Paris
+   Author: Peter Hanappe
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along wit
-    h this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU General Public License
+   along wit
+   h this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 #include <Wire.h>
 #include <DHT22.h>
 
-#define RHT03_1_PIN 12
-#define RHT03_2_PIN 9
-#define SHT15_1_DATA_PIN 4
-#define SHT15_1_CLOCK_PIN 3
-#define LUMINOSITY_PIN A2
-#define RPi_PIN 2
-#define PUMP_PIN 10
+#define SLAVE_ADDRESS           0x04
 
-#define SLAVE_ADDRESS 0x04
+#define DS1374_REG_TOD0		0x00 /* Time of Day */
+#define DS1374_REG_TOD1		0x01
+#define DS1374_REG_TOD2		0x02
+#define DS1374_REG_TOD3		0x03
+#define DS1374_REG_WDALM0	0x04 /* Watchdog/Alarm */
+#define DS1374_REG_WDALM1	0x05
+#define DS1374_REG_WDALM2	0x06
+#define DS1374_REG_CR		0x07 /* Control */
+#define DS1374_REG_CR_AIE	0x01 /* Alarm Int. Enable */
+#define DS1374_REG_CR_WDALM	0x20 /* 1=Watchdog, 0=Alarm */
+#define DS1374_REG_CR_WACE	0x40 /* WD/Alarm counter enable */
+#define DS1374_REG_SR		0x08 /* Status */
+#define DS1374_REG_SR_OSF	0x80 /* Oscillator Stop Flag */
+#define DS1374_REG_SR_AF	0x01 /* Alarm Flag */
+#define DS1374_REG_TCR		0x09 /* Trickle Charge */
 
-#define CMD_MASK 0xf0
-#define ARG_MASK 0x0f
-#define CMD_SET_POWEROFF 0x00
-#define CMD_SET_SENSORS 0x10
-#define CMD_SUSPEND 0x20
-#define CMD_RESUME 0x30
-#define CMD_GET_SENSORS 0x40
-#define CMD_GET_MILLIS 0x50
-#define CMD_GET_FRAMES 0x60
-#define CMD_TRANSFER 0x70
-#define CMD_PUMP 0x80
-#define CMD_GET_POWEROFF 0x90
+#define CMD_POWEROFF            0x0a
+#define CMD_SENSORS             0x0b
+#define CMD_STATE               0x0c
+#define CMD_FRAMES              0x0d
+#define CMD_READ                0x0e
+#define CMD_PUMP                0x0f
+#define CMD_PERIOD              0x10
+#define CMD_START               0x11
 
-#define RHT03_1_FLAG (1 << 0)
-#define RHT03_2_FLAG (1 << 1)
-#define SHT15_1_FLAG (1 << 2)
-#define SHT15_2_FLAG (1 << 3)
-#define LUMINOSITY_FLAG (1 << 4)
-#define SOIL_FLAG (1 << 5)
+#define STATE_MEASURING         0
+#define STATE_RESETSTACK        1
+#define STATE_SUSPEND           2
+
+#define RHT03_1_PIN             12
+#define RHT03_2_PIN             9
+#define SHT15_1_DATA_PIN        4
+#define SHT15_1_CLOCK_PIN       3
+#define LUMINOSITY_PIN          A2
+#define RPi_PIN                 2
+#define PUMP_PIN                10
+
+#define RHT03_1_FLAG            (1 << 0)
+#define RHT03_2_FLAG            (1 << 1)
+#define SHT15_1_FLAG            (1 << 2)
+#define SHT15_2_FLAG            (1 << 3)
+#define LUMINOSITY_FLAG         (1 << 4)
+#define SOIL_FLAG               (1 << 5)
+
+#define MAX_SLEEP               10000
 
 #define DEBUG 1
 
@@ -63,40 +81,47 @@
 #define DebugPrintValue(_s,_w)
 #endif
 
-/* The number of minutes before the Atmel timer overflows and wraps
-   around. */
-#define MINUTE_OVERFLOW 71582
-
 /* The update period and poweroff/wakeup times are measured in
    minutes. */
-unsigned char command;
-unsigned char do_update = 1;
-unsigned char send_byte = 0;
-unsigned char enabled_sensors = RHT03_1_FLAG;
-unsigned short send_index = 0;
-unsigned short period = 1; 
-unsigned long measure_at = 0;
-unsigned long poweroff_at = 0;
-unsigned long wakeup_at = 0;
-unsigned long curtime = 0;
+unsigned char sensors = RHT03_1_FLAG;
+unsigned char state = STATE_MEASURING; 
+unsigned char period = 1; 
+unsigned char measure = 1;
+unsigned short read_index = 0;
+unsigned short poweroff = 0;
+unsigned short wakeup = 0;
+unsigned long last_minute = 0;
 unsigned long suspend_start = 0;
-unsigned long cmd_at = 0;
-unsigned long poweroff_minutes = 0;
-
 unsigned char new_sensors = RHT03_1_FLAG;
-unsigned short new_period = 1; 
+unsigned char new_period = 1; 
+unsigned char new_state = STATE_MEASURING; 
+unsigned char new_pump = 0; 
+unsigned short new_wakeup = 0;
+unsigned char i2c_recv_buf[5];
+unsigned char i2c_recv_len = 0;
+unsigned char i2c_send_buf[4];
+unsigned char i2c_send_len = 0;
 
-
-/* The timestamps and sensor data is pushed onto the stack until the
-   RPi downloads it. */
-#define STACK_SIZE 256
-unsigned short frames = 0;
-unsigned short sp = 0;
-float stack[STACK_SIZE];
-unsigned char stack_reset = 0;
+#if DEBUG
+unsigned char i2c_recv = 0;
+unsigned char i2c_send = 0;
+#endif
 
 DHT22 rht03_1(RHT03_1_PIN);
 DHT22 rht03_2(RHT03_2_PIN);
+
+/* The timestamps and sensor data are pushed onto the stack until the
+   RPi downloads it. */
+#define STACK_SIZE 128
+unsigned short frames = 0;
+unsigned short sp = 0;
+
+typedef union _stack_entry_t {
+        unsigned long i;
+        float f;
+} stack_entry_t;
+
+stack_entry_t stack[STACK_SIZE];
 
 void stack_clear()
 {
@@ -104,170 +129,183 @@ void stack_clear()
         frames = 0;
 }
 
-void stack_push(float value)
+void stack_pushf(float value)
 {
         if (sp < STACK_SIZE)
-                stack[sp++] = value;
+                stack[sp++].f = value;
+}
+
+void stack_pushi(unsigned long value)
+{
+        if (sp < STACK_SIZE)
+                stack[sp++].i = value;
+}
+
+unsigned long getseconds()
+{
+        static unsigned long _seconds = 0;
+        unsigned long s = millis() / 1000;
+
+        while (s < _seconds)
+                s += 4294967; // 2^32 milliseconds
+        _seconds = s;
+        return _seconds;
+}
+
+unsigned long getminutes()
+{
+        return getseconds() / 60;
+}
+
+static unsigned long _start = 0;
+
+unsigned long time(unsigned long t)
+{
+        unsigned long s = getseconds();
+        if (t)
+                _start = t - s;
+        return _start + s;
+}
+
+unsigned char hastime()
+{
+        return _start != 0;
 }
 
 void receive_data(int byteCount)
 {
-        int v;
-        unsigned char c[8];
+#if DEBUG
+        i2c_recv = 1;
+#endif
 
+        i2c_recv_len = 0;
+        
         for (int i = 0; i < byteCount; i++) {
-                v = Wire.read();
-                if (i < 8) c[i] = v & 0xff;
+                int v = Wire.read();
+                if (i < sizeof(i2c_recv_buf)) 
+                        i2c_recv_buf[i2c_recv_len++] = v & 0xff;
                 //Serial.println(v);
         }
 
-        command = c[0];
-        send_byte = 0;
+        unsigned char command = i2c_recv_buf[0];
 
-        /* DebugPrint("RX"); */
+        if ((command == DS1374_REG_TOD0) 
+            && (i2c_recv_len == 5)) {
+                unsigned long t;
+                t = i2c_recv_buf[1];
+                t = (t << 8) | i2c_recv_buf[2];
+                t = (t << 8) | i2c_recv_buf[3];
+                t = (t << 8) | i2c_recv_buf[4];
+                time(t);
 
+        } else if ((command == CMD_POWEROFF) 
+                   && (i2c_recv_len == 3)) {
+                new_wakeup = (i2c_recv_buf[1] << 8) | i2c_recv_buf[2];
 
-        if ((command & CMD_MASK) == CMD_SET_SENSORS) {
-                /* DebugPrint("RX: Set sensors"); */
-                if (byteCount >= 3) {
-                        new_sensors = c[1];
-                        new_period = c[2];
-                        /*
-                        unsigned char old = enabled_sensors;
-                        enabled_sensors = c[1];
-                        period = c[2];
-                        if (old != enabled_sensors) {
-                                stack_reset = 1;
-                        }
-                        */
-                }
+        } else if ((command == CMD_SENSORS) 
+                   && (i2c_recv_len == 2)) {
+                new_sensors = i2c_recv_buf[1];
 
-        } else if ((command & CMD_MASK) == CMD_GET_MILLIS) {
-                /* DebugPrint("RX: Get millis"); */
-                curtime = millis();
+        } else if ((command == CMD_PERIOD) 
+                   && (i2c_recv_len == 2)) {
+                new_period = i2c_recv_buf[1];
 
-        } else if ((command & CMD_MASK) == CMD_SUSPEND) {
-                /* DebugPrint("RX: Suspend"); */
-                do_update = 0; // Stop the main loop
-                suspend_start = millis();
+        } else if ((command == CMD_STATE) 
+                   && (i2c_recv_len == 2)) {
+                new_state = i2c_recv_buf[1];
 
-        } else if ((command & CMD_MASK) == CMD_TRANSFER) {
-                /* DebugPrint("RX: Transfer"); */
-                send_index = 0;
+        } else if (command == CMD_FRAMES) {
+                // Do nothing here
 
-        } else if ((command & CMD_MASK) == CMD_RESUME) {
-                /* DebugPrint("RX: Resume"); */
-                unsigned char reset = command & 0x0f;
-                if (reset) stack_reset = 2;
-                do_update = 1; // Start the main loop
+        } else if (command == CMD_START) {
+                read_index = 0;
 
-        } else if ((command & CMD_MASK) == CMD_PUMP) {
-                /* DebugPrint("RX: Pump"); */
-                if ((command & ARG_MASK) == 0)
-                        digitalWrite(PUMP_PIN, LOW);
-                else
-                        digitalWrite(PUMP_PIN, HIGH);
-                send_index = 0;
+        } else if (command == CMD_READ) {
+                // Do nothing here
 
-        } else if ((command & CMD_MASK) == CMD_SET_POWEROFF) {
-                /* DebugPrint("RX: Set poweroff"); */
-                if (byteCount >= 3) {
-                        poweroff_minutes = (c[1] << 8) | c[2];
-                }
-
-        } else if ((command & CMD_MASK) == CMD_GET_POWEROFF) {
-                /* DebugPrint("RX: Get poweroff"); */
-                
-                cmd_at = millis() / 60000; // in minutes
-
-        } else if ((command & CMD_MASK) == CMD_GET_SENSORS) {
-                /* DebugPrint("RX: Get sensors"); */
+        } else if (command == CMD_PUMP) {
+                new_pump = i2c_recv_buf[1];
         }
 }
 
 void send_data()
 {
-        if ((command & CMD_MASK) == CMD_GET_MILLIS) {
-                unsigned char c;
-                switch (send_byte) {
-                case 0: c = (curtime & 0xff000000) >> 24; break;
-                case 1: c = (curtime & 0x00ff0000) >> 16; break;
-                case 2: c = (curtime & 0x0000ff00) >> 8; break;
-                case 3: c = (curtime & 0x000000ff); break;
-                default: c = 0;
-                }                
-                Wire.write(c);
-                send_byte++;
-                //DebugPrint("millis[]");
+        unsigned char command = i2c_recv_buf[0];
 
-        } else if ((command & CMD_MASK) == CMD_GET_FRAMES) {
-                unsigned char c;
-                switch (send_byte) {
-                case 0: c = (frames & 0xff00) >> 8; break;
-                case 1: c = (frames & 0x00ff); break;
-                default: c = 0;
-                }                
-                Wire.write(c);
-                send_byte++;
+        if (command == DS1374_REG_TOD0) {
+                unsigned long t = time(0);
+                i2c_send_len = 4;
+                i2c_send_buf[0] = (t & 0xff000000) >> 24;
+                i2c_send_buf[1] = (t & 0x00ff0000) >> 16;
+                i2c_send_buf[2] = (t & 0x0000ff00) >> 8;
+                i2c_send_buf[3] = (t & 0x000000ff);
 
-        } else if ((command & CMD_MASK) == CMD_GET_SENSORS) {
-                unsigned char c;
-                switch (send_byte) {
-                case 0: c = enabled_sensors; break;
-                case 1: c = period; break;
-                default: c = 0;
-                }
-                Wire.write(c);
-                send_byte++;
-                
-                /* Serial.print("Get_sensors: enabled_sensors "); */
-                /* Serial.println(enabled_sensors); */
-                /* Serial.print("Get_sensors: period "); */
-                /* Serial.println(period); */
+        } else if ((command == DS1374_REG_TOD1)
+                   || (command == DS1374_REG_TOD2)
+                   || (command == DS1374_REG_TOD3)) {
+                i2c_send_len = 4;
+                i2c_send_buf[0] = 0;
+                i2c_send_buf[1] = 0;
+                i2c_send_buf[2] = 0;
+                i2c_send_buf[3] = 0;
 
-        } else if ((command & CMD_MASK) == CMD_TRANSFER) {
+        } else if ((command == DS1374_REG_WDALM0)
+                   || (command == DS1374_REG_WDALM1)
+                   || (command == DS1374_REG_WDALM2)) {
+                i2c_send_len = 3;
+                i2c_send_buf[0] = 0;
+                i2c_send_buf[1] = 0;
+                i2c_send_buf[2] = 0;
+
+        } else if ((command == DS1374_REG_CR)
+                   || (command == DS1374_REG_SR)) {
+                i2c_send_len = 1;
+                i2c_send_buf[0] = 0;
+
+        } else if (command == CMD_POWEROFF) {
+                i2c_send_len = 2;
+                i2c_send_buf[0] = (wakeup & 0xff00) >> 8;
+                i2c_send_buf[1] = (wakeup & 0x00ff);
+
+        } else if (command == CMD_SENSORS) {
+                i2c_send_len = 1;
+                i2c_send_buf[0] = sensors;
+
+        } else if (command == CMD_PERIOD) {
+                i2c_send_len = 1;
+                i2c_send_buf[0] = period;
+
+        } else if (command == CMD_STATE) {
+                i2c_send_len = 1;
+                i2c_send_buf[0] = state;
+
+        } else if (command == CMD_FRAMES) {
+                i2c_send_len = 2;
+                i2c_send_buf[0] = (frames & 0xff00) >> 8; 
+                i2c_send_buf[1] = (frames & 0x00ff);
+
+        } else if (command == CMD_START) {
+                /* nothing to do here */
+
+        } else if (command == CMD_READ) {
                 unsigned long* data = (unsigned long*) &stack[0];
-                unsigned long v = data[send_index];
-                unsigned char c;
-  
-                switch (send_byte) {
-                case 0: c = (v & 0xff000000) >> 24; break;
-                case 1: c = (v & 0x00ff0000) >> 16; break;
-                case 2: c = (v & 0x0000ff00) >> 8; break;
-                case 3: c = (v & 0x000000fff); break;
-                default: c = 0;
-                }
-  
-                Wire.write(c);
-                //Serial.println("Sent 1 byte");
-                
-                send_byte++;
-                if (send_byte == 4) {
-                        send_byte = 0;
-                        send_index++;
-                }
-                if (send_index >= sp) {
-                        send_index = 0;
-                }
-        } else if ((command & CMD_MASK) == CMD_GET_POWEROFF) {
-                unsigned char c;
-                // The values of poweroff_at and wakeup_at are return
-                // in minutes relative to the current time.
-                switch (send_byte) {
-                case 0: c = ((poweroff_at - cmd_at) & 0xff000000) >> 24; break;
-                case 1: c = ((poweroff_at - cmd_at) & 0x00ff0000) >> 16; break;
-                case 2: c = ((poweroff_at - cmd_at) & 0x0000ff00) >> 8; break;
-                case 3: c = ((poweroff_at - cmd_at) & 0x000000ff); break;
-                case 4: c = ((wakeup_at - cmd_at) & 0xff000000) >> 24; break;
-                case 5: c = ((wakeup_at - cmd_at) & 0x00ff0000) >> 16; break;
-                case 6: c = ((wakeup_at - cmd_at) & 0x0000ff00) >> 8; break;
-                case 7: c = ((wakeup_at - cmd_at) & 0x000000ff); break;
-                default: c = 0;
-                }                
-                Wire.write(c);
-                send_byte++;
-                //Serial.println("millis[]");
+                unsigned long v = data[read_index];
+                i2c_send_len = 4;
+                i2c_send_buf[0] = (v & 0xff000000) >> 24; 
+                i2c_send_buf[1] = (v & 0x00ff0000) >> 16; 
+                i2c_send_buf[2] = (v & 0x0000ff00) >> 8; 
+                i2c_send_buf[3] = (v & 0x000000fff); 
+                if (++read_index >= sp)
+                        read_index = sp - 1;
+
+        } else if (command == CMD_PUMP) {
         }
+        
+        Wire.write(i2c_send_buf, i2c_send_len);
+
+#if DEBUG
+        i2c_send = 1;
+#endif
 }
 
 void setup() 
@@ -275,7 +313,7 @@ void setup()
         Serial.begin(9600);
 
         pinMode(13, OUTPUT);
-        digitalWrite(13, HIGH);
+        digitalWrite(13, LOW);
 
         // initialize i2c as slave
         Wire.begin(SLAVE_ADDRESS);
@@ -286,11 +324,18 @@ void setup()
 
         // By default, start-up the RPi. The RPi will
         // tell the Arduino when to shut it down again.
+        // However, first make sure the RPi was completely
+        // shut down (pull down the pin) so it boots up correctly.
         pinMode(RPi_PIN, OUTPUT);
+
+        digitalWrite(RPi_PIN, LOW);
+        delay(1000);  
         digitalWrite(RPi_PIN, HIGH);
 
         pinMode(PUMP_PIN, OUTPUT);
         digitalWrite(PUMP_PIN, LOW);
+
+        last_minute = getminutes();
 
         DebugPrint("Ready.");  
 }
@@ -320,46 +365,49 @@ int get_rht03(DHT22* sensor, float* t, float* h)
         return -1;
 }
 
-void measure_sensors(float start)
+void measure_sensors()
 {  
         DebugPrint("  measure_sensors");
 
-        stack_push(start);
+        if (!hastime()) {
+                DebugPrint("  *TIME NOT SET*");
+                return;
+        }
 
-        if (enabled_sensors & LUMINOSITY_FLAG) {
+        stack_pushi(time(0));
+
+        if (sensors & LUMINOSITY_FLAG) {
                 float luminosity = get_luminosity(); 
-                stack_push(luminosity);
+                stack_pushf(luminosity);
                 DebugPrintValue("  lum ", luminosity);
         }
-        if (enabled_sensors & RHT03_1_FLAG) {
+        if (sensors & RHT03_1_FLAG) {
                 float t, rh; 
                 if (get_rht03(&rht03_1, &t, &rh) == 0) {
-                        stack_push(t);
-                        stack_push(rh);
+                        stack_pushf(t);
+                        stack_pushf(rh);
                         DebugPrintValue("  t ", t);
                         DebugPrintValue("  rh ", rh);
                 } else {
-                        stack_push(-300.0f);
-                        stack_push(-1.0f);
+                        stack_pushf(-300.0f);
+                        stack_pushf(-1.0f);
                 }
         }
-        if (enabled_sensors & RHT03_2_FLAG) {
+        if (sensors & RHT03_2_FLAG) {
                 float t, rh; 
                 if (get_rht03(&rht03_2, &t, &rh) == 0) {
-                        stack_push(t);
-                        stack_push(rh);
+                        stack_pushf(t);
+                        stack_pushf(rh);
                         DebugPrintValue("  tx ", t);
                         DebugPrintValue("  rhx ", rh);
                 } else {
-                        stack_push(-300.0f);
-                        stack_push(-1.0f);
+                        stack_pushf(-300.0f);
+                        stack_pushf(-1.0f);
                 }
         }
 
         frames++;
 }
-
-#define TIME_ELAPSED(__cur,__alarm)  ((__cur >= __alarm) && (__cur < __alarm + 3))
 
 void blink(int count, int msec)
 {  
@@ -370,108 +418,136 @@ void blink(int count, int msec)
                 digitalWrite(13, LOW);
                 delay(100); 
         }                
-        delay(1000); 
 }
 
-void loop()
+void handle_updates()
 {  
-        unsigned long now = millis();
-        unsigned long minutes = now / 60000;
-
-        DebugPrint("--begin loop XX--"); 
-
-        blink(1, 100);
-
-        if (enabled_sensors != new_sensors) {
-                DebugPrintValue("  new sensor settings: ", new_sensors);
-                enabled_sensors = new_sensors;
-                stack_reset = 1;
+#if DEBUG
+        if (i2c_recv) {
+                for (int i = 0; i < i2c_recv_len; i++)
+                        DebugPrintValue("  I2C receive buffer: ", i2c_recv_buf[i]);
+                i2c_recv = 0;
         }
-
-        if (new_period != period) {
+        if (i2c_send) {
+                for (int i = 0; i < i2c_send_len; i++)
+                        DebugPrintValue("  I2C send buffer: ", i2c_send_buf[i]);
+                i2c_send = 0;
+        }
+#endif
+        
+        if (sensors != new_sensors) {
+                DebugPrintValue("  new sensor settings: ", new_sensors);
+                sensors = new_sensors;
+                stack_clear();
+        }
+        
+        if (period != new_period) {
                 DebugPrintValue("  new period: ", new_period);
                 period = new_period;
         }
 
-        /* Handle a stack reset request after a data transfer or a
-           change in the sensor configuration. */
-        if (stack_reset != 0) {
-                DebugPrintValue("  stack reset: ", stack_reset); 
-                stack_clear();
-                stack_reset = 0;
+        if (state != new_state) {
+                DebugPrintValue("  new state settings: ", new_state);
+                state = new_state;
+                if (state == STATE_SUSPEND) {
+                        suspend_start = getminutes();
+                }
         }
 
-        /* Update the poweroff and wakeup values, if necessary. */
-        if (poweroff_minutes > 0) {
-                DebugPrintValue("  poweroff: delta=", poweroff_minutes); 
-                unsigned long now = millis() / 60000; // in minutes
-                if (poweroff_minutes <  2) poweroff_minutes = 2;
-                poweroff_at = now + 1;
-                wakeup_at = now + poweroff_minutes;
-                if (poweroff_at == 0) poweroff_at = 1;
-                if (poweroff_at >= MINUTE_OVERFLOW) poweroff_at -= MINUTE_OVERFLOW;
-                if (wakeup_at == 0) wakeup_at = 1;
-                if (wakeup_at >= MINUTE_OVERFLOW) wakeup_at -= MINUTE_OVERFLOW;
-                poweroff_minutes = 0;
+        if (new_wakeup != wakeup) {
+                DebugPrintValue("  poweroff: wakeup at ", new_wakeup); 
+                poweroff = 2;
+                wakeup = new_wakeup;
+                if (wakeup < 3) 
+                        wakeup = 3;
+                new_wakeup = 0;
         }
+}
 
+void loop()
+{  
+        unsigned long seconds = getseconds();
+        unsigned long minutes = seconds / 60;
+        unsigned long sleep = 0;
 
+        handle_updates();
 
+        DebugPrint("--begin loop--"); 
+        DebugPrintValue("  time         ", time(0)); 
+        DebugPrintValue("  seconds      ", seconds); 
         DebugPrintValue("  minutes      ", minutes); 
         DebugPrintValue("  stack size   ", sp); 
         DebugPrintValue("  stack frames ", frames); 
-        DebugPrintValue("  measure_at   ", measure_at);
+        DebugPrintValue("  measure      ", measure);
         DebugPrintValue("  period       ", period);
-        DebugPrintValue("  poweroff_at  ", poweroff_at);
-        DebugPrintValue("  wakeup_at    ", wakeup_at);
+        DebugPrintValue("  poweroff     ", poweroff);
+        DebugPrintValue("  wakeup       ", wakeup);
+        DebugPrintValue("  state        ", state);
 
-        /* Don't do anything if a data transfer is active. */
-        if (!do_update) {
+        if (state == STATE_SUSPEND) {
                 
-                DebugPrint("  TRANSFER ACTIVE"); 
-
                 /* Do short sleeps until the transfer is done. */
-                blink(2, 200);
+                sleep = 100;
 
                 /* In case the data download failed and the arduino
                    was not resumed correctly, start measuring again
                    after one minute. */
-                if (now - suspend_start > 60000) 
-                        do_update = 1;
+                if (minutes - suspend_start > 3) {
+                        DebugPrint("  TRANSFER TIMEOUT"); 
+                        state = STATE_MEASURING;
+                }
 
-                DebugPrint("--end loop--"); 
-                DebugPrint(""); 
-                return;
-        }
+        } else if (state == STATE_RESETSTACK) {
+                
+                /* Handle a stack reset request after a data transfer
+                   or a change in the sensor configuration. */
+                DebugPrint("  stack reset"); 
+                stack_clear();
+                state = STATE_MEASURING;
 
-        blink(3, 100);
+        } else if (state == STATE_MEASURING) {
 
-        if (TIME_ELAPSED(minutes, measure_at)) {
-                digitalWrite(13, HIGH);
-                measure_sensors((float) now / 1000.0f);
-                measure_at += period;
-                if (measure_at >= MINUTE_OVERFLOW) 
-                        measure_at -= MINUTE_OVERFLOW;
-                digitalWrite(13, LOW);
-        }
-        if ((poweroff_at != 0) && TIME_ELAPSED(minutes, poweroff_at)) {
-                digitalWrite(RPi_PIN, LOW);
-                DebugPrint("  POWEROFF"); 
-                poweroff_at = 0;
-        }
-        if ((wakeup_at != 0) && TIME_ELAPSED(minutes, wakeup_at)) {
-                digitalWrite(RPi_PIN, HIGH);
-                DebugPrint("  WAKEUP"); 
-                wakeup_at = 0;
+                /* Measure (and other stuff) */
+
+                blink(1, 100);
+
+                while (last_minute < minutes) {
+
+                        if (measure > 0) {
+                                measure--;
+                                if (measure == 0) {
+                                        measure_sensors();
+                                        measure = period;
+                                }
+                        }
+                        if (poweroff > 0) {
+                                poweroff--;
+                                if (poweroff == 0) {
+                                        digitalWrite(RPi_PIN, LOW);
+                                        DebugPrint("  POWEROFF"); 
+                                }
+                        }
+                        if (wakeup > 0) {
+                                wakeup--;
+                                if (wakeup == 0) {
+                                        digitalWrite(RPi_PIN, HIGH);
+                                        DebugPrint("  WAKEUP"); 
+                                }
+                        }
+
+                        last_minute++;
+                }
+
+                /* Subtract the time it took to take the measurements
+                   from a half minute sleep. */
+                sleep = MAX_SLEEP - 1000 * (getseconds() - seconds); 
+                if (sleep > MAX_SLEEP)
+                        sleep = 0;
         }
 
         DebugPrint("--end loop--"); 
         DebugPrint(""); 
 
-        /* Subtract the time it took to take the measurements
-           from the half minute sleep. */
-        unsigned long sleep = 30000 - (millis() - now); 
-        if (sleep <= 30000)
-                delay(sleep); 
+        delay(sleep); 
 }
 
