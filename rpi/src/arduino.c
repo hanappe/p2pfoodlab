@@ -412,20 +412,22 @@ int arduino_read_data(arduino_t* arduino,
 
         err = arduino_connect(arduino);
         if (err != 0) 
-                return -1;
+                goto error_recovery;
 
         err = arduino_set_state_(arduino, STATE_SUSPEND);
-        if (err != 0) {
-                arduino_disconnect(arduino);
-                return -1;
-        }
+        if (err != 0) 
+                goto error_recovery;
         
         err = arduino_get_frames_(arduino, &nframes);
-        if (err != 0) {
-                arduino_disconnect(arduino);
-                return -1;
-        }
+        if (err != 0)
+                goto error_recovery;
+
         log_info("Arduino: Found %d measurement frames", nframes); 
+
+        if (nframes == 0) {
+                err = arduino_set_state_(arduino, STATE_MEASURING);
+                goto clean_exit;
+        }
 
         for (int attempt = 0; attempt < 5; attempt++) {
 
@@ -463,6 +465,9 @@ int arduino_read_data(arduino_t* arduino,
                 if (err == 0)
                         break;
         }
+
+ clean_exit:
+ error_recovery:
 
         if (err == 0) {
                 log_info("Arduino: Download successful"); 
