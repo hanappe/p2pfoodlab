@@ -129,16 +129,24 @@ void stack_clear()
         frames = 0;
 }
 
-void stack_pushf(float value)
+int stack_pushf(float value)
 {
-        if (sp < STACK_SIZE)
+        if (sp < STACK_SIZE) {
                 stack[sp++].f = value;
+                return 0;
+        }
+        DebugPrint("  STACK FULL");
+        return -1;
 }
 
-void stack_pushi(unsigned long value)
+int stack_pushi(unsigned long value)
 {
-        if (sp < STACK_SIZE)
+        if (sp < STACK_SIZE) {
                 stack[sp++].i = value;
+                return 0;
+        }
+        DebugPrint("  STACK FULL");
+        return 1;
 }
 
 unsigned long getseconds()
@@ -374,35 +382,45 @@ void measure_sensors()
                 return;
         }
 
-        stack_pushi(time(0));
+        if (!stack_pushi(time(0)))
+                return;
 
         if (sensors & LUMINOSITY_FLAG) {
                 float luminosity = get_luminosity(); 
-                stack_pushf(luminosity);
+                if (!stack_pushf(luminosity))
+                        return;
                 DebugPrintValue("  lum ", luminosity);
         }
         if (sensors & RHT03_1_FLAG) {
                 float t, rh; 
                 if (get_rht03(&rht03_1, &t, &rh) == 0) {
-                        stack_pushf(t);
-                        stack_pushf(rh);
+                        if (!stack_pushf(t))
+                                return;
+                        if (!stack_pushf(rh))
+                                return;
                         DebugPrintValue("  t ", t);
                         DebugPrintValue("  rh ", rh);
                 } else {
-                        stack_pushf(-300.0f);
-                        stack_pushf(-1.0f);
+                        if (!stack_pushf(-300.0f))
+                                return;
+                        if (!stack_pushf(-1.0f))
+                                return;
                 }
         }
         if (sensors & RHT03_2_FLAG) {
                 float t, rh; 
                 if (get_rht03(&rht03_2, &t, &rh) == 0) {
-                        stack_pushf(t);
-                        stack_pushf(rh);
+                        if (!stack_pushf(t))
+                                return;
+                        if (!stack_pushf(rh))
+                                return;
                         DebugPrintValue("  tx ", t);
                         DebugPrintValue("  rhx ", rh);
                 } else {
-                        stack_pushf(-300.0f);
-                        stack_pushf(-1.0f);
+                        if (!stack_pushf(-300.0f))
+                                return;
+                        if (!stack_pushf(-1.0f))
+                                return;
                 }
         }
 

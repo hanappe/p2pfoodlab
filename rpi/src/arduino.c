@@ -223,8 +223,8 @@ static int arduino_write(arduino_t* arduino,
 
 static int arduino_set_time_(arduino_t* arduino, time_t time)
 {
+        log_info("Arduino: Setting time to %ul", (unsigned int) time); 
 	unsigned long itime;
-
         itime = (unsigned long) time;
 	return arduino_write(arduino, itime, DS1374_REG_TOD0, 4);
 }
