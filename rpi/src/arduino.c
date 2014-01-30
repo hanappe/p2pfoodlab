@@ -198,6 +198,7 @@ static int arduino_write(arduino_t* arduino,
 {
 	unsigned char buf[4];
 	int i;
+        int ret;
 
 	if (nbytes > 4) {
 		return -1;
@@ -208,7 +209,12 @@ static int arduino_write(arduino_t* arduino,
 		value >>= 8;
 	}
 
-	return i2c_smbus_write_i2c_block_data(arduino->fd, reg, nbytes, buf);
+	ret = i2c_smbus_write_i2c_block_data(arduino->fd, reg, nbytes, buf);
+        if (ret != 0) {
+                log_err("Arduino: failed to write the data");
+        }
+
+        return ret;
 }
 
 static int arduino_set_time_(arduino_t* arduino, time_t time)
