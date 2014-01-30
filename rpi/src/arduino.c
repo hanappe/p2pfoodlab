@@ -189,6 +189,8 @@ static int arduino_read(arduino_t* arduino, unsigned long *value,
 	for (i = 0; i < nbytes; i++)
 		*value = (*value << 8) | buf[i];
 
+        usleep(10000);
+
 	return 0;
 }
 
@@ -213,6 +215,8 @@ static int arduino_write(arduino_t* arduino,
         if (ret != 0) {
                 log_err("Arduino: failed to write the data");
         }
+
+        usleep(10000);
 
         return ret;
 }
