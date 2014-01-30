@@ -30,12 +30,12 @@ typedef struct _sensor_t {
 } sensor_t;
 
 sensor_t sensorlist[] = {
-        { "rht03_1", RHT03_1_FLAG },
-        { "rht03_2", RHT03_2_FLAG },
-        { "sht15_1", SHT15_1_FLAG },
-        { "sht15_2", SHT15_2_FLAG },
-        { "light", LUMINOSITY_FLAG },
-        { "soil", SOIL_FLAG },
+        { "rht03_1", SENSOR_TRH },
+        { "rht03_2", SENSOR_TRHX },
+        { "trh", SENSOR_TRH },
+        { "trhx", SENSOR_TRHX },
+        { "light", SENSOR_LUM },
+        { "soil", SENSOR_SOIL },
         { NULL, 0 } };
 
 json_object_t config_load(const char* file)
