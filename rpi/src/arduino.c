@@ -243,7 +243,7 @@ static int arduino_get_time_(arduino_t* arduino, time_t *time)
 
 static int arduino_set_poweroff_(arduino_t* arduino, int minutes)
 {
-        log_info("Arduino: Request poweroff, wakeup in %d minutes", minutes); 
+        log_info("Arduino: Request poweroff, wake up in %d minutes", minutes); 
 	unsigned long value;
 
         value = (unsigned long) minutes;
@@ -290,7 +290,7 @@ static int arduino_get_state_(arduino_t* arduino, int* state)
 
 static int arduino_get_frames_(arduino_t* arduino, int* frames)
 {
-        log_info("Arduino: Getting the number of data frames on the Arduino"); 
+        log_debug("Arduino: Getting the number of data frames on the Arduino"); 
 	unsigned long value;
 	int ret;
 
@@ -331,8 +331,7 @@ static int arduino_pump_(arduino_t* arduino, int seconds)
 static int arduino_get_sensors_(arduino_t* arduino, 
                                 unsigned char* sensors)
 {
-        log_info("Arduino: Getting enabled sensors"); 
-
+        log_debug("Arduino: Getting enabled sensors"); 
         unsigned long value;
         int ret = arduino_read(arduino, &value, CMD_SENSORS, 1);
         if (!ret) {
@@ -375,7 +374,7 @@ static int arduino_set_period_(arduino_t* arduino,
 
 static int arduino_read_timestamp(arduino_t* arduino, time_t* timestamp)
 {
-        log_info("Arduino: Read timestamp"); 
+        log_debug("Arduino: Read timestamp"); 
         unsigned long v;
         int ret = arduino_read(arduino, &v, CMD_READ, 4);
         if (!ret) 
@@ -385,7 +384,7 @@ static int arduino_read_timestamp(arduino_t* arduino, time_t* timestamp)
 
 static int arduino_read_float(arduino_t* arduino, float* value)
 {
-        log_info("Arduino: Read float value"); 
+        log_debug("Arduino: Read float value"); 
         unsigned long v;
         int ret = arduino_read(arduino, &v, CMD_READ, 4);
         if (!ret) 
