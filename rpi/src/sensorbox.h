@@ -41,6 +41,7 @@ void sensorbox_upload_data(sensorbox_t* box);
 void sensorbox_upload_photos(sensorbox_t* box);
 void sensorbox_poweroff_maybe(sensorbox_t* box);
 int sensorbox_check_sensors(sensorbox_t* box);
+int sensorbox_print_events(sensorbox_t* box);
 
 /* If filename is NULL, the default output file will be
    used. If filename equals '-', the data will be printed to

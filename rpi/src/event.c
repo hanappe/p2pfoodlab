@@ -37,12 +37,20 @@ event_t* new_event(int minute, event_type_t type)
         return e;
 }
 
-void event_print(event_t* e)
+void event_log(event_t* e)
 {
         log_debug("Event: %02d:%02d %s", 
                   e->minute / 60, 
                   e->minute % 60, 
                   (e->type == UPDATE_SENSORS)? "sensors" : "camera");
+}
+
+void event_print(event_t* e, FILE* fp)
+{
+        fprintf(fp, "Event: %02d:%02d %s", 
+                e->minute / 60, 
+                e->minute % 60, 
+                (e->type == UPDATE_SENSORS)? "sensors" : "camera");
 }
 
 event_t* eventlist_insert(event_t* events, event_t* e) 
@@ -68,11 +76,20 @@ event_t* eventlist_insert(event_t* events, event_t* e)
         return events;
 }
 
-void eventlist_print(event_t* events) 
+void eventlist_log(event_t* events) 
 {
         event_t* e = events;
         while (e) {
-                event_print(e);
+                event_log(e);
+                e = e->next;
+        }
+}
+
+void eventlist_print(event_t* events, FILE* fp) 
+{
+        event_t* e = events;
+        while (e) {
+                event_print(e, fp);
                 e = e->next;
         }
 }

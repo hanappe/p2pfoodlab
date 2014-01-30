@@ -57,6 +57,7 @@ static void usage(FILE* fp, int argc, char** argv)
                  "-d | --d             Directory (default: /var/p2pfoodlab))\n"
                  "-l | --log           Log file ('-' for stderr, default: /var/p2pfoodlab/log.txt)\n"
                  "-t | --test          Test run\n"
+                 "-o | --output-file   Where to write the sensors data to ['-' for console]\n"
                  "-D | --debug         Print debug message\n"
                  "Commands:\n"
                  "  update             Parse the config, update sensors and/or camera if necessary,\n"
@@ -65,7 +66,9 @@ static void usage(FILE* fp, int argc, char** argv)
                  "  camera             Grab a photo\n"
                  "  upload-data        Upload the datapoints\n"
                  "  upload-photos      Upload the photos\n"
-                 "  millis             Get the current time on the arduino\n"
+                 "  get-time           Get the current time on the arduino\n"
+                 "  set-time           Set the time on the arduino\n"
+                 "  list-events        Set the time on the arduino\n"
                  "",
                  argv[0]);
 }
@@ -176,6 +179,9 @@ int main(int argc, char **argv)
                 clock_update(box);
 
         } else if (strcmp(_command, "upload-data") == 0) {
+                sensorbox_upload_data(box);
+
+        } else if (strcmp(_command, "list-events") == 0) {
                 sensorbox_upload_data(box);
 
         } else if (strcmp(_command, "upload-photos") == 0) {

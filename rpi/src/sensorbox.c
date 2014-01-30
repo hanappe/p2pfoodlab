@@ -93,8 +93,6 @@ sensorbox_t* new_sensorbox(const char* dir)
                 return NULL;
         }
 
-        eventlist_print(box->events); 
-
         return box;
 }
 
@@ -825,5 +823,12 @@ int sensorbox_set_time(sensorbox_t* box, time_t m)
 const char* sensorbox_getdir(sensorbox_t* box)
 {
         return box->home_dir;
+}
+
+
+int sensorbox_print_events(sensorbox_t* box)
+{
+        eventlist_print(box->events, stdout); 
+        return 0;
 }
 

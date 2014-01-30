@@ -23,6 +23,8 @@
 #ifndef _EVENT_H_
 #define _EVENT_H_
 
+#include <stdio.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,9 +43,11 @@ struct _event_t {
 };
 
 event_t* new_event(int minute, event_type_t type);
-void event_print(event_t* e);
+void event_log(event_t* e);
+void event_print(event_t* e, FILE* fp);
 event_t* eventlist_insert(event_t* events, event_t* e);
-void eventlist_print(event_t* events);
+void eventlist_log(event_t* events);
+void eventlist_print(event_t* events, FILE* fp);
 void eventlist_delete_all(event_t* events);
 event_t* eventlist_get_next(event_t* events, int minute);
 
