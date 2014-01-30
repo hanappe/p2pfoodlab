@@ -104,8 +104,6 @@ struct _arduino_t {
         int fd;
 };
 
-static int arduino_connect(arduino_t* arduino);
-
 arduino_t* new_arduino(int bus, int address)
 {
         arduino_t* arduino = (arduino_t*) malloc(sizeof(arduino_t));
@@ -173,10 +171,15 @@ static int arduino_read(arduino_t* arduino, unsigned long *value,
 
 	ret = i2c_smbus_read_i2c_block_data(arduino->fd, reg, nbytes, buf);
 
-	if (ret < 0)
+	if (ret < 0) {
+                log_err("Arduino: failed to read the data");
 		return ret;
-	if (ret < nbytes)
+	}
+        if (ret < nbytes) {
+                log_err("Arduino: failed to read the data, got %d/%d bytes",
+                        ret, nbytes);
 		return -1;
+        }
 
         *value = 0;
 	for (i = 0; i < nbytes; i++)
