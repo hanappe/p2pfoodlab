@@ -269,12 +269,12 @@ static int arduino_set_state_(arduino_t* arduino, int state)
 
 static int arduino_insist_set_state_(arduino_t* arduino, int state)
 {
-        log_info("Arduino: Set state to %d", state); 
+        log_info("Arduino: Insisting to set state to %d", state); 
 	unsigned long value = (unsigned long) state;
         int err;
 
         for (int i = 0; i < 5; i++) {
-                err = arduino_write(arduino, value, CMD_STATE, 1);
+                err = arduino_set_state_(arduino, state);
                 if (err == 0)
                         break;
         }
