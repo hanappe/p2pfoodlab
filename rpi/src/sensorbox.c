@@ -48,6 +48,7 @@ struct _sensorbox_t {
         event_t* events;
         char filenamebuf[2048];
         int test;
+        FILE* datafp;
 };
 
 static int sensorbox_load_config(sensorbox_t* box);
@@ -387,7 +388,7 @@ static int sensorbox_init_arduino(sensorbox_t* box)
 static void sensorbox_handle_event(sensorbox_t* box, event_t* e)
 {
         if (e->type == UPDATE_SENSORS) {
-                sensorbox_update_sensors(box);
+                sensorbox_store_sensor_data(box, NULL);
         } else if (e->type == UPDATE_CAMERA) {
                 sensorbox_update_camera(box);
         }
@@ -520,7 +521,25 @@ int sensorbox_check_sensors(sensorbox_t* box)
         return err;
 }
 
-int sensorbox_update_sensors(sensorbox_t* box)
+
+void sensorbox_data_callback(sensorbox_t* box,
+                             int datastream,
+                             time_t timestamp,
+                             float value)
+{
+                struct tm r;
+                char s[256];
+
+                localtime_r(&timestamp, &r);
+                snprintf(s, 256, "%04d-%02d-%02dT%02d:%02d:%02d",
+                         1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, 
+                         r.tm_hour, r.tm_min, r.tm_sec);
+
+                fprintf(box->datafp, "%d,%s,%f\n", datastream, s, value);
+}
+
+int sensorbox_store_sensor_data(sensorbox_t* box, 
+                                const char* filename)
 {
         unsigned char sensors_a;
         unsigned char period_a;
@@ -543,12 +562,33 @@ int sensorbox_update_sensors(sensorbox_t* box)
         if (num_datastreams == 0)
                 return 0;
 
-        char* datafile = sensorbox_path(box, "datapoints.csv");
+        if (filename == NULL) {
+                filename = sensorbox_path(box, "datapoints.csv");
+                box->datafp = fopen(filename, "a");
 
-        err = arduino_store_data(box->arduino,
-                                 datastreams,
-                                 num_datastreams,
-                                 datafile);
+        } else if (strcmp(filename, "-") == 0) {
+                box->datafp = stdout;
+
+        } else {
+                box->datafp = fopen(filename, "a");
+        }
+
+        if (box->datafp == NULL) {
+                log_err("Arduino: Failed to open the output file: %s", 
+                        filename);
+                return -1;
+        }
+
+        err = arduino_read_data(box->arduino,
+                                datastreams,
+                                num_datastreams,
+                                (arduino_data_callback_t) sensorbox_data_callback,
+                                box);
+
+        if (box->datafp != stdout) {
+                fclose(box->datafp);
+                box->datafp = NULL;
+        }
 
         return err;
 }

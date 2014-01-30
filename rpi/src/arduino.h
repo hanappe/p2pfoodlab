@@ -67,10 +67,17 @@ int arduino_get_poweroff(arduino_t* arduino, int* minutes);
 
 /* int arduino_get_pump(arduino_t* arduino, int* seconds); */
 
-int arduino_store_data(arduino_t* arduino,
-                       int* datastreams,
-                       int num_datastreams,
-                       const char* output_file);
+
+typedef void (*arduino_data_callback_t)(void* ptr,
+                                        int datastream,
+                                        time_t timestamp,
+                                        float value);
+
+int arduino_read_data(arduino_t* arduino,
+                      int* datastreams,
+                      int num_datastreams,
+                      arduino_data_callback_t callback,
+                      void* ptr);
 
 #ifdef __cplusplus
 }

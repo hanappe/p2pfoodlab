@@ -132,6 +132,11 @@ static int arduino_connect(arduino_t* arduino)
 
         log_debug("Arduino: Connecting"); 
 
+        if (arduino->fd != -1) {
+                log_debug("Arduino: Connection already established");
+                return 0;
+        }
+
         if ((arduino->fd = open(fileName, O_RDWR)) < 0) {
                 log_err("Arduino: Failed to open the I2C device"); 
                 arduino->fd = -1;
@@ -256,6 +261,20 @@ static int arduino_set_state_(arduino_t* arduino, int state)
 	return arduino_write(arduino, value, CMD_STATE, 1);
 }
 
+static int arduino_insist_set_state_(arduino_t* arduino, int state)
+{
+        log_info("Arduino: Set state to %d", state); 
+	unsigned long value = (unsigned long) state;
+        int err;
+
+        for (int i = 0; i < 5; i++) {
+                err = arduino_write(arduino, value, CMD_STATE, 1);
+                if (err == 0)
+                        break;
+        }
+        return err;
+}
+
 static int arduino_get_state_(arduino_t* arduino, int* state)
 {
 	unsigned long value;
@@ -358,61 +377,113 @@ static int arduino_read_float(arduino_t* arduino, float* value)
         return ret;
 }
 
-static int arduino_download_data(arduino_t* arduino, 
-                                 int* datastreams, 
-                                 int num_datastreams, 
-                                 int nframes,
-                                 const char* filename)
+static int arduino_start_transfer(arduino_t* arduino)
 {
-        int err = -1;
-
-        FILE* fp = fopen(filename, "a");
-        if (fp == NULL) {
-                log_err("Arduino: Failed to open the output file: %s", filename); 
-                return -1;
-        }
-
         if (i2c_smbus_write_byte(arduino->fd, CMD_START) == -1) {
                 log_err("Arduino: Failed to send the 'start transfer' command");
-                goto error_recovery;
+                return -1;
         }
-
-        for (int frame = 0; frame < nframes; frame++) {
-                
-                unsigned long t;
-        
-                err = arduino_read(arduino, &t, CMD_READ, 4);
-                if (err) 
-                        goto error_recovery;
-
-                time_t timestamp = (time_t) t;
-                struct tm r;
-                char time[256];
-
-                localtime_r(&timestamp, &r);
-                snprintf(time, 256, "%04d-%02d-%02dT%02d:%02d:%02d",
-                         1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, r.tm_hour, r.tm_min, r.tm_sec);
-                float value;
-
-                for (int i = 0; i < num_datastreams; i++) {
-                        if (arduino_read_float(arduino, &value) != 0) 
-                                goto error_recovery;
-                        if (datastreams[i] > 0)
-                                fprintf(fp, "%d,%s,%f\n", datastreams[i], time, value);
-                }
-        }
-
-        err = 0;
-
- error_recovery:
-        fclose(fp);
-        return err;
+        return 0;
 }
 
-int arduino_store_data(arduino_t* arduino,
-                       int* datastreams,
-                       int num_datastreams,
-                       const char* filename)
+/* static int arduino_download_data(arduino_t* arduino,  */
+/*                                  int* datastreams,  */
+/*                                  int num_datastreams,  */
+/*                                  int nframes, */
+/*                                  const char* filename) */
+/* { */
+/*         int err = -1; */
+
+/*         FILE* fp = fopen(filename, "a"); */
+/*         if (fp == NULL) { */
+/*                 log_err("Arduino: Failed to open the output file: %s", filename);  */
+/*                 return -1; */
+/*         } */
+
+/*         for (int frame = 0; frame < nframes; frame++) { */
+                
+/*                 unsigned long t; */
+        
+/*                 err = arduino_read(arduino, &t, CMD_READ, 4); */
+/*                 if (err)  */
+/*                         goto error_recovery; */
+
+/*                 time_t timestamp = (time_t) t; */
+/*                 struct tm r; */
+/*                 char time[256]; */
+
+/*                 localtime_r(&timestamp, &r); */
+/*                 snprintf(time, 256, "%04d-%02d-%02dT%02d:%02d:%02d", */
+/*                          1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, r.tm_hour, r.tm_min, r.tm_sec); */
+/*                 float value; */
+
+/*                 for (int i = 0; i < num_datastreams; i++) { */
+/*                         if (arduino_read_float(arduino, &value) != 0)  */
+/*                                 goto error_recovery; */
+/*                         if (datastreams[i] > 0) */
+/*                                 fprintf(fp, "%d,%s,%f\n", datastreams[i], time, value); */
+/*                 } */
+/*         } */
+
+/*         err = 0; */
+
+/*  error_recovery: */
+/*         fclose(fp); */
+/*         return err; */
+/* } */
+
+/* int arduino_store_data(arduino_t* arduino, */
+/*                        int* datastreams, */
+/*                        int num_datastreams, */
+/*                        const char* filename) */
+/* { */
+/*         int err = -1;  */
+/*         int nframes;  */
+
+/*         err = arduino_connect(arduino); */
+/*         if (err != 0)  */
+/*                 return err; */
+
+/*         err = arduino_set_state_(arduino, STATE_SUSPEND); */
+/*         if (err != 0) { */
+/*                 arduino_disconnect(arduino); */
+/*                 return err; */
+/*         } */
+        
+/*         if (arduino_get_frames_(arduino, &nframes) != 0) { */
+/*                 arduino_disconnect(arduino); */
+/*                 return err; */
+/*         } */
+/*         log_info("Arduino: Found %d measurement frames", nframes);  */
+
+/*         for (int attempt = 0; attempt < 5; attempt++) { */
+/*                 err = arduino_download_data(arduino,  */
+/*                                             datastreams,  */
+/*                                             num_datastreams,  */
+/*                                             nframes, */
+/*                                             filename); */
+/*                 if (err == 0)  */
+/*                         break; */
+/*         } */
+
+/*         if (err == 0) { */
+/*                 log_info("Arduino: Download successful");  */
+/*                 err = arduino_set_state_(arduino, STATE_RESETSTACK); */
+/*         } else { */
+/*                 log_info("Arduino: Download failed");  */
+/*                 err = arduino_set_state_(arduino, STATE_MEASURING); */
+/*         } */
+
+/*         //arduino_disconnect(arduino); */
+/*         return err; */
+/* } */
+
+
+int arduino_read_data(arduino_t* arduino,
+                      int* datastreams,
+                      int num_datastreams,
+                      arduino_data_callback_t callback,
+                      void* ptr)
 {
         int err = -1; 
         int nframes; 
@@ -433,25 +504,39 @@ int arduino_store_data(arduino_t* arduino,
         }
         log_info("Arduino: Found %d measurement frames", nframes); 
 
-        for (int attempt = 0; attempt < 5; attempt++) {
-                err = arduino_download_data(arduino, 
-                                            datastreams, 
-                                            num_datastreams, 
-                                            nframes,
-                                            filename);
-                if (err == 0) 
-                        break;
+        if (arduino_start_transfer(arduino) != 0) {
+                arduino_disconnect(arduino);
+                return -1;
         }
 
-        if (err == 0) {
-                log_info("Arduino: Download successful"); 
-                err = arduino_set_state_(arduino, STATE_RESETSTACK);
-        } else {
-                log_info("Arduino: Download failed"); 
-                err = arduino_set_state_(arduino, STATE_MEASURING);
+        for (int frame = 0; frame < nframes; frame++) {
+                
+                unsigned long t;
+                time_t timestamp;
+                float value;
+        
+                if (arduino_read(arduino, &t, CMD_READ, 4) != 0) {
+                        arduino_insist_set_state_(arduino, STATE_MEASURING);
+                        arduino_disconnect(arduino);
+                        return -1;
+                }
+                timestamp = (time_t) t;
+
+                for (int i = 0; i < num_datastreams; i++) {
+                        if (arduino_read_float(arduino, &value) != 0) {
+                                arduino_insist_set_state_(arduino, STATE_MEASURING);
+                                arduino_disconnect(arduino);
+                                return -1;
+                        }
+                        
+                        callback(ptr, datastreams[i], timestamp, value);
+                }
         }
 
-        arduino_disconnect(arduino);
+        log_info("Arduino: Download successful"); 
+        err = arduino_insist_set_state_(arduino, STATE_RESETSTACK);
+
+        //arduino_disconnect(arduino);
         return err;
 }
 
@@ -469,7 +554,8 @@ int arduino_set_sensors(arduino_t* arduino, unsigned char sensors)
                 return err;
         }
 
-        return arduino_disconnect(arduino);
+        //return arduino_disconnect(arduino);
+        return 0;
 }
 
 int arduino_get_sensors(arduino_t* arduino, unsigned char* sensors)
@@ -486,7 +572,8 @@ int arduino_get_sensors(arduino_t* arduino, unsigned char* sensors)
                 return err;
         }
 
-        return arduino_disconnect(arduino);
+        //return arduino_disconnect(arduino);
+        return 0;
 }
 
 int arduino_set_period(arduino_t* arduino, unsigned char period)
@@ -503,7 +590,8 @@ int arduino_set_period(arduino_t* arduino, unsigned char period)
                 return err;
         }
 
-        return arduino_disconnect(arduino);
+        //return arduino_disconnect(arduino);
+        return 0;
 }
 
 int arduino_get_period(arduino_t* arduino, unsigned char* period)
@@ -520,7 +608,8 @@ int arduino_get_period(arduino_t* arduino, unsigned char* period)
                 return err;
         }
 
-        return arduino_disconnect(arduino);
+        //return arduino_disconnect(arduino);
+        return 0;
 }
 
 int arduino_set_poweroff(arduino_t* arduino, int minutes)
@@ -537,7 +626,8 @@ int arduino_set_poweroff(arduino_t* arduino, int minutes)
                 return err;
         }
 
-        return arduino_disconnect(arduino);
+        //return arduino_disconnect(arduino);
+        return 0;
 }
 
 int arduino_get_poweroff(arduino_t* arduino, int* minutes)
@@ -554,7 +644,8 @@ int arduino_get_poweroff(arduino_t* arduino, int* minutes)
                 return err;
         }                
 
-        return arduino_disconnect(arduino);
+        //return arduino_disconnect(arduino);
+        return 0;
 }
 
 int arduino_get_frames(arduino_t* arduino, int* frames)
@@ -571,7 +662,8 @@ int arduino_get_frames(arduino_t* arduino, int* frames)
                 return err;
         }                
 
-        return arduino_disconnect(arduino);
+        //return arduino_disconnect(arduino);
+        return 0;
 }
 
 int arduino_pump(arduino_t* arduino, int seconds)
@@ -588,7 +680,8 @@ int arduino_pump(arduino_t* arduino, int seconds)
                 return err;
         }
 
-        return arduino_disconnect(arduino);
+        //return arduino_disconnect(arduino);
+        return 0;
 }
 
 int arduino_set_time(arduino_t* arduino, time_t time)
@@ -605,7 +698,8 @@ int arduino_set_time(arduino_t* arduino, time_t time)
                 return err;
         }                
 
-        return arduino_disconnect(arduino);
+        //return arduino_disconnect(arduino);
+        return 0;
 }
 
 int arduino_get_time(arduino_t* arduino, time_t *time)
@@ -622,5 +716,6 @@ int arduino_get_time(arduino_t* arduino, time_t *time)
                 return err;
         }                
 
-        return arduino_disconnect(arduino);
+        //return arduino_disconnect(arduino);
+        return 0;
 }

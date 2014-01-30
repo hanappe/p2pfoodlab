@@ -39,6 +39,7 @@
 
 static char* _home_dir = "/var/p2pfoodlab";
 static char* _log_file = "/var/p2pfoodlab/log.txt";
+static char* _output_file = NULL;
 static int _test = 0;
 static char* _command = "update";
 
@@ -80,7 +81,7 @@ static void print_version(FILE* fp)
 
 static void parse_arguments(int argc, char **argv)
 {
-        static const char short_options [] = "hvtDd:l:";
+        static const char short_options [] = "hvtDd:l:o:";
 
         static const struct option
                 long_options [] = {
@@ -90,6 +91,7 @@ static void parse_arguments(int argc, char **argv)
                 { "log",         required_argument, NULL, 'l' },
                 { "test",        no_argument, NULL, 't' },
                 { "debug",       no_argument, NULL, 'D' },
+                { "output-file", required_argument, NULL, 'o' },
                 { 0, 0, 0, 0 }
         };
 
@@ -123,6 +125,9 @@ static void parse_arguments(int argc, char **argv)
                 case 'l':
                         _log_file = optarg;
                         break;
+                case 'o':
+                        _output_file = optarg;
+                        break;
                 default:
                         usage(stderr, argc, argv);
                         exit(EXIT_FAILURE);
@@ -151,7 +156,7 @@ int main(int argc, char **argv)
         parse_arguments(argc, argv);
 
         if (optind < argc) 
-                _command = argv[optind];
+                _command = argv[optind++];
 
         init_log(_log_file);
 
@@ -180,7 +185,7 @@ int main(int argc, char **argv)
                 sensorbox_update_camera(box);
 
         } else if (strcmp(_command, "sensors") == 0) {
-                sensorbox_update_sensors(box);
+                sensorbox_store_sensor_data(box, _output_file);
 
         } else if (strcmp(_command, "update-clock") == 0) {
                 clock_update(box);
