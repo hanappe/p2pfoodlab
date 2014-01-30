@@ -187,8 +187,6 @@ static int get_image_size(const char* symbol, unsigned int* width, unsigned int*
 
 static int sensorbox_add_periodic_events(sensorbox_t* box, int period, int type)
 {
-        log_debug("Sensorbox: Adding periodic events (period %d).", period);
-
         int minutes_day = 24 * 60;
         int minute = 0;
         while (minute < minutes_day) {
@@ -203,8 +201,6 @@ static int sensorbox_add_periodic_events(sensorbox_t* box, int period, int type)
 
 static int sensorbox_add_fixed_events(sensorbox_t* box, json_object_t fixed, int type)
 {
-        log_debug("Sensorbox: Adding fixed events");
-
         int num = json_array_length(fixed);
         for (int i = 0; i < num; i++) {
                 json_object_t time = json_array_get(fixed, i);
@@ -337,8 +333,6 @@ static int sensorbox_init_arduino(sensorbox_t* box)
         box->arduino = new_arduino(bus, address);
         if (box->arduino == NULL)
                 return -1;
-
-        log_debug("Sensorbox: Sensor events");
 
         json_object_t sensors = json_object_get(box->config, "sensors");
         if (!json_isobject(sensors)) {
