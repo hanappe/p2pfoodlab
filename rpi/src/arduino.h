@@ -29,12 +29,23 @@
 extern "C" {
 #endif
 
-#define RHT03_1_FLAG (1 << 0)
-#define RHT03_2_FLAG (1 << 1)
-#define SHT15_1_FLAG (1 << 2)
-#define SHT15_2_FLAG (1 << 3)
-#define LUMINOSITY_FLAG (1 << 4)
-#define SOIL_FLAG (1 << 5)
+#define SENSOR_TRH         (1 << 0)
+#define SENSOR_TRHX        (1 << 1)
+#define SENSOR_LUM         (1 << 2)
+#define SENSOR_SOIL        (1 << 3)
+
+#define DATASTREAM_T       1
+#define DATASTREAM_RH      2
+#define DATASTREAM_TX      3
+#define DATASTREAM_RHX     4
+#define DATASTREAM_LUM     5
+#define DATASTREAM_SOIL    6
+
+typedef struct _datapoint_t {
+        int datastream;
+        time_t timestamp;
+        float value;
+} datapoint_t;
 
 typedef struct _arduino_t arduino_t;
 
@@ -68,16 +79,12 @@ int arduino_get_poweroff(arduino_t* arduino, int* minutes);
 /* int arduino_get_pump(arduino_t* arduino, int* seconds); */
 
 
-typedef void (*arduino_data_callback_t)(void* ptr,
-                                        int datastream,
-                                        time_t timestamp,
-                                        float value);
+/* typedef void (*arduino_data_callback_t)(void* ptr, */
+/*                                         int datastream, */
+/*                                         time_t timestamp, */
+/*                                         float value); */
 
-int arduino_read_data(arduino_t* arduino,
-                      int* datastreams,
-                      int num_datastreams,
-                      arduino_data_callback_t callback,
-                      void* ptr);
+datapoint_t* arduino_read_data(arduino_t* arduino);
 
 #ifdef __cplusplus
 }

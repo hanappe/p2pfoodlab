@@ -62,12 +62,10 @@
 #define RPi_PIN                 2
 #define PUMP_PIN                10
 
-#define RHT03_1_FLAG            (1 << 0)
-#define RHT03_2_FLAG            (1 << 1)
-#define SHT15_1_FLAG            (1 << 2)
-#define SHT15_2_FLAG            (1 << 3)
-#define LUMINOSITY_FLAG         (1 << 4)
-#define SOIL_FLAG               (1 << 5)
+#define SENSOR_TRH         (1 << 0)
+#define SENSOR_TRHX        (1 << 1)
+#define SENSOR_LUM         (1 << 2)
+#define SENSOR_SOIL        (1 << 3)
 
 #define MAX_SLEEP               10000
 
@@ -355,9 +353,12 @@ void setup()
 
 float get_luminosity()
 {
-        delay(100); 
-        float x = 100.0f * analogRead(LUMINOSITY_PIN) / 1024.0f;
-        return x;
+        return 0.0f;
+}
+
+float get_soilhumidity()
+{
+        return 0.0f;
 }
 
 int get_rht03(DHT22* sensor, float* t, float* h)
@@ -392,13 +393,7 @@ void measure_sensors()
         if (!stack_pushi(time(0)))
                 goto reset_stack;
 
-        if (sensors & LUMINOSITY_FLAG) {
-                float luminosity = get_luminosity(); 
-                if (!stack_pushf(luminosity))
-                        goto reset_stack;
-                DebugPrintValue("  lum ", luminosity);
-        }
-        if (sensors & RHT03_1_FLAG) {
+        if (sensors & SENSOR_TRH) {
                 float t, rh; 
                 if (get_rht03(&rht03_1, &t, &rh) == 0) {
                         if (!stack_pushf(t))
@@ -414,7 +409,7 @@ void measure_sensors()
                                 goto reset_stack;
                 }
         }
-        if (sensors & RHT03_2_FLAG) {
+        if (sensors & SENSOR_TRHX) {
                 float t, rh; 
                 if (get_rht03(&rht03_2, &t, &rh) == 0) {
                         if (!stack_pushf(t))
@@ -429,6 +424,18 @@ void measure_sensors()
                         if (!stack_pushf(-1.0f))
                                 goto reset_stack;
                 }
+        }
+        if (sensors & SENSOR_LUM) {
+                float luminosity = get_luminosity(); 
+                if (!stack_pushf(luminosity))
+                        goto reset_stack;
+                DebugPrintValue("  lum ", luminosity);
+        }
+        if (sensors & SENSOR_SOIL) {
+                float humidity = get_soilhumidity; 
+                if (!stack_pushf(humidity))
+                        goto reset_stack;
+                DebugPrintValue("  soil ", humidity);
         }
 
         frames++;

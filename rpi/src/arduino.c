@@ -404,18 +404,73 @@ static int arduino_start_transfer(arduino_t* arduino)
         return 0;
 }
 
-int arduino_read_data(arduino_t* arduino,
-                      int* datastreams,
-                      int num_datastreams,
-                      arduino_data_callback_t callback,
-                      void* ptr)
+static int arduino_read_data_(arduino_t* arduino,
+                              datapoint_t* datapoints,
+                              int nframes,
+                              int* datastreams,
+                              int num_streams)
+{
+        time_t timestamp;
+        float value;
+        int index = 0;
+        int err;
+
+        if (arduino_start_transfer(arduino) != 0)
+                return -1;
+
+        
+        for (int frame = 0; frame < nframes; frame++) {
+                
+                err = arduino_read_timestamp(arduino, &timestamp);
+                if (err != 0)
+                        return -1;
+                
+                for (int i = 0; i < num_streams; i++) {
+                        err = arduino_read_float(arduino, &value);
+                        if (err != 0)
+                                return -1;
+                        
+                        datapoints[index].timestamp = timestamp;
+                        datapoints[index].datastream = datastreams[i];
+                        datapoints[index].value = value;
+                        index++;
+                }
+        }
+
+        return 0;
+}
+
+datapoint_t* arduino_read_data(arduino_t* arduino)
 {
         int err = -1; 
+        unsigned char sensors; 
         int nframes; 
+        int datastreams[32];
+        int num_streams = 0;
+        datapoint_t* datapoints = NULL;
 
         err = arduino_connect(arduino);
         if (err != 0) 
                 goto error_recovery;
+
+        err = arduino_get_sensors_(arduino, &sensors);
+        if (err != 0)
+                goto error_recovery;
+
+        if (sensors & SENSOR_TRH) {
+                datastreams[num_streams++] = DATASTREAM_T;
+                datastreams[num_streams++] = DATASTREAM_RH;
+        }
+        if (sensors & SENSOR_TRHX) {
+                datastreams[num_streams++] = DATASTREAM_TX;
+                datastreams[num_streams++] = DATASTREAM_RHX;
+        }
+        if (sensors & SENSOR_LUM) {
+                datastreams[num_streams++] = DATASTREAM_LUM;
+        }
+        if (sensors & SENSOR_SOIL) {
+                datastreams[num_streams++] = DATASTREAM_SOIL;
+        }
 
         err = arduino_set_state_(arduino, STATE_SUSPEND);
         if (err != 0) 
@@ -427,6 +482,15 @@ int arduino_read_data(arduino_t* arduino,
 
         log_info("Arduino: Found %d measurement frames", nframes); 
 
+        int size = (nframes + 1) * sizeof(datapoint_t);
+
+        datapoints = (datapoint_t*) malloc((nframes + 1) * sizeof(datapoint_t));
+        if (datapoints == NULL) {
+                log_info("Arduino: Out of memory"); 
+                goto error_recovery;
+        }
+        memset(datapoints, 0, size);
+
         if (nframes == 0) {
                 err = arduino_set_state_(arduino, STATE_MEASURING);
                 goto clean_exit;
@@ -436,34 +500,9 @@ int arduino_read_data(arduino_t* arduino,
 
                 log_info("Arduino: Download attempt %d", attempt + 1); 
 
-                if (arduino_start_transfer(arduino) != 0) {
-                        //arduino_disconnect(arduino);
-                        continue;
-                }
-
-                for (int frame = 0; frame < nframes; frame++) {
-                
-                        time_t timestamp;
-                        float value;
-        
-                        err = arduino_read_timestamp(arduino, &timestamp);
-                        if (err != 0) {
-                                arduino_set_state_(arduino, STATE_MEASURING);
-                                //arduino_disconnect(arduino);
-                                continue;
-                        }
-
-                        for (int i = 0; i < num_datastreams; i++) {
-                                err = arduino_read_float(arduino, &value);
-                                if (err != 0) {
-                                        arduino_set_state_(arduino, STATE_MEASURING);
-                                        //arduino_disconnect(arduino);
-                                        continue;
-                                }
-                        
-                                callback(ptr, datastreams[i], timestamp, value);
-                        }
-                }
+                err = arduino_read_data_(arduino, 
+                                         datapoints, nframes, 
+                                         datastreams, num_streams);
 
                 if (err == 0)
                         break;
@@ -481,7 +520,7 @@ int arduino_read_data(arduino_t* arduino,
                 arduino_disconnect(arduino);
         }
 
-        return err;
+        return datapoints;
 }
 
 int arduino_set_sensors(arduino_t* arduino, unsigned char sensors)

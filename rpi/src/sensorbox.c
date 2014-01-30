@@ -448,26 +448,18 @@ static int sensorbox_map_datastreams(sensorbox_t* box,
 {
         int i;
         int count = 0;
-        if (enabled & RHT03_1_FLAG) {
+        if (enabled & SENSOR_TRH) {
                 ids[count++] = opensensordata_get_datastream_id(box->osd, "t");
                 ids[count++] = opensensordata_get_datastream_id(box->osd, "rh");
         }
-        if (enabled & RHT03_2_FLAG) {
+        if (enabled & SENSOR_TRHX) {
                 ids[count++] = opensensordata_get_datastream_id(box->osd, "tx");
                 ids[count++] = opensensordata_get_datastream_id(box->osd, "rhx");
         }
-        if (enabled & SHT15_1_FLAG) {
-                ids[count++] = opensensordata_get_datastream_id(box->osd, "t2");
-                ids[count++] = opensensordata_get_datastream_id(box->osd, "rh2");
-        }
-        if (enabled & SHT15_2_FLAG) {
-                ids[count++] = opensensordata_get_datastream_id(box->osd, "tx2");
-                ids[count++] = opensensordata_get_datastream_id(box->osd, "rhx2");
-        }
-        if (enabled & LUMINOSITY_FLAG) {
+        if (enabled & SENSOR_LUM) {
                 ids[count++] = opensensordata_get_datastream_id(box->osd, "lum");
         }
-        if (enabled & SOIL_FLAG) {
+        if (enabled & SENSOR_SOIL) {
                 ids[count++] = opensensordata_get_datastream_id(box->osd, "soil");
         }
         for (i = 0; i < count; i++) {
@@ -571,11 +563,31 @@ int sensorbox_store_sensor_data(sensorbox_t* box,
                 return -1;
         }
 
-        err = arduino_read_data(box->arduino,
-                                datastreams,
-                                num_datastreams,
-                                (arduino_data_callback_t) sensorbox_data_callback,
-                                box);
+        datapoint_t* datapoints = arduino_read_data(box->arduino);
+
+        if (datapoints != NULL) {
+
+                for (int i = 0; datapoints[i].timestamp != 0; i++) {
+                        struct tm r;
+                        char s[256];
+                        
+                        localtime_r(&datapoints[i].timestamp, &r);
+                        snprintf(s, 256, "%04d-%02d-%02dT%02d:%02d:%02d",
+                                 1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, 
+                                 r.tm_hour, r.tm_min, r.tm_sec);
+                        
+                        fprintf(box->datafp, "%d,%s,%f\n", 
+                                datapoints[i].datastream, 
+                                s, 
+                                datapoints[i].value);
+                } 
+        }
+
+        /* err = arduino_read_data(box->arduino, */
+        /*                         datastreams, */
+        /*                         num_datastreams, */
+        /*                         (arduino_data_callback_t) sensorbox_data_callback, */
+        /*                         box); */
 
         if (box->datafp != stdout) {
                 fclose(box->datafp);
