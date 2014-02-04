@@ -112,7 +112,7 @@ DHT22 rht03_2(RHT03_2_PIN);
 // CRC-8 - based on the CRC8 formulas by Dallas/Maxim
 // code released under the therms of the GNU GPL 3.0 license
 // http://www.leonardomiliani.com/2013/un-semplice-crc8-per-arduino/?lang=en
-static unsigned char crc8(unsigned char crc, const unsigned char *data, unsigned char len) 
+static unsigned char crc8(unsigned char crc, const unsigned char *data, unsigned short len) 
 {
         while (len--) {
                 unsigned char extract = *data++;
@@ -173,10 +173,23 @@ static void stack_frame_end()
            and/or number of frames when an I2C request comes in. */
         const unsigned char* data = (const unsigned char*) &_stack.values[0];
         unsigned short offset = _stack.frames * _stack.framesize * sizeof(stack_entry_t);
-        unsigned char len = _stack.framesize * sizeof(stack_entry_t);
+        unsigned short len = _stack.framesize * sizeof(stack_entry_t);
         unsigned char crc = crc8(_stack.checksum, data + offset, len);
         _stack.checksum = crc;
         _stack.frames++;
+
+        // DEBUG
+        len = _stack.frames * _stack.framesize * sizeof(stack_entry_t);
+        unsigned char crc2 = crc8(0, data, len);
+        DebugPrintValue("CRC (1): ", _stack.checksum);
+        DebugPrintValue("CRC (2): ", crc2);        
+        for (int i = 0; i < len; i++) {
+                Serial.print(data[i], HEX);
+                if ((i % 4) == 3)
+                        Serial.println();
+                else 
+                        Serial.print(" ");
+        }
 }
 
 static int stack_pushf(float value)

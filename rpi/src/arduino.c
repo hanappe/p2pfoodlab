@@ -252,7 +252,7 @@ static int arduino_write(arduino_t* arduino,
 
 static int arduino_set_time_(arduino_t* arduino, time_t time)
 {
-        log_info("Arduino: Setting time to %ul", (unsigned int) time); 
+        log_info("Arduino: Setting time to %lu", (unsigned int) time); 
 	unsigned long itime;
         itime = (unsigned long) time;
 	return arduino_write(arduino, itime, DS1374_REG_TOD0, 4);
@@ -586,7 +586,17 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
                 unsigned char checksum = crc8(0, ptr, len);
                 
                 log_info("Arduino: Checksum Linux 0x%02x", checksum); 
-                
+
+                //
+                for (int i = 0; i < len; i++) {
+                        fprintf(stderr, "%02x", ptr[i]);
+                        if ((i % 4) == 3)
+                                fprintf(stderr, "\n");
+                        else 
+                                fprintf(stderr, " ");
+                }
+                //
+
                 if (checksum != stack.checksum)
                         err = -1;
 
