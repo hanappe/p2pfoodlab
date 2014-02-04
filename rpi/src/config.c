@@ -68,8 +68,10 @@ int config_get_sensors(json_object_t config,
 
         for (int i = 0; sensorlist[i].name != NULL; i++) {
                 json_object_t s = json_object_get(sensors_config, sensorlist[i].name);
-                if (!json_isnull(s))
+                if (!json_isnull(s)) {
+                        log_info("Config: sensor %s not configured", sensorlist[i].name); 
                         continue;
+                }
                 if (!json_isstring(s)) {
                         log_warn("Config: Sensor setting is not a JSON string (%s)", 
                                 sensorlist[i].name); 
