@@ -600,8 +600,8 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
                 if (checksum != stack.checksum)
                         err = -1;
 
-                if (err != 0)
-                        continue;
+                if (err == 0)
+                        break;
         }
         
         if (err == 0)
