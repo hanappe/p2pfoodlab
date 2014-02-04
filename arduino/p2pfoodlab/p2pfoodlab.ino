@@ -149,7 +149,6 @@ typedef struct _stack_t {
         stack_entry_t values[STACK_SIZE];
 } stack_t;
 
-stack_entry_t stack[STACK_SIZE];
 stack_t _stack;
 
 static void stack_clear()
@@ -162,7 +161,7 @@ static void stack_clear()
 #define stack_set_framesize(__framesize) { _stack.framesize = __framesize; }
 #define stack_frame_begin() (_stack.sp)
 #define stack_frame_unroll(__sp) { _stack.sp = __sp; }
-#define stack_length()  (_stack.frames * _stack.framesize)
+#define stack_length()  (_stack.frames * _stack.framesize * sizeof(stack_entry_t))
 #define stack_geti(__n) (_stack.values[__n].i)
 #define stack_checksum() (_stack.checksum)
 #define stack_num_frames() (_stack.frames)
@@ -352,18 +351,21 @@ static void send_data()
                 /* nothing to do here */
 
         } else if (command == CMD_READ) {
+                unsigned char* ptr = (unsigned char*) &_stack.values[0];
                 unsigned short len = stack_length();
-                unsigned long v;
-                if ((len == 0) || (read_index >= len))
-                        v = 0;
-                else 
-                        v = stack_geti(read_index);
                 i2c_send_len = 4;
-                i2c_send_buf[0] = (v & 0xff000000) >> 24; 
-                i2c_send_buf[1] = (v & 0x00ff0000) >> 16; 
-                i2c_send_buf[2] = (v & 0x0000ff00) >> 8; 
-                i2c_send_buf[3] = (v & 0x000000fff); 
-                read_index++;
+                if ((len == 0) || (read_index >= len)) {
+                        i2c_send_buf[0] = 0;
+                        i2c_send_buf[1] = 0;
+                        i2c_send_buf[2] = 0;
+                        i2c_send_buf[3] = 0;
+                } else  {
+                        i2c_send_buf[0] = ptr[read_index++];
+                        i2c_send_buf[1] = ptr[read_index++];
+                        i2c_send_buf[2] = ptr[read_index++];
+                        i2c_send_buf[3] = ptr[read_index++]; 
+                        read_index += 4;
+                }
 
         } else if (command == CMD_PUMP) {
 
@@ -423,10 +425,12 @@ static void measure_sensors()
         unsigned short old_sp = stack_frame_begin();
         
         if (state != STATE_MEASURING) {
+                DebugPrint("  *STATE != MEASURING*");
                 return;
         }
-        if (new_state != state) {
+        if (new_state != 0) {
                 /* Handle state change first */
+                DebugPrint("  *NEW_STATE IS SET*");
                 return;
         }
 
@@ -484,7 +488,7 @@ static void measure_sensors()
         // Block I2C interupts
         noInterrupts();
 
-        if (new_state != state) {
+        if (new_state != 0) {
                 /* We've been interrupted by an I2C state change
                    request during the measurements. Roll back. */
                 stack_frame_unroll(old_sp);

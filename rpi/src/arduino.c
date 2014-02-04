@@ -89,15 +89,19 @@
 #define STATE_RESETSTACK        2
 #define STATE_SUSPEND           3
 
-typedef struct _acmd_t acmd_t;
+#define STACK_SIZE 128
 
-struct _acmd_t {
-        char* name;
-        int sn;
-        unsigned char s[8];
-        int rn;
-        unsigned char r[8];
-};
+typedef union _stack_entry_t {
+        unsigned long i;
+        float f;
+} stack_entry_t;
+
+typedef struct _stack_t {
+        unsigned char checksum;
+        int frames;
+        int framesize;
+        stack_entry_t values[STACK_SIZE];
+} stack_t;
 
 struct _arduino_t {
         int bus;
@@ -163,8 +167,33 @@ static int arduino_disconnect(arduino_t* arduino)
         return 0;
 }
 
-static int arduino_read(arduino_t* arduino, unsigned long *value,
-                        int reg, int nbytes)
+static int arduino_read(arduino_t* arduino,
+                        int reg, 
+                        int nbytes, 
+                        unsigned char* buf)
+{
+	int n;
+
+	n = i2c_smbus_read_i2c_block_data(arduino->fd, reg, nbytes, buf);
+
+	if (n < 0) {
+                log_err("Arduino: Failed to read the data");
+		return n;
+	}
+        if (n < nbytes) {
+                log_err("Arduino: Failed to read the data, got %d/%d bytes",
+                        n, nbytes);
+		return -1;
+        }
+
+        usleep(10000);
+
+	return 0;
+}
+
+static int arduino_read_value(arduino_t* arduino, 
+                              unsigned long *value,
+                              int reg, int nbytes)
 {
 	unsigned char buf[4];
 	int i, n;
@@ -234,7 +263,7 @@ static int arduino_get_time_(arduino_t* arduino, time_t *time)
 	unsigned long itime;
 	int err;
 
-	err = arduino_read(arduino, &itime, DS1374_REG_TOD0, 4);
+	err = arduino_read_value(arduino, &itime, DS1374_REG_TOD0, 4);
 	if (err == 0)
 		*time = (time_t) itime;
 
@@ -255,7 +284,7 @@ static int arduino_get_poweroff_(arduino_t* arduino, int* minutes)
 	unsigned long value;
 	int err;
 
-	err = arduino_read(arduino, &value, CMD_POWEROFF, 2);
+	err = arduino_read_value(arduino, &value, CMD_POWEROFF, 2);
 	if (err == 0)
 		*minutes = (int) value;
 
@@ -281,7 +310,7 @@ static int arduino_get_state_(arduino_t* arduino, int* state)
 	unsigned long value;
 	int err;
 
-	err = arduino_read(arduino, &value, CMD_STATE, 1);
+	err = arduino_read_value(arduino, &value, CMD_STATE, 1);
 	if (err == 0)
 		*state = (int) value;
 
@@ -295,7 +324,7 @@ static int arduino_get_frames_(arduino_t* arduino, int* frames)
 	int err;
 
         for (int attempt = 0; attempt < 5; attempt++) {
-                err = arduino_read(arduino, &value, CMD_FRAMES, 2);
+                err = arduino_read_value(arduino, &value, CMD_FRAMES, 2);
                 if (err == 0) {
                         *frames = (int) value;
                         break;
@@ -312,7 +341,7 @@ static int arduino_get_checksum_(arduino_t* arduino, unsigned char* checksum)
 	int err;
 
         for (int attempt = 0; attempt < 5; attempt++) {
-                err = arduino_read(arduino, &value, CMD_CHECKSUM, 1);
+                err = arduino_read_value(arduino, &value, CMD_CHECKSUM, 1);
                 if (err == 0) {
                         *checksum = (unsigned char) (value & 0xff);
                         break;
@@ -350,7 +379,7 @@ static int arduino_get_sensors_(arduino_t* arduino,
 {
         log_debug("Arduino: Getting enabled sensors"); 
         unsigned long value;
-        int err = arduino_read(arduino, &value, CMD_SENSORS, 1);
+        int err = arduino_read_value(arduino, &value, CMD_SENSORS, 1);
         if (err == 0) {
                 *sensors = (unsigned char) value;
                 log_info("Arduino: Enabled sensors: 0x%02x", (int) value); 
@@ -375,7 +404,7 @@ static int arduino_get_period_(arduino_t* arduino,
         int err;
 
         for (int attempt = 0; attempt < 5; attempt++) {
-                err = arduino_read(arduino, &value, CMD_PERIOD, 1);
+                err = arduino_read_value(arduino, &value, CMD_PERIOD, 1);
                 if (err == 0) {
                         *period = (unsigned char) value;
                         log_info("Arduino: period: 0x%02x", (int) value); 
@@ -393,25 +422,25 @@ static int arduino_set_period_(arduino_t* arduino,
         return arduino_write(arduino, value, CMD_PERIOD, 1);
 }
 
-static int arduino_read_timestamp(arduino_t* arduino, time_t* timestamp)
-{
-        log_debug("Arduino: Read timestamp"); 
-        unsigned long v;
-        int err = arduino_read(arduino, &v, CMD_READ, 4);
-        if (err == 0) 
-                *timestamp = (time_t) v;
-        return err;
-}
+/* static int arduino_read_timestamp(arduino_t* arduino, time_t* timestamp) */
+/* { */
+/*         log_debug("Arduino: Read timestamp");  */
+/*         unsigned long v; */
+/*         int err = arduino_read_value(arduino, &v, CMD_READ, 4); */
+/*         if (err == 0)  */
+/*                 *timestamp = (time_t) v; */
+/*         return err; */
+/* } */
 
-static int arduino_read_float(arduino_t* arduino, float* value)
-{
-        log_debug("Arduino: Read float value"); 
-        unsigned long v;
-        int err = arduino_read(arduino, &v, CMD_READ, 4);
-        if (err == 0) 
-                *value = *((float*) &v);
-        return err;
-}
+/* static int arduino_read_float(arduino_t* arduino, float* value) */
+/* { */
+/*         log_debug("Arduino: Read float value");  */
+/*         unsigned long v; */
+/*         int err = arduino_read_value(arduino, &v, CMD_READ, 4); */
+/*         if (err == 0)  */
+/*                 *value = *((float*) &v); */
+/*         return err; */
+/* } */
 
 static int arduino_start_transfer(arduino_t* arduino)
 {
@@ -421,43 +450,6 @@ static int arduino_start_transfer(arduino_t* arduino)
         }
         return 0;
 }
-
-static int arduino_read_data_(arduino_t* arduino,
-                              datapoint_t* datapoints,
-                              int nframes,
-                              int* datastreams,
-                              int num_streams)
-{
-        time_t timestamp;
-        float value;
-        int index = 0;
-        int err;
-
-        if (arduino_start_transfer(arduino) != 0)
-                return -1;
-
-        
-        for (int frame = 0; frame < nframes; frame++) {
-                
-                err = arduino_read_timestamp(arduino, &timestamp);
-                if (err != 0)
-                        return -1;
-                
-                for (int i = 0; i < num_streams; i++) {
-                        err = arduino_read_float(arduino, &value);
-                        if (err != 0)
-                                return -1;
-                        
-                        datapoints[index].timestamp = timestamp;
-                        datapoints[index].datastream = datastreams[i];
-                        datapoints[index].value = value;
-                        index++;
-                }
-        }
-
-        return 0;
-}
-
 
 // CRC-8 - based on the CRC8 formulas by Dallas/Maxim
 // code released under the therms of the GNU GPL 3.0 license
@@ -478,14 +470,59 @@ static unsigned char crc8(unsigned char crc, const unsigned char *data, unsigned
         return crc;
 }
 
-datapoint_t* arduino_read_data(arduino_t* arduino)
+static int arduino_copy_stack_(arduino_t* arduino,
+                               stack_t* stack)
+{
+        unsigned char* ptr = (unsigned char*) &stack->values[0];
+        int index = 0;
+        int len = stack->frames * stack->framesize * 4;
+        int err;
+
+        if (arduino_start_transfer(arduino) != 0)
+                return -1;
+
+        while (index <= len) {
+                err = arduino_read(arduino, CMD_READ, 4, ptr + index);
+                if (err != 0)
+                        return -1;
+                index += 4;
+        }
+
+        return 0;
+}
+
+static datapoint_t* arduino_convert_stack_(arduino_t* arduino,
+                                           stack_t* stack,
+                                           int* datastreams,
+                                           int* num_points)
+{
+        datapoint_t* datapoints = NULL;
+        int num_streams = stack->framesize - 1;
+        int size = stack->frames * num_streams * sizeof(datapoint_t);
+
+        datapoints = (datapoint_t*) malloc(size);
+        if (datapoints == NULL) {
+                log_info("Arduino: Out of memory"); 
+                return NULL;
+        }
+        memset(datapoints, 0, size);
+
+        // TODO
+
+        *num_points = stack->frames * num_streams;
+
+        return datapoints;
+}
+
+datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
 {
         int err = -1; 
         unsigned char sensors; 
-        int nframes; 
         int datastreams[32];
         int num_streams = 0;
         datapoint_t* datapoints = NULL;
+
+        *num_points = 0;
 
         err = arduino_connect(arduino);
         if (err != 0) 
@@ -510,57 +547,57 @@ datapoint_t* arduino_read_data(arduino_t* arduino)
                 datastreams[num_streams++] = DATASTREAM_SOIL;
         }
 
+        stack_t stack;
+        stack.framesize = num_streams + 1;
+
+
         err = arduino_set_state_(arduino, STATE_SUSPEND);
         if (err != 0) 
                 goto error_recovery;
         
-        err = arduino_get_frames_(arduino, &nframes);
+        err = arduino_get_frames_(arduino, &stack.frames);
         if (err != 0)
                 goto error_recovery;
 
-        log_info("Arduino: Found %d measurement frames", nframes); 
+        log_info("Arduino: Found %d measurement frames", stack.frames); 
 
-        unsigned char checksum_a;
-        err = arduino_get_checksum_(arduino, &checksum_a);
-        if (err != 0)
-                goto error_recovery;
-
-        log_info("Arduino: Checksum Arduino 0x%02x", checksum_a); 
-
-        int size = (nframes * (1 + num_streams) + 1) * sizeof(datapoint_t);
-
-        datapoints = (datapoint_t*) malloc(size);
-        if (datapoints == NULL) {
-                log_info("Arduino: Out of memory"); 
-                goto error_recovery;
-        }
-        memset(datapoints, 0, size);
-
-        if (nframes == 0) {
+        if (stack.frames == 0) {
                 err = arduino_set_state_(arduino, STATE_MEASURING);
                 goto clean_exit;
         }
+
+        err = arduino_get_checksum_(arduino, &stack.checksum);
+        if (err != 0)
+                goto error_recovery;
+
+        log_info("Arduino: Checksum Arduino 0x%02x", stack.checksum); 
+
 
         for (int attempt = 0; attempt < 5; attempt++) {
 
                 log_info("Arduino: Download attempt %d", attempt + 1); 
 
-                err = arduino_read_data_(arduino, 
-                                         datapoints, nframes, 
-                                         datastreams, num_streams);
-
+                err = arduino_copy_stack_(arduino, &stack);
                 if (err != 0)
                         continue;
 
-                size = nframes * (1 + num_streams) * sizeof(datapoint_t);
-                unsigned char checksum_r = crc8(0, (const unsigned char*) datapoints, size);
+                unsigned char* ptr = (unsigned char*) &stack.values[0];
+                int len = stack.frames * stack.framesize * 4;
+                unsigned char checksum = crc8(0, ptr, len);
                 
-                log_info("Arduino: Checksum Linux 0x%02x", checksum_r); 
+                log_info("Arduino: Checksum Linux 0x%02x", checksum); 
                 
-                if (checksum_r == checksum_a)
-                        break;
+                if (checksum != stack.checksum)
+                        err = -1;
+
+                if (err != 0)
+                        continue;
         }
         
+        if (err == 0)
+                datapoints = arduino_convert_stack_(arduino, &stack, 
+                                                    datastreams,
+                                                    num_points);
 
  clean_exit:
  error_recovery:

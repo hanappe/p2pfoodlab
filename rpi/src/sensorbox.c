@@ -563,7 +563,8 @@ int sensorbox_store_sensor_data(sensorbox_t* box,
                 return -1;
         }
 
-        datapoint_t* datapoints = arduino_read_data(box->arduino);
+        int num_points;
+        datapoint_t* datapoints = arduino_read_data(box->arduino, &num_points);
 
         if (datapoints != NULL) {
 
