@@ -40,6 +40,7 @@ extern "C" {
 #define DATASTREAM_RHX     4
 #define DATASTREAM_LUM     5
 #define DATASTREAM_SOIL    6
+#define DATASTREAM_LAST    7
 
 typedef struct _datapoint_t {
         int datastream;

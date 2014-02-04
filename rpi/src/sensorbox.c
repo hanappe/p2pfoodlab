@@ -446,28 +446,28 @@ static int sensorbox_map_datastreams(sensorbox_t* box,
                                      unsigned char enabled, 
                                      int* ids)
 {
-        int i;
-        int count = 0;
+        memset(ids, 0, DATASTREAM_LAST * sizeof(int));
+
         if (enabled & SENSOR_TRH) {
-                ids[count++] = opensensordata_get_datastream_id(box->osd, "t");
-                ids[count++] = opensensordata_get_datastream_id(box->osd, "rh");
+                ids[DATASTREAM_T] = opensensordata_get_datastream_id(box->osd, "t");
+                ids[DATASTREAM_RH] = opensensordata_get_datastream_id(box->osd, "rh");
         }
         if (enabled & SENSOR_TRHX) {
-                ids[count++] = opensensordata_get_datastream_id(box->osd, "tx");
-                ids[count++] = opensensordata_get_datastream_id(box->osd, "rhx");
+                ids[DATASTREAM_TX] = opensensordata_get_datastream_id(box->osd, "tx");
+                ids[DATASTREAM_RHX] = opensensordata_get_datastream_id(box->osd, "rhx");
         }
         if (enabled & SENSOR_LUM) {
-                ids[count++] = opensensordata_get_datastream_id(box->osd, "lum");
+                ids[DATASTREAM_LUM] = opensensordata_get_datastream_id(box->osd, "lum");
         }
         if (enabled & SENSOR_SOIL) {
-                ids[count++] = opensensordata_get_datastream_id(box->osd, "soil");
+                ids[DATASTREAM_SOIL] = opensensordata_get_datastream_id(box->osd, "soil");
         }
-        for (i = 0; i < count; i++) {
-                if (ids[i] == -1) {                        
+
+        for (int i = 0; i < DATASTREAM_LAST; i++) 
+                if (ids[i] == -1)
                         return -1;
-                }
-        }
-        return count;
+
+        return 0;
 }
 
 int sensorbox_check_sensors(sensorbox_t* box)
@@ -528,6 +528,7 @@ int sensorbox_store_sensor_data(sensorbox_t* box,
         unsigned char sensors_a;
         unsigned char period_a;
         int err;
+        int osd_id[DATASTREAM_LAST];
 
         err = arduino_get_sensors(box->arduino, &sensors_a);
         if (err != 0) 
@@ -537,14 +538,9 @@ int sensorbox_store_sensor_data(sensorbox_t* box,
         if (err != 0) 
                 return err;
 
-        int datastreams[16];
-        int num_datastreams = sensorbox_map_datastreams(box, sensors_a, datastreams);
-        if (num_datastreams == -1) 
-                return -1;
-
-        log_info("Sensorbox: Found %d datastreams", num_datastreams); 
-        if (num_datastreams == 0)
-                return 0;
+        err = sensorbox_map_datastreams(box, sensors_a, osd_id);
+        if (err != 0) 
+                return err;
 
         if (filename == NULL) {
                 filename = sensorbox_path(box, "datapoints.csv");
@@ -576,19 +572,13 @@ int sensorbox_store_sensor_data(sensorbox_t* box,
                          r.tm_hour, r.tm_min, r.tm_sec);
                 
                 fprintf(box->datafp, "%d,%s,%f\n", 
-                        datapoints[i].datastream, 
+                        osd_id[datapoints[i].datastream], 
                         s, 
                         datapoints[i].value);
         } 
 
         if (datapoints)
                 free(datapoints);
-
-        /* err = arduino_read_data(box->arduino, */
-        /*                         datastreams, */
-        /*                         num_datastreams, */
-        /*                         (arduino_data_callback_t) sensorbox_data_callback, */
-        /*                         box); */
 
         if (box->datafp != stdout) {
                 fclose(box->datafp);
