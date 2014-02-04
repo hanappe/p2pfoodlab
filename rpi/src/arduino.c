@@ -519,9 +519,8 @@ static datapoint_t* arduino_convert_stack_(arduino_t* arduino,
                         datapoints[datapoint].datastream = datastreams[j];
                         datapoints[datapoint].timestamp = timestamp;
                         datapoints[datapoint].value = v;
+                        datapoint++;
                 }
-
-                datapoint++;
         }
 
         *num_points = datapoint;
