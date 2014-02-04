@@ -422,26 +422,6 @@ static int arduino_set_period_(arduino_t* arduino,
         return arduino_write(arduino, value, CMD_PERIOD, 1);
 }
 
-/* static int arduino_read_timestamp(arduino_t* arduino, time_t* timestamp) */
-/* { */
-/*         log_debug("Arduino: Read timestamp");  */
-/*         unsigned long v; */
-/*         int err = arduino_read_value(arduino, &v, CMD_READ, 4); */
-/*         if (err == 0)  */
-/*                 *timestamp = (time_t) v; */
-/*         return err; */
-/* } */
-
-/* static int arduino_read_float(arduino_t* arduino, float* value) */
-/* { */
-/*         log_debug("Arduino: Read float value");  */
-/*         unsigned long v; */
-/*         int err = arduino_read_value(arduino, &v, CMD_READ, 4); */
-/*         if (err == 0)  */
-/*                 *value = *((float*) &v); */
-/*         return err; */
-/* } */
-
 static int arduino_start_transfer(arduino_t* arduino)
 {
         if (i2c_smbus_write_byte(arduino->fd, CMD_START) == -1) {
@@ -602,13 +582,13 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
                 log_info("Arduino: Checksum Linux 0x%02x", checksum); 
 
                 //
-                for (int i = 0; i < len; i++) {
-                        fprintf(stderr, "%02x", ptr[i]);
-                        if ((i % 4) == 3)
-                                fprintf(stderr, "\n");
-                        else 
-                                fprintf(stderr, " ");
-                }
+                /* for (int i = 0; i < len; i++) { */
+                /*         fprintf(stderr, "%02x", ptr[i]); */
+                /*         if ((i % 4) == 3) */
+                /*                 fprintf(stderr, "\n"); */
+                /*         else  */
+                /*                 fprintf(stderr, " "); */
+                /* } */
                 //
 
                 if (checksum != stack.checksum)
