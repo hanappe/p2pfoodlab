@@ -158,38 +158,27 @@ static void stack_clear()
         _stack.checksum = 0;
 }
 
-#define stack_set_framesize(__framesize) { _stack.framesize = __framesize; }
-#define stack_frame_begin() (_stack.sp)
-#define stack_frame_unroll(__sp) { _stack.sp = __sp; }
-#define stack_length()  (_stack.frames * _stack.framesize * sizeof(stack_entry_t))
-#define stack_geti(__n) (_stack.values[__n].i)
-#define stack_checksum() (_stack.checksum)
-#define stack_num_frames() (_stack.frames)
+#define stack_set_framesize(__framesize)  { _stack.framesize = __framesize; }
+#define stack_frame_begin()               (_stack.sp)
+#define stack_frame_unroll(__sp)          { _stack.sp = __sp; }
+#define stack_address()                   ((unsigned char*) &_stack.values[0])
+#define stack_bytesize()                  (_stack.frames * _stack.framesize * sizeof(stack_entry_t))
+#define stack_frame_bytesize()            (_stack.framesize * sizeof(stack_entry_t))
+#define stack_geti(__n)                   (_stack.values[__n].i)
+#define stack_checksum()                  (_stack.checksum)
+#define stack_num_frames()                (_stack.frames)
 
 static void stack_frame_end()
 {
         /* This update should be called with interupts disabled!
            Without it, we might be sending back the wrong checksum
            and/or number of frames when an I2C request comes in. */
-        const unsigned char* data = (const unsigned char*) &_stack.values[0];
-        unsigned short offset = _stack.frames * _stack.framesize * sizeof(stack_entry_t);
-        unsigned short len = _stack.framesize * sizeof(stack_entry_t);
+        unsigned char* data = stack_address();
+        unsigned short offset = stack_bytesize();
+        unsigned short len = stack_frame_bytesize();
         unsigned char crc = crc8(_stack.checksum, data + offset, len);
         _stack.checksum = crc;
         _stack.frames++;
-
-        // DEBUG
-        len = _stack.frames * _stack.framesize * sizeof(stack_entry_t);
-        unsigned char crc2 = crc8(0, data, len);
-        DebugPrintValue("CRC (1): ", _stack.checksum);
-        DebugPrintValue("CRC (2): ", crc2);        
-        for (int i = 0; i < len; i++) {
-                Serial.print(data[i], HEX);
-                if ((i % 4) == 3)
-                        Serial.println();
-                else 
-                        Serial.print(" ");
-        }
 }
 
 static int stack_pushf(float value)
@@ -364,8 +353,8 @@ static void send_data()
                 /* nothing to do here */
 
         } else if (command == CMD_READ) {
-                unsigned char* ptr = (unsigned char*) &_stack.values[0];
-                unsigned short len = stack_length();
+                unsigned char* ptr = stack_address();
+                unsigned short len = stack_bytesize();
                 i2c_send_len = 4;
                 if ((len == 0) || (read_index >= len)) {
                         i2c_send_buf[0] = 0;
@@ -377,7 +366,6 @@ static void send_data()
                         i2c_send_buf[1] = ptr[read_index++];
                         i2c_send_buf[2] = ptr[read_index++];
                         i2c_send_buf[3] = ptr[read_index++]; 
-                        read_index += 4;
                 }
 
         } else if (command == CMD_PUMP) {
@@ -513,6 +501,23 @@ static void measure_sensors()
         // Enable I2C interupts
         interrupts();
 
+
+        // DEBUG
+        if (1) {
+                unsigned char* data = stack_address();
+                int len = stack_bytesize();
+                unsigned char crc2 = crc8(0, data, len);
+                DebugPrintValue("CRC (1): ", _stack.checksum);
+                DebugPrintValue("CRC (2): ", crc2);        
+                for (int i = 0; i < len; i++) {
+                        Serial.print(data[i], HEX);
+                        if ((i % 4) == 3)
+                                Serial.println();
+                        else 
+                                Serial.print(" ");
+                }
+        }
+
         return;
 
  unroll_stack:
@@ -569,7 +574,7 @@ static void handle_updates()
                 DebugPrintValue("  new sensor settings: ", new_sensors);
                 sensors = new_sensors;
                 stack_clear();
-                stack_set_framesize(count_sensors(sensors));
+                stack_set_framesize(1 + count_sensors(sensors));
         }
         
         if (period != new_period) {
@@ -633,7 +638,7 @@ void setup()
 
         last_minute = getminutes();
         stack_clear();
-        stack_set_framesize(count_sensors(sensors));
+        stack_set_framesize(1 + count_sensors(sensors));
 
         DebugPrint("Ready.");  
 }
