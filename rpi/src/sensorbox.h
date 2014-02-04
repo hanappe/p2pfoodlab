@@ -52,6 +52,9 @@ void sensorbox_update_camera(sensorbox_t* box);
 int sensorbox_get_time(sensorbox_t* box, time_t* m);
 int sensorbox_set_time(sensorbox_t* box, time_t m);
 
+/* Number of seconds since system start. */
+int sensorbox_uptime(sensorbox_t* box);
+
 
 #ifdef __cplusplus
 }

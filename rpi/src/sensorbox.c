@@ -581,6 +581,8 @@ int sensorbox_store_sensor_data(sensorbox_t* box,
                                 s, 
                                 datapoints[i].value);
                 } 
+
+                free(datapoints);
         }
 
         /* err = arduino_read_data(box->arduino, */
@@ -808,11 +810,27 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
                 log_info("Next event in %d minute(s)", delta);
         }  
 
-        if ((delta > 3) && sensorbox_poweroff_enabled(box)) {
+        /* Power off if:
+           1. poweroff enabled in config
+           2. next event is at least 3 minutes in the future
+           3. the system has been up for at least 3 minutes.
+
+           The last criteria is to avoid that the sensorbox shuts down
+           too quickly to allow people to connect to it.
+         */
+        int uptime = sensorbox_uptime(box);
+        int enabled = sensorbox_poweroff_enabled(box);
+        if ((delta > 3) && enabled && (uptime > 180)) {
                 if (box->test) 
                         printf("POWEROFF %d\n", delta - 3);
                 else
                         sensorbox_poweroff(box, delta - 3);
+        } else if (delta <= 3) {
+                log_info("Not powering off, next event is coming soon");
+        } else if (!enabled) {
+                log_debug("Powering off not enabled in config file");
+        } else if (uptime <= 180) {
+                log_info("Not powering off, system just started");
         }
 }
 
@@ -836,5 +854,23 @@ int sensorbox_print_events(sensorbox_t* box)
 {
         eventlist_print(box->events, stdout); 
         return 0;
+}
+
+int sensorbox_uptime(sensorbox_t* box)
+{
+        FILE* fp = fopen("/proc/uptime", "r");
+        if (fp == NULL) {
+                log_err("Failed to open /proc/uptime!");
+                return -1;
+        }
+        double seconds;
+        int n = fscanf(fp, "%lf", &seconds);
+        if (n != 1) {
+                log_err("Failed to read the system uptime!");
+                fclose(fp);
+                return -1;
+        }
+        fclose(fp);
+        return (int) seconds;
 }
 

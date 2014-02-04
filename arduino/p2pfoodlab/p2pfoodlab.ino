@@ -49,6 +49,7 @@
 #define CMD_PUMP                0x0f
 #define CMD_PERIOD              0x10
 #define CMD_START               0x11
+#define CMD_CHECKSUM            0x12
 
 #define STATE_MEASURING         1
 #define STATE_RESETSTACK        2
@@ -62,10 +63,10 @@
 #define RPi_PIN                 2
 #define PUMP_PIN                10
 
-#define SENSOR_TRH         (1 << 0)
-#define SENSOR_TRHX        (1 << 1)
-#define SENSOR_LUM         (1 << 2)
-#define SENSOR_SOIL        (1 << 3)
+#define SENSOR_TRH              (1 << 0)
+#define SENSOR_TRHX             (1 << 1)
+#define SENSOR_LUM              (1 << 2)
+#define SENSOR_SOIL             (1 << 3)
 
 #define MAX_SLEEP               10000
 
@@ -81,7 +82,7 @@
 
 /* The update period and poweroff/wakeup times are measured in
    minutes. */
-unsigned char sensors = RHT03_1_FLAG;
+unsigned char sensors = SENSOR_TRH;
 unsigned char state = STATE_MEASURING; 
 unsigned char period = 1; 
 unsigned char measure = 1;
@@ -90,7 +91,7 @@ unsigned short poweroff = 0;
 unsigned short wakeup = 0;
 unsigned long last_minute = 0;
 unsigned long suspend_start = 0;
-unsigned char new_sensors = RHT03_1_FLAG;
+unsigned char new_sensors = SENSOR_TRH;
 unsigned char new_period = 1; 
 unsigned char new_state = 0; 
 unsigned char new_pump = 0; 
@@ -108,51 +109,104 @@ unsigned char i2c_send = 0;
 DHT22 rht03_1(RHT03_1_PIN);
 DHT22 rht03_2(RHT03_2_PIN);
 
+// CRC-8 - based on the CRC8 formulas by Dallas/Maxim
+// code released under the therms of the GNU GPL 3.0 license
+// http://www.leonardomiliani.com/2013/un-semplice-crc8-per-arduino/?lang=en
+static unsigned char crc8(unsigned char crc, const unsigned char *data, unsigned char len) 
+{
+        while (len--) {
+                unsigned char extract = *data++;
+                for (unsigned char i = 8; i; i--) {
+                        unsigned char sum = (crc ^ extract) & 0x01;
+                        crc >>= 1;
+                        if (sum) {
+                                crc ^= 0x8C;
+                        }
+                        extract >>= 1;
+                }
+        }
+        return crc;
+}
+
+/*
+ * Stack 
+ */
+
 /* The timestamps and sensor data are pushed onto the stack until the
    RPi downloads it. */
 #define STACK_SIZE 128
-unsigned short frames = 0;
-unsigned short sp = 0;
 
 typedef union _stack_entry_t {
         unsigned long i;
         float f;
 } stack_entry_t;
 
+typedef struct _stack_t {
+        unsigned char checksum;
+        unsigned char frames;
+        unsigned char framesize;
+        unsigned short sp;
+        stack_entry_t values[STACK_SIZE];
+} stack_t;
+
 stack_entry_t stack[STACK_SIZE];
+stack_t _stack;
 
-void stack_clear()
+static void stack_clear()
 {
-        sp = 0;
-        frames = 0;
+        _stack.sp = 0;
+        _stack.frames = 0;
+        _stack.checksum = 0;
 }
 
-void stack_reset(int newsp)
+#define stack_set_framesize(__framesize) { _stack.framesize = __framesize; }
+#define stack_frame_begin() (_stack.sp)
+#define stack_frame_unroll(__sp) { _stack.sp = __sp; }
+#define stack_length()  (_stack.frames * _stack.framesize)
+#define stack_geti(__n) (_stack.values[__n].i)
+#define stack_checksum() (_stack.checksum)
+#define stack_num_frames() (_stack.frames)
+
+static void stack_frame_end()
 {
-        sp = newsp;
+        /* This update should be called with interupts disabled!
+           Without it, we might be sending back the wrong checksum
+           and/or number of frames when an I2C request comes in. */
+        const unsigned char* data = (const unsigned char*) &_stack.values[0];
+        unsigned short offset = _stack.frames * _stack.framesize * sizeof(stack_entry_t);
+        unsigned char len = _stack.framesize * sizeof(stack_entry_t);
+        unsigned char crc = crc8(_stack.checksum, data + offset, len);
+        _stack.checksum = crc;
+        _stack.frames++;
 }
 
-int stack_pushf(float value)
+static int stack_pushf(float value)
 {
-        if (sp < STACK_SIZE) {
-                stack[sp++].f = value;
+        if (_stack.sp < STACK_SIZE) {
+                _stack.values[_stack.sp++].f = value;
                 return 1;
         }
         DebugPrint("  STACK FULL");
         return 0;
 }
 
-int stack_pushi(unsigned long value)
+static int stack_pushi(unsigned long value)
 {
-        if (sp < STACK_SIZE) {
-                stack[sp++].i = value;
+        if (_stack.sp < STACK_SIZE) {
+                _stack.values[_stack.sp++].i = value;
                 return 1;
         }
         DebugPrint("  STACK FULL");
         return 0;
 }
 
-unsigned long getseconds()
+/*
+ * Time functions
+ */
+
+static unsigned long _start = 0;
+
+static unsigned long getseconds()
 {
         static unsigned long _seconds = 0;
         unsigned long s = millis() / 1000;
@@ -163,14 +217,7 @@ unsigned long getseconds()
         return _seconds;
 }
 
-unsigned long getminutes()
-{
-        return getseconds() / 60;
-}
-
-static unsigned long _start = 0;
-
-unsigned long time(unsigned long t)
+static unsigned long time(unsigned long t)
 {
         unsigned long s = getseconds();
         if (t)
@@ -178,12 +225,15 @@ unsigned long time(unsigned long t)
         return _start + s;
 }
 
-unsigned char hastime()
-{
-        return _start != 0;
-}
+#define getminutes() (getseconds() / 60)
+#define hastime() (_start != 0)
 
-void receive_data(int byteCount)
+
+/*
+ * I2C interupt handlers
+ */
+
+static void receive_data(int len)
 {
 #if DEBUG
         i2c_recv = 1;
@@ -191,7 +241,7 @@ void receive_data(int byteCount)
 
         i2c_recv_len = 0;
         
-        for (int i = 0; i < byteCount; i++) {
+        for (int i = 0; i < len; i++) {
                 int v = Wire.read();
                 if (i < sizeof(i2c_recv_buf)) 
                         i2c_recv_buf[i2c_recv_len++] = v & 0xff;
@@ -231,6 +281,9 @@ void receive_data(int byteCount)
         } else if (command == CMD_START) {
                 read_index = 0;
 
+        } else if (command == CMD_CHECKSUM) {
+                // Do nothing here
+
         } else if (command == CMD_READ) {
                 // Do nothing here
 
@@ -239,7 +292,7 @@ void receive_data(int byteCount)
         }
 }
 
-void send_data()
+static void send_data()
 {
         unsigned char command = i2c_recv_buf[0];
 
@@ -292,24 +345,31 @@ void send_data()
 
         } else if (command == CMD_FRAMES) {
                 i2c_send_len = 2;
-                i2c_send_buf[0] = (frames & 0xff00) >> 8; 
-                i2c_send_buf[1] = (frames & 0x00ff);
+                i2c_send_buf[0] = (stack_num_frames() & 0xff00) >> 8; 
+                i2c_send_buf[1] = (stack_num_frames() & 0x00ff);
 
         } else if (command == CMD_START) {
                 /* nothing to do here */
 
         } else if (command == CMD_READ) {
-                unsigned long* data = (unsigned long*) &stack[0];
-                unsigned long v = data[read_index];
+                unsigned short len = stack_length();
+                unsigned long v;
+                if ((len == 0) || (read_index >= len))
+                        v = 0;
+                else 
+                        v = stack_geti(read_index);
                 i2c_send_len = 4;
                 i2c_send_buf[0] = (v & 0xff000000) >> 24; 
                 i2c_send_buf[1] = (v & 0x00ff0000) >> 16; 
                 i2c_send_buf[2] = (v & 0x0000ff00) >> 8; 
                 i2c_send_buf[3] = (v & 0x000000fff); 
-                if (++read_index >= sp)
-                        read_index = sp - 1;
+                read_index++;
 
         } else if (command == CMD_PUMP) {
+
+        } else if (command == CMD_CHECKSUM) {
+                i2c_send_len = 1;
+                i2c_send_buf[0] = stack_checksum();
         }
         
         Wire.write(i2c_send_buf, i2c_send_len);
@@ -319,49 +379,21 @@ void send_data()
 #endif
 }
 
-void setup() 
-{
-        Serial.begin(9600);
+/*
+ * Sensors & measurements
+ */
 
-        pinMode(13, OUTPUT);
-        digitalWrite(13, LOW);
-
-        // initialize i2c as slave
-        Wire.begin(SLAVE_ADDRESS);
-        
-        // define callbacks for i2c communication
-        Wire.onReceive(receive_data);
-        Wire.onRequest(send_data);
-
-        // By default, start-up the RPi. The RPi will
-        // tell the Arduino when to shut it down again.
-        // However, first make sure the RPi was completely
-        // shut down (pull down the pin) so it boots up correctly.
-        pinMode(RPi_PIN, OUTPUT);
-
-        digitalWrite(RPi_PIN, LOW);
-        delay(1000);  
-        digitalWrite(RPi_PIN, HIGH);
-
-        pinMode(PUMP_PIN, OUTPUT);
-        digitalWrite(PUMP_PIN, LOW);
-
-        last_minute = getminutes();
-
-        DebugPrint("Ready.");  
-}
-
-float get_luminosity()
+static float get_luminosity()
 {
         return 0.0f;
 }
 
-float get_soilhumidity()
+static float get_soilhumidity()
 {
         return 0.0f;
 }
 
-int get_rht03(DHT22* sensor, float* t, float* h)
+static int get_rht03(DHT22* sensor, float* t, float* h)
 { 
         delay(2000);
   
@@ -379,7 +411,7 @@ int get_rht03(DHT22* sensor, float* t, float* h)
         return -1;
 }
 
-void measure_sensors()
+static void measure_sensors()
 {  
         DebugPrint("  measure_sensors");
 
@@ -388,65 +420,109 @@ void measure_sensors()
                 return;
         }
 
-        unsigned short old_sp = sp;        
+        unsigned short old_sp = stack_frame_begin();
+        
+        if (state != STATE_MEASURING) {
+                return;
+        }
+        if (new_state != state) {
+                /* Handle state change first */
+                return;
+        }
 
         if (!stack_pushi(time(0)))
-                goto reset_stack;
+                goto unroll_stack;
 
         if (sensors & SENSOR_TRH) {
                 float t, rh; 
                 if (get_rht03(&rht03_1, &t, &rh) == 0) {
                         if (!stack_pushf(t))
-                                goto reset_stack;
+                                goto unroll_stack;
                         if (!stack_pushf(rh))
-                                goto reset_stack;
+                                goto unroll_stack;
                         DebugPrintValue("  t ", t);
                         DebugPrintValue("  rh ", rh);
                 } else {
                         if (!stack_pushf(-300.0f))
-                                goto reset_stack;
+                                goto unroll_stack;
                         if (!stack_pushf(-1.0f))
-                                goto reset_stack;
+                                goto unroll_stack;
                 }
         }
         if (sensors & SENSOR_TRHX) {
                 float t, rh; 
                 if (get_rht03(&rht03_2, &t, &rh) == 0) {
                         if (!stack_pushf(t))
-                                goto reset_stack;
+                                goto unroll_stack;
                         if (!stack_pushf(rh))
-                                goto reset_stack;
+                                goto unroll_stack;
                         DebugPrintValue("  tx ", t);
                         DebugPrintValue("  rhx ", rh);
                 } else {
                         if (!stack_pushf(-300.0f))
-                                goto reset_stack;
+                                goto unroll_stack;
                         if (!stack_pushf(-1.0f))
-                                goto reset_stack;
+                                goto unroll_stack;
                 }
         }
+
         if (sensors & SENSOR_LUM) {
                 float luminosity = get_luminosity(); 
                 if (!stack_pushf(luminosity))
-                        goto reset_stack;
+                        goto unroll_stack;
                 DebugPrintValue("  lum ", luminosity);
         }
+
         if (sensors & SENSOR_SOIL) {
-                float humidity = get_soilhumidity; 
+                float humidity = get_soilhumidity(); 
                 if (!stack_pushf(humidity))
-                        goto reset_stack;
+                        goto unroll_stack;
                 DebugPrintValue("  soil ", humidity);
         }
 
-        frames++;
+
+        // Block I2C interupts
+        noInterrupts();
+
+        if (new_state != state) {
+                /* We've been interrupted by an I2C state change
+                   request during the measurements. Roll back. */
+                stack_frame_unroll(old_sp);
+        } else {
+                /* Update the frame count and the checksum. */
+                stack_frame_end();
+        }
+
+        // Enable I2C interupts
+        interrupts();
+
         return;
 
- reset_stack:
-        stack_reset(old_sp);
+ unroll_stack:
+        stack_frame_unroll(old_sp);
         return;
 }
 
-void blink(int count, int msec)
+
+/*
+ * Utility functions
+ */
+
+static unsigned char count_sensors(unsigned char s)
+{  
+        unsigned char n = 0;
+        if (s & SENSOR_TRH) 
+                n += 2;
+        if (s & SENSOR_TRHX)
+                n += 2;
+        if (s & SENSOR_LUM) 
+                n += 1;
+        if (s & SENSOR_SOIL)
+                n += 1;
+        return n;
+}
+
+static void blink(int count, int msec)
 {  
         int i;
         for (i = 0; i < count; i++) {
@@ -457,7 +533,7 @@ void blink(int count, int msec)
         }                
 }
 
-void handle_updates()
+static void handle_updates()
 {  
 #if DEBUG
         if (i2c_recv) {
@@ -476,6 +552,7 @@ void handle_updates()
                 DebugPrintValue("  new sensor settings: ", new_sensors);
                 sensors = new_sensors;
                 stack_clear();
+                stack_set_framesize(count_sensors(sensors));
         }
         
         if (period != new_period) {
@@ -506,6 +583,44 @@ void handle_updates()
         }
 }
 
+/*
+ * Arduino main functions
+ */
+
+void setup() 
+{
+        Serial.begin(9600);
+
+        pinMode(13, OUTPUT);
+        digitalWrite(13, LOW);
+
+        // initialize i2c as slave
+        Wire.begin(SLAVE_ADDRESS);
+        
+        // define callbacks for i2c communication
+        Wire.onReceive(receive_data);
+        Wire.onRequest(send_data);
+
+        // By default, start-up the RPi. The RPi will
+        // tell the Arduino when to shut it down again.
+        // However, first make sure the RPi was completely
+        // shut down (pull down the pin) so it boots up correctly.
+        pinMode(RPi_PIN, OUTPUT);
+
+        digitalWrite(RPi_PIN, LOW);
+        delay(1000);  
+        digitalWrite(RPi_PIN, HIGH);
+
+        pinMode(PUMP_PIN, OUTPUT);
+        digitalWrite(PUMP_PIN, LOW);
+
+        last_minute = getminutes();
+        stack_clear();
+        stack_set_framesize(count_sensors(sensors));
+
+        DebugPrint("Ready.");  
+}
+
 void loop()
 {  
         unsigned long seconds = getseconds();
@@ -518,8 +633,8 @@ void loop()
         DebugPrintValue("  time         ", time(0)); 
         DebugPrintValue("  seconds      ", seconds); 
         DebugPrintValue("  minutes      ", minutes); 
-        DebugPrintValue("  stack size   ", sp); 
-        DebugPrintValue("  stack frames ", frames); 
+        DebugPrintValue("  stack size   ", _stack.sp); 
+        DebugPrintValue("  stack frames ", _stack.frames); 
         DebugPrintValue("  measure      ", measure);
         DebugPrintValue("  period       ", period);
         DebugPrintValue("  poweroff     ", poweroff);

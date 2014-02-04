@@ -83,6 +83,7 @@
 #define CMD_PUMP                0x0f
 #define CMD_PERIOD              0x10
 #define CMD_START               0x11
+#define CMD_CHECKSUM            0x12
 
 #define STATE_MEASURING         1
 #define STATE_RESETSTACK        2
@@ -304,6 +305,23 @@ static int arduino_get_frames_(arduino_t* arduino, int* frames)
 	return err;
 }
 
+static int arduino_get_checksum_(arduino_t* arduino, unsigned char* checksum)
+{
+        log_debug("Arduino: Getting the checksum on the Arduino"); 
+	unsigned long value;
+	int err;
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+                err = arduino_read(arduino, &value, CMD_CHECKSUM, 1);
+                if (err == 0) {
+                        *checksum = (unsigned char) (value & 0xff);
+                        break;
+                }
+        }
+
+	return err;
+}
+
 static int arduino_pump_(arduino_t* arduino, int seconds)
 {
         /* int err; */
@@ -440,6 +458,26 @@ static int arduino_read_data_(arduino_t* arduino,
         return 0;
 }
 
+
+// CRC-8 - based on the CRC8 formulas by Dallas/Maxim
+// code released under the therms of the GNU GPL 3.0 license
+// http://www.leonardomiliani.com/2013/un-semplice-crc8-per-arduino/?lang=en
+static unsigned char crc8(unsigned char crc, const unsigned char *data, unsigned char len) 
+{
+        while (len--) {
+                unsigned char extract = *data++;
+                for (unsigned char i = 8; i; i--) {
+                        unsigned char sum = (crc ^ extract) & 0x01;
+                        crc >>= 1;
+                        if (sum) {
+                                crc ^= 0x8C;
+                        }
+                        extract >>= 1;
+                }
+        }
+        return crc;
+}
+
 datapoint_t* arduino_read_data(arduino_t* arduino)
 {
         int err = -1; 
@@ -482,9 +520,16 @@ datapoint_t* arduino_read_data(arduino_t* arduino)
 
         log_info("Arduino: Found %d measurement frames", nframes); 
 
-        int size = (nframes + 1) * sizeof(datapoint_t);
+        unsigned char checksum_a;
+        err = arduino_get_checksum_(arduino, &checksum_a);
+        if (err != 0)
+                goto error_recovery;
 
-        datapoints = (datapoint_t*) malloc((nframes + 1) * sizeof(datapoint_t));
+        log_info("Arduino: Checksum Arduino 0x%02x", checksum_a); 
+
+        int size = (nframes * (1 + num_streams) + 1) * sizeof(datapoint_t);
+
+        datapoints = (datapoint_t*) malloc(size);
         if (datapoints == NULL) {
                 log_info("Arduino: Out of memory"); 
                 goto error_recovery;
@@ -504,9 +549,18 @@ datapoint_t* arduino_read_data(arduino_t* arduino)
                                          datapoints, nframes, 
                                          datastreams, num_streams);
 
-                if (err == 0)
+                if (err != 0)
+                        continue;
+
+                size = nframes * (1 + num_streams) * sizeof(datapoint_t);
+                unsigned char checksum_r = crc8(0, (const unsigned char*) datapoints, size);
+                
+                log_info("Arduino: Checksum Linux 0x%02x", checksum_r); 
+                
+                if (checksum_r == checksum_a)
                         break;
         }
+        
 
  clean_exit:
  error_recovery:
