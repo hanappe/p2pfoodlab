@@ -558,16 +558,16 @@ static void blink(int count, int msec)
 static void handle_updates()
 {  
 #if DEBUG
-        if (i2c_recv) {
-                for (int i = 0; i < i2c_recv_len; i++)
-                        DebugPrintValue("  I2C receive buffer: ", i2c_recv_buf[i]);
-                i2c_recv = 0;
-        }
-        if (i2c_send) {
-                for (int i = 0; i < i2c_send_len; i++)
-                        DebugPrintValue("  I2C send buffer: ", i2c_send_buf[i]);
-                i2c_send = 0;
-        }
+        /* if (i2c_recv) { */
+        /*         for (int i = 0; i < i2c_recv_len; i++) */
+        /*                 DebugPrintValue("  I2C receive buffer: ", i2c_recv_buf[i]); */
+        /*         i2c_recv = 0; */
+        /* } */
+        /* if (i2c_send) { */
+        /*         for (int i = 0; i < i2c_send_len; i++) */
+        /*                 DebugPrintValue("  I2C send buffer: ", i2c_send_buf[i]); */
+        /*         i2c_send = 0; */
+        /* } */
 #endif
         
         if (sensors != new_sensors) {

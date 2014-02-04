@@ -808,7 +808,7 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
         } else if (!enabled) {
                 log_debug("Powering off not enabled in config file");
         } else if (uptime <= 180) {
-                log_info("Not powering off, system just started");
+                log_info("Not powering off, system just started (%ds < 180s)", uptime);
         }
 }
 

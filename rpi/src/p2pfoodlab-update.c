@@ -41,7 +41,6 @@ static char* _home_dir = "/var/p2pfoodlab";
 static char* _log_file = "/var/p2pfoodlab/log.txt";
 static char* _output_file = NULL;
 static int _test = 0;
-static char* _command = "update";
 
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 0
@@ -156,10 +155,12 @@ static void init_log(const char* file)
 
 int main(int argc, char **argv)
 {
+        char* command = "update";
+
         parse_arguments(argc, argv);
 
         if (optind < argc) 
-                _command = argv[optind++];
+                command = argv[optind++];
 
         init_log(_log_file);
 
@@ -170,7 +171,7 @@ int main(int argc, char **argv)
         if (_test) 
                 sensorbox_test_run(box);
 
-        if (strcmp(_command, "update") == 0) {
+        if (strcmp(command, "update") == 0) {
                 sensorbox_check_sensors(box);
                 sensorbox_handle_events(box);
                 sensorbox_upload_data(box);
@@ -178,32 +179,32 @@ int main(int argc, char **argv)
                 sensorbox_poweroff_maybe(box);
                 clock_update(box);
 
-        } else if (strcmp(_command, "upload-data") == 0) {
+        } else if (strcmp(command, "upload-data") == 0) {
                 sensorbox_upload_data(box);
 
-        } else if (strcmp(_command, "list-events") == 0) {
+        } else if (strcmp(command, "list-events") == 0) {
                 sensorbox_upload_data(box);
 
-        } else if (strcmp(_command, "upload-photos") == 0) {
+        } else if (strcmp(command, "upload-photos") == 0) {
                 sensorbox_upload_photos(box);
 
-        } else if (strcmp(_command, "camera") == 0) {
+        } else if (strcmp(command, "camera") == 0) {
                 time_t t;
                 if (sensorbox_get_time(box, &t) == 0)
                         sensorbox_update_camera(box, t);
 
-        } else if (strcmp(_command, "sensors") == 0) {
+        } else if (strcmp(command, "sensors") == 0) {
                 sensorbox_store_sensor_data(box, _output_file);
 
-        } else if (strcmp(_command, "update-clock") == 0) {
+        } else if (strcmp(command, "update-clock") == 0) {
                 clock_update(box);
 
-        } else if (strcmp(_command, "set-time") == 0) {
+        } else if (strcmp(command, "set-time") == 0) {
                 //clock_set(box);
                 time_t m = time(NULL);
                 sensorbox_set_time(box, m); 
 
-        } else if (strcmp(_command, "get-time") == 0) {
+        } else if (strcmp(command, "get-time") == 0) {
                 time_t m;
                 int err = sensorbox_get_time(box, &m); 
                 if (!err) {
