@@ -58,7 +58,7 @@ static int sensorbox_add_periodic_events(sensorbox_t* box, int period, int type)
 static int sensorbox_add_fixed_events(sensorbox_t* box, json_object_t fixed, int type);
 static int sensorbox_init_arduino(sensorbox_t* box);
 static int sensorbox_init_camera(sensorbox_t* box);
-static void sensorbox_handle_event(sensorbox_t* box, event_t* e);
+static void sensorbox_handle_event(sensorbox_t* box, event_t* e, time_t t);
 static int sensorbox_poweroff_enabled(sensorbox_t* box);
 static void sensorbox_poweroff(sensorbox_t* box, int minutes);
 
@@ -377,16 +377,16 @@ static int sensorbox_init_arduino(sensorbox_t* box)
         return 0;
 }
 
-static void sensorbox_handle_event(sensorbox_t* box, event_t* e)
+static void sensorbox_handle_event(sensorbox_t* box, event_t* e, time_t t)
 {
         if (e->type == UPDATE_SENSORS) {
                 sensorbox_store_sensor_data(box, NULL);
         } else if (e->type == UPDATE_CAMERA) {
-                sensorbox_update_camera(box);
+                sensorbox_update_camera(box, t);
         }
 }
 
-void sensorbox_update_camera(sensorbox_t* box)
+void sensorbox_update_camera(sensorbox_t* box, time_t t)
 {
         if (box->camera == NULL)
                 return;
@@ -399,15 +399,12 @@ void sensorbox_update_camera(sensorbox_t* box)
 
         char id[512];
         char filename[512];
-        struct timeval tv;
-        struct tm r;
+        struct tm tm;
 
-        gettimeofday(&tv, NULL);
-        localtime_r(&tv.tv_sec, &r);
-
+        localtime_r(&t, &tm);
         snprintf(id, 512, "%04d%02d%02d-%02d%02d%02d.jpg",
-                 1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, 
-                 r.tm_hour, r.tm_min, r.tm_sec);
+                 1900 + tm.tm_year, 1 + tm.tm_mon, tm.tm_mday, 
+                 tm.tm_hour, tm.tm_min, tm.tm_sec);
 
         snprintf(filename, 512, "photostream/%s", id);
 
@@ -505,23 +502,6 @@ int sensorbox_check_sensors(sensorbox_t* box)
         return err;
 }
 
-
-void sensorbox_data_callback(sensorbox_t* box,
-                             int datastream,
-                             time_t timestamp,
-                             float value)
-{
-                struct tm r;
-                char s[256];
-
-                localtime_r(&timestamp, &r);
-                snprintf(s, 256, "%04d-%02d-%02dT%02d:%02d:%02d",
-                         1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, 
-                         r.tm_hour, r.tm_min, r.tm_sec);
-
-                fprintf(box->datafp, "%d,%s,%f\n", datastream, s, value);
-}
-
 int sensorbox_store_sensor_data(sensorbox_t* box, 
                                 const char* filename)
 {
@@ -595,10 +575,14 @@ void sensorbox_test_run(sensorbox_t* box)
 
 void sensorbox_handle_events(sensorbox_t* box)
 {
+        int err;
         time_t t;
         struct tm tm;
 
-        t = time(NULL);
+        err = arduino_get_time(box->arduino, &t);
+        if (err != 0)
+                return;
+        //t = time(NULL);
         localtime_r(&t, &tm);
         log_debug("Current time: %02d:%02d.", tm.tm_hour, tm.tm_min);
         int cur_minute = tm.tm_hour * 60 + tm.tm_min;
@@ -614,7 +598,7 @@ void sensorbox_handle_events(sensorbox_t* box)
                 if (box->test) 
                         log_info("EXEC update %s", (e->type == UPDATE_SENSORS)? "sensors" : "camera");
                 else
-                        sensorbox_handle_event(box, e);
+                        sensorbox_handle_event(box, e, t);
                 e = e->next;
         }
 }
@@ -766,10 +750,15 @@ static void sensorbox_poweroff(sensorbox_t* box, int minutes)
 
 void sensorbox_poweroff_maybe(sensorbox_t* box)
 {
+        int err;
         time_t t;
         struct tm tm;
 
-        t = time(NULL);
+        //t = time(NULL);
+        err = arduino_get_time(box->arduino, &t);
+        if (err != 0)
+                return;
+
         localtime_r(&t, &tm);
         log_debug("Current time: %02d:%02d.", tm.tm_hour, tm.tm_min);
         int cur_minute = tm.tm_hour * 60 + tm.tm_min;

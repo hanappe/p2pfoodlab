@@ -188,7 +188,9 @@ int main(int argc, char **argv)
                 sensorbox_upload_photos(box);
 
         } else if (strcmp(_command, "camera") == 0) {
-                sensorbox_update_camera(box);
+                time_t t;
+                if (sensorbox_get_time(box, &t) == 0)
+                        sensorbox_update_camera(box, t);
 
         } else if (strcmp(_command, "sensors") == 0) {
                 sensorbox_store_sensor_data(box, _output_file);

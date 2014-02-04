@@ -48,7 +48,7 @@ int sensorbox_print_events(sensorbox_t* box);
    the console (stdout). */
 int sensorbox_store_sensor_data(sensorbox_t* box, const char* filename);
 
-void sensorbox_update_camera(sensorbox_t* box);
+void sensorbox_update_camera(sensorbox_t* box, time_t t);
 int sensorbox_get_time(sensorbox_t* box, time_t* m);
 int sensorbox_set_time(sensorbox_t* box, time_t m);
 
