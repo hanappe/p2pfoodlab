@@ -503,20 +503,20 @@ static void measure_sensors()
 
 
         // DEBUG
-        if (1) {
-                unsigned char* data = stack_address();
-                int len = stack_bytesize();
-                unsigned char crc2 = crc8(0, data, len);
-                DebugPrintValue("CRC (1): ", _stack.checksum);
-                DebugPrintValue("CRC (2): ", crc2);        
-                for (int i = 0; i < len; i++) {
-                        Serial.print(data[i], HEX);
-                        if ((i % 4) == 3)
-                                Serial.println();
-                        else 
-                                Serial.print(" ");
-                }
-        }
+        /* if (1) { */
+        /*         unsigned char* data = stack_address(); */
+        /*         int len = stack_bytesize(); */
+        /*         unsigned char crc2 = crc8(0, data, len); */
+        /*         DebugPrintValue("CRC (1): ", _stack.checksum); */
+        /*         DebugPrintValue("CRC (2): ", crc2);         */
+        /*         for (int i = 0; i < len; i++) { */
+        /*                 Serial.print(data[i], HEX); */
+        /*                 if ((i % 4) == 3) */
+        /*                         Serial.println(); */
+        /*                 else  */
+        /*                         Serial.print(" "); */
+        /*         } */
+        /* } */
 
         return;
 
