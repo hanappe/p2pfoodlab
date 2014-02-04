@@ -566,25 +566,23 @@ int sensorbox_store_sensor_data(sensorbox_t* box,
         int num_points;
         datapoint_t* datapoints = arduino_read_data(box->arduino, &num_points);
 
-        if (datapoints != NULL) {
+        for (int i = 0; i < num_points; i++) {
+                struct tm r;
+                char s[256];
+                
+                localtime_r(&datapoints[i].timestamp, &r);
+                snprintf(s, 256, "%04d-%02d-%02dT%02d:%02d:%02d",
+                         1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, 
+                         r.tm_hour, r.tm_min, r.tm_sec);
+                
+                fprintf(box->datafp, "%d,%s,%f\n", 
+                        datapoints[i].datastream, 
+                        s, 
+                        datapoints[i].value);
+        } 
 
-                for (int i = 0; datapoints[i].timestamp != 0; i++) {
-                        struct tm r;
-                        char s[256];
-                        
-                        localtime_r(&datapoints[i].timestamp, &r);
-                        snprintf(s, 256, "%04d-%02d-%02dT%02d:%02d:%02d",
-                                 1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, 
-                                 r.tm_hour, r.tm_min, r.tm_sec);
-                        
-                        fprintf(box->datafp, "%d,%s,%f\n", 
-                                datapoints[i].datastream, 
-                                s, 
-                                datapoints[i].value);
-                } 
-
+        if (datapoints)
                 free(datapoints);
-        }
 
         /* err = arduino_read_data(box->arduino, */
         /*                         datastreams, */

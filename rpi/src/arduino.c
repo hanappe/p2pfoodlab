@@ -507,9 +507,24 @@ static datapoint_t* arduino_convert_stack_(arduino_t* arduino,
         }
         memset(datapoints, 0, size);
 
-        // TODO
+        int index = 0;
+        int datapoint = 0;
 
-        *num_points = stack->frames * num_streams;
+        for (int i = 0; i < stack->frames; i++) {
+                
+                time_t timestamp = (time_t) stack->values[index++].i;
+
+                for (int j = 0; j < num_streams; j++) {
+                        float v = stack->values[index++].f;                        
+                        datapoints[datapoint].datastream = datastreams[j];
+                        datapoints[datapoint].timestamp = timestamp;
+                        datapoints[datapoint].value = v;
+                }
+
+                datapoint++;
+        }
+
+        *num_points = datapoint;
 
         return datapoints;
 }
