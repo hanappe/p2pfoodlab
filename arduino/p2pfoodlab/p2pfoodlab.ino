@@ -22,6 +22,9 @@
 */
 #include <Wire.h>
 #include <DHT22.h>
+#include <Narcoleptic.h>
+
+#define DEBUG 1
 
 #define SLAVE_ADDRESS           0x04
 
@@ -50,10 +53,14 @@
 #define CMD_PERIOD              0x10
 #define CMD_START               0x11
 #define CMD_CHECKSUM            0x12
+#define CMD_DEBUG               0x13
 
-#define STATE_MEASURING         1
-#define STATE_RESETSTACK        2
-#define STATE_SUSPEND           3
+#define DEBUG_STACK             (1 << 0)
+#define DEBUG_STATE             (1 << 1)
+
+#define STATE_MEASURING         0
+#define STATE_RESETSTACK        1
+#define STATE_SUSPEND           2
 
 #define RHT03_1_PIN             12
 #define RHT03_2_PIN             9
@@ -68,9 +75,7 @@
 #define SENSOR_LUM              (1 << 2)
 #define SENSOR_SOIL             (1 << 3)
 
-#define MAX_SLEEP               10000
-
-#define DEBUG 1
+#define DEFAULT_SLEEP           20000
 
 #if DEBUG
 #define DebugPrint(_s) { Serial.println(_s); } 
@@ -82,29 +87,35 @@
 
 /* The update period and poweroff/wakeup times are measured in
    minutes. */
-unsigned char sensors = SENSOR_TRH;
-unsigned char state = STATE_MEASURING; 
-unsigned char period = 1; 
-unsigned char measure = 1;
-unsigned short read_index = 0;
-unsigned short poweroff = 0;
-unsigned short wakeup = 0;
-unsigned long last_minute = 0;
-unsigned long suspend_start = 0;
-unsigned char new_sensors = SENSOR_TRH;
-unsigned char new_period = 1; 
-unsigned char new_state = 0; 
-unsigned char new_pump = 0; 
-unsigned short new_wakeup = 0;
-unsigned char i2c_recv_buf[5];
-unsigned char i2c_recv_len = 0;
-unsigned char i2c_send_buf[4];
-unsigned char i2c_send_len = 0;
 
-#if DEBUG
-unsigned char i2c_recv = 0;
-unsigned char i2c_send = 0;
-#endif
+typedef struct _shortstate_t {
+        int suspend: 1;
+        int sensors: 4;
+        int linux_running: 1;
+        int debug: 2;
+        int reset_stack: 1;
+        unsigned char period; 
+        unsigned short wakeup;
+} shortstate_t;
+
+typedef struct _longstate_t {
+        int suspend: 1;
+        int sensors: 4;
+        int linux_running: 1;
+        int debug: 1;
+        int reset_stack: 1;
+        unsigned char period; 
+        unsigned short wakeup;
+        unsigned char measure;
+        unsigned short poweroff;
+        unsigned short read_index;
+        unsigned long last_minute;
+        unsigned long suspend_start;
+        unsigned char command;
+} longstate_t;
+
+longstate_t state;
+shortstate_t new_state;
 
 DHT22 rht03_1(RHT03_1_PIN);
 DHT22 rht03_2(RHT03_2_PIN);
@@ -136,17 +147,13 @@ static unsigned char crc8(unsigned char crc, const unsigned char *data, unsigned
    RPi downloads it. */
 #define STACK_SIZE 128
 
-typedef union _stack_entry_t {
-        unsigned long i;
-        float f;
-} stack_entry_t;
-
 typedef struct _stack_t {
-        unsigned char checksum;
-        unsigned char frames;
-        unsigned char framesize;
         unsigned short sp;
-        stack_entry_t values[STACK_SIZE];
+        unsigned short frames;
+        unsigned char framesize;
+        unsigned char checksum;
+        unsigned long offset;
+        short values[STACK_SIZE];
 } stack_t;
 
 stack_t _stack;
@@ -156,14 +163,15 @@ static void stack_clear()
         _stack.sp = 0;
         _stack.frames = 0;
         _stack.checksum = 0;
+        _stack.offset = time(0);
 }
 
 #define stack_set_framesize(__framesize)  { _stack.framesize = __framesize; }
 #define stack_frame_begin()               (_stack.sp)
 #define stack_frame_unroll(__sp)          { _stack.sp = __sp; }
 #define stack_address()                   ((unsigned char*) &_stack.values[0])
-#define stack_bytesize()                  (_stack.frames * _stack.framesize * sizeof(stack_entry_t))
-#define stack_frame_bytesize()            (_stack.framesize * sizeof(stack_entry_t))
+#define stack_bytesize()                  (_stack.frames * _stack.framesize * sizeof(short))
+#define stack_frame_bytesize()            (_stack.framesize * sizeof(short))
 #define stack_geti(__n)                   (_stack.values[__n].i)
 #define stack_checksum()                  (_stack.checksum)
 #define stack_num_frames()                (_stack.frames)
@@ -181,20 +189,20 @@ static void stack_frame_end()
         _stack.frames++;
 }
 
-static int stack_pushf(float value)
+static int stack_pushdate(unsigned long t)
 {
         if (_stack.sp < STACK_SIZE) {
-                _stack.values[_stack.sp++].f = value;
+                _stack.values[_stack.sp++] = (short) ((t - _stack.offset) / 60);
                 return 1;
         }
         DebugPrint("  STACK FULL");
         return 0;
 }
 
-static int stack_pushi(unsigned long value)
+static int stack_push(short value)
 {
         if (_stack.sp < STACK_SIZE) {
-                _stack.values[_stack.sp++].i = value;
+                _stack.values[_stack.sp++] = value;
                 return 1;
         }
         DebugPrint("  STACK FULL");
@@ -207,10 +215,12 @@ static int stack_pushi(unsigned long value)
 
 static unsigned long _start = 0;
 
+#define getmilliseconds()  (millis() + Narcoleptic.millis())
+
 static unsigned long getseconds()
 {
         static unsigned long _seconds = 0;
-        unsigned long s = millis() / 1000;
+        unsigned long s = getmilliseconds() / 1000;
 
         while (s < _seconds)
                 s += 4294967; // 2^32 milliseconds
@@ -236,175 +246,174 @@ static unsigned long time(unsigned long t)
 
 static void receive_data(int len)
 {
-#if DEBUG
-        i2c_recv = 1;
-#endif
-
-        i2c_recv_len = 0;
+        unsigned char recv_buf[5];
+        unsigned char recv_len = 0;
         
         for (int i = 0; i < len; i++) {
                 int v = Wire.read();
-                if (i < sizeof(i2c_recv_buf)) 
-                        i2c_recv_buf[i2c_recv_len++] = v & 0xff;
+                if (i < sizeof(recv_buf)) 
+                        recv_buf[recv_len++] = v & 0xff;
                 //Serial.println(v);
         }
 
-        unsigned char command = i2c_recv_buf[0];
+        state.command = recv_buf[0];
 
-        if ((command == DS1374_REG_TOD0) 
-            && (i2c_recv_len == 5)) {
+        if ((state.command == DS1374_REG_TOD0) 
+            && (recv_len == 5)) {
                 unsigned long t;
-                t = i2c_recv_buf[1];
-                t = (t << 8) | i2c_recv_buf[2];
-                t = (t << 8) | i2c_recv_buf[3];
-                t = (t << 8) | i2c_recv_buf[4];
+                t = recv_buf[1];
+                t = (t << 8) | recv_buf[2];
+                t = (t << 8) | recv_buf[3];
+                t = (t << 8) | recv_buf[4];
                 time(t);
 
-        } else if ((command == CMD_POWEROFF) 
-                   && (i2c_recv_len == 3)) {
-                new_wakeup = (i2c_recv_buf[1] << 8) | i2c_recv_buf[2];
+        } else if ((state.command == CMD_POWEROFF) 
+                   && (recv_len == 3)) {
+                new_state.wakeup = (recv_buf[1] << 8) | recv_buf[2];
 
-        } else if ((command == CMD_SENSORS) 
-                   && (i2c_recv_len == 2)) {
-                new_sensors = i2c_recv_buf[1];
+        } else if ((state.command == CMD_SENSORS) 
+                   && (recv_len == 2)) {
+                new_state.sensors = recv_buf[1];
 
-        } else if ((command == CMD_PERIOD) 
-                   && (i2c_recv_len == 2)) {
-                new_period = i2c_recv_buf[1];
+        } else if ((state.command == CMD_PERIOD) 
+                   && (recv_len == 2)) {
+                new_state.period = recv_buf[1];
 
-        } else if ((command == CMD_STATE) 
-                   && (i2c_recv_len == 2)) {
-                new_state = i2c_recv_buf[1];
+        } else if ((state.command == CMD_STATE) 
+                   && (recv_len == 2)) {
+                new_state.reset_stack = (recv_buf[1] == STATE_RESETSTACK);
+                new_state.suspend = (recv_buf[1] == STATE_SUSPEND);
 
-        } else if (command == CMD_FRAMES) {
+        } else if (state.command == CMD_FRAMES) {
                 // Do nothing here
 
-        } else if (command == CMD_START) {
-                read_index = 0;
+        } else if (state.command == CMD_START) {
+                state.read_index = 0;
 
-        } else if (command == CMD_CHECKSUM) {
+        } else if (state.command == CMD_CHECKSUM) {
                 // Do nothing here
 
-        } else if (command == CMD_READ) {
+        } else if (state.command == CMD_READ) {
                 // Do nothing here
 
-        } else if (command == CMD_PUMP) {
-                new_pump = i2c_recv_buf[1];
+        } else if (state.command == CMD_PUMP) {
+                // TODO
+
+        } else if ((state.command == CMD_DEBUG) 
+                   && (recv_len == 1)) {
+                new_state.debug = recv_buf[1];
         }
 }
 
 static void send_data()
 {
-        unsigned char command = i2c_recv_buf[0];
+        unsigned char send_buf[4];
+        unsigned char send_len = 0;
 
-        if (command == DS1374_REG_TOD0) {
+        if (state.command == DS1374_REG_TOD0) {
                 unsigned long t = time(0);
-                i2c_send_len = 4;
-                i2c_send_buf[0] = (t & 0xff000000) >> 24;
-                i2c_send_buf[1] = (t & 0x00ff0000) >> 16;
-                i2c_send_buf[2] = (t & 0x0000ff00) >> 8;
-                i2c_send_buf[3] = (t & 0x000000ff);
+                send_len = 4;
+                send_buf[0] = (t & 0xff000000) >> 24;
+                send_buf[1] = (t & 0x00ff0000) >> 16;
+                send_buf[2] = (t & 0x0000ff00) >> 8;
+                send_buf[3] = (t & 0x000000ff);
 
-        } else if ((command == DS1374_REG_TOD1)
-                   || (command == DS1374_REG_TOD2)
-                   || (command == DS1374_REG_TOD3)) {
-                i2c_send_len = 4;
-                i2c_send_buf[0] = 0;
-                i2c_send_buf[1] = 0;
-                i2c_send_buf[2] = 0;
-                i2c_send_buf[3] = 0;
+        } else if ((state.command == DS1374_REG_TOD1)
+                   || (state.command == DS1374_REG_TOD2)
+                   || (state.command == DS1374_REG_TOD3)) {
+                send_len = 4;
+                send_buf[0] = 0;
+                send_buf[1] = 0;
+                send_buf[2] = 0;
+                send_buf[3] = 0;
 
-        } else if ((command == DS1374_REG_WDALM0)
-                   || (command == DS1374_REG_WDALM1)
-                   || (command == DS1374_REG_WDALM2)) {
-                i2c_send_len = 3;
-                i2c_send_buf[0] = 0;
-                i2c_send_buf[1] = 0;
-                i2c_send_buf[2] = 0;
+        } else if ((state.command == DS1374_REG_WDALM0)
+                   || (state.command == DS1374_REG_WDALM1)
+                   || (state.command == DS1374_REG_WDALM2)) {
+                send_len = 3;
+                send_buf[0] = 0;
+                send_buf[1] = 0;
+                send_buf[2] = 0;
 
-        } else if ((command == DS1374_REG_CR)
-                   || (command == DS1374_REG_SR)) {
-                i2c_send_len = 1;
-                i2c_send_buf[0] = 0;
+        } else if ((state.command == DS1374_REG_CR)
+                   || (state.command == DS1374_REG_SR)) {
+                send_len = 1;
+                send_buf[0] = 0;
 
-        } else if (command == CMD_POWEROFF) {
-                i2c_send_len = 2;
-                i2c_send_buf[0] = (wakeup & 0xff00) >> 8;
-                i2c_send_buf[1] = (wakeup & 0x00ff);
+        } else if (state.command == CMD_POWEROFF) {
+                send_len = 2;
+                send_buf[0] = (state.wakeup & 0xff00) >> 8;
+                send_buf[1] = (state.wakeup & 0x00ff);
 
-        } else if (command == CMD_SENSORS) {
-                i2c_send_len = 1;
-                i2c_send_buf[0] = sensors;
+        } else if (state.command == CMD_SENSORS) {
+                send_len = 1;
+                send_buf[0] = state.sensors;
 
-        } else if (command == CMD_PERIOD) {
-                i2c_send_len = 1;
-                i2c_send_buf[0] = period;
+        } else if (state.command == CMD_PERIOD) {
+                send_len = 1;
+                send_buf[0] = state.period;
 
-        } else if (command == CMD_STATE) {
-                i2c_send_len = 1;
-                i2c_send_buf[0] = state;
+        } else if (state.command == CMD_STATE) {
+                send_len = 1;
+                send_buf[0] = state.suspend;
 
-        } else if (command == CMD_FRAMES) {
-                i2c_send_len = 2;
-                i2c_send_buf[0] = (stack_num_frames() & 0xff00) >> 8; 
-                i2c_send_buf[1] = (stack_num_frames() & 0x00ff);
+        } else if (state.command == CMD_FRAMES) {
+                send_len = 2;
+                send_buf[0] = (stack_num_frames() & 0xff00) >> 8; 
+                send_buf[1] = (stack_num_frames() & 0x00ff);
 
-        } else if (command == CMD_START) {
+        } else if (state.command == CMD_START) {
                 /* nothing to do here */
 
-        } else if (command == CMD_READ) {
+        } else if (state.command == CMD_READ) {
                 unsigned char* ptr = stack_address();
                 unsigned short len = stack_bytesize();
-                i2c_send_len = 4;
-                if ((len == 0) || (read_index >= len)) {
-                        i2c_send_buf[0] = 0;
-                        i2c_send_buf[1] = 0;
-                        i2c_send_buf[2] = 0;
-                        i2c_send_buf[3] = 0;
+                send_len = 4;
+                if ((len == 0) || (state.read_index >= len)) {
+                        send_buf[0] = 0;
+                        send_buf[1] = 0;
+                        send_buf[2] = 0;
+                        send_buf[3] = 0;
                 } else  {
-                        i2c_send_buf[0] = ptr[read_index++];
-                        i2c_send_buf[1] = ptr[read_index++];
-                        i2c_send_buf[2] = ptr[read_index++];
-                        i2c_send_buf[3] = ptr[read_index++]; 
+                        send_buf[0] = ptr[state.read_index++];
+                        send_buf[1] = ptr[state.read_index++];
+                        send_buf[2] = ptr[state.read_index++];
+                        send_buf[3] = ptr[state.read_index++]; 
                 }
 
-        } else if (command == CMD_PUMP) {
+        } else if (state.command == CMD_PUMP) {
 
-        } else if (command == CMD_CHECKSUM) {
-                i2c_send_len = 1;
-                i2c_send_buf[0] = stack_checksum();
+        } else if (state.command == CMD_CHECKSUM) {
+                send_len = 1;
+                send_buf[0] = stack_checksum();
         }
         
-        Wire.write(i2c_send_buf, i2c_send_len);
-
-#if DEBUG
-        i2c_send = 1;
-#endif
+        Wire.write(send_buf, send_len);
 }
 
 /*
  * Sensors & measurements
  */
 
-static float get_luminosity()
+static short get_luminosity()
 {
-        return 0.0f;
+        return 0;
 }
 
-static float get_soilhumidity()
+static short get_soilhumidity()
 {
-        return 0.0f;
+        return 0;
 }
 
-static int get_rht03(DHT22* sensor, float* t, float* h)
+static int get_rht03(DHT22* sensor, short* t, short* h)
 { 
         delay(2000);
   
         for (int i = 0; i < 10; i++) {
                 DHT22_ERROR_t errorCode = sensor->readData();
                 if (errorCode == DHT_ERROR_NONE) {
-                        *t = sensor->getTemperatureC();
-                        *h = sensor->getHumidity();
+                        *t = 10 * sensor->getTemperatureCInt();
+                        *h = 10 * sensor->getHumidityInt();
                         return 0;
                 }
                 //Serial.print("rht03 error ");
@@ -425,72 +434,66 @@ static void measure_sensors()
 
         unsigned short old_sp = stack_frame_begin();
         
-        if (state != STATE_MEASURING) {
-                DebugPrint("  *STATE != MEASURING*");
-                return;
-        }
-        if (new_state != 0) {
-                /* Handle state change first */
-                DebugPrint("  *NEW_STATE IS SET*");
+        if (state.suspend) {
+                DebugPrint("  *SUSPENDED*");
                 return;
         }
 
-        if (!stack_pushi(time(0)))
+        if (!stack_pushdate(time(0)))
                 goto unroll_stack;
 
-        if (sensors & SENSOR_TRH) {
-                float t, rh; 
+        if (state.sensors & SENSOR_TRH) {
+                short t, rh; 
                 if (get_rht03(&rht03_1, &t, &rh) == 0) {
-                        if (!stack_pushf(t))
+                        if (!stack_push(t))
                                 goto unroll_stack;
-                        if (!stack_pushf(rh))
+                        if (!stack_push(rh))
                                 goto unroll_stack;
                         DebugPrintValue("  t ", t);
                         DebugPrintValue("  rh ", rh);
                 } else {
-                        if (!stack_pushf(-300.0f))
+                        if (!stack_push(-30000))
                                 goto unroll_stack;
-                        if (!stack_pushf(-1.0f))
+                        if (!stack_push(-1))
                                 goto unroll_stack;
                 }
         }
-        if (sensors & SENSOR_TRHX) {
-                float t, rh; 
+        if (state.sensors & SENSOR_TRHX) {
+                short t, rh; 
                 if (get_rht03(&rht03_2, &t, &rh) == 0) {
-                        if (!stack_pushf(t))
+                        if (!stack_push(t))
                                 goto unroll_stack;
-                        if (!stack_pushf(rh))
+                        if (!stack_push(rh))
                                 goto unroll_stack;
                         DebugPrintValue("  tx ", t);
                         DebugPrintValue("  rhx ", rh);
                 } else {
-                        if (!stack_pushf(-300.0f))
+                        if (!stack_push(-30000))
                                 goto unroll_stack;
-                        if (!stack_pushf(-1.0f))
+                        if (!stack_push(-1))
                                 goto unroll_stack;
                 }
         }
 
-        if (sensors & SENSOR_LUM) {
-                float luminosity = get_luminosity(); 
-                if (!stack_pushf(luminosity))
+        if (state.sensors & SENSOR_LUM) {
+                short luminosity = get_luminosity(); 
+                if (!stack_push(luminosity))
                         goto unroll_stack;
                 DebugPrintValue("  lum ", luminosity);
         }
 
-        if (sensors & SENSOR_SOIL) {
-                float humidity = get_soilhumidity(); 
-                if (!stack_pushf(humidity))
+        if (state.sensors & SENSOR_SOIL) {
+                short humidity = get_soilhumidity(); 
+                if (!stack_push(humidity))
                         goto unroll_stack;
                 DebugPrintValue("  soil ", humidity);
         }
 
-
         // Block I2C interupts
         noInterrupts();
 
-        if (new_state != 0) {
-                /* We've been interrupted by an I2C state change
+        if (state.suspend) {
+                /* We've been interrupted by an I2C mode change
                    request during the measurements. Roll back. */
                 stack_frame_unroll(old_sp);
         } else {
@@ -500,23 +503,6 @@ static void measure_sensors()
 
         // Enable I2C interupts
         interrupts();
-
-
-        // DEBUG
-        /* if (1) { */
-        /*         unsigned char* data = stack_address(); */
-        /*         int len = stack_bytesize(); */
-        /*         unsigned char crc2 = crc8(0, data, len); */
-        /*         DebugPrintValue("CRC (1): ", _stack.checksum); */
-        /*         DebugPrintValue("CRC (2): ", crc2);         */
-        /*         for (int i = 0; i < len; i++) { */
-        /*                 Serial.print(data[i], HEX); */
-        /*                 if ((i % 4) == 3) */
-        /*                         Serial.println(); */
-        /*                 else  */
-        /*                         Serial.print(" "); */
-        /*         } */
-        /* } */
 
         return;
 
@@ -544,64 +530,52 @@ static unsigned char count_sensors(unsigned char s)
         return n;
 }
 
-static void blink(int count, int msec)
+static void blink(int count, int msec_on, int msec_off = 0)
 {  
         int i;
         for (i = 0; i < count; i++) {
                 digitalWrite(13, HIGH);
-                delay(msec); 
+                delay(msec_on); 
                 digitalWrite(13, LOW);
-                delay(100); 
+                delay(msec_off); 
         }                
 }
 
-static void handle_updates()
+static void handle_updates(unsigned long minutes)
 {  
-#if DEBUG
-        /* if (i2c_recv) { */
-        /*         for (int i = 0; i < i2c_recv_len; i++) */
-        /*                 DebugPrintValue("  I2C receive buffer: ", i2c_recv_buf[i]); */
-        /*         i2c_recv = 0; */
-        /* } */
-        /* if (i2c_send) { */
-        /*         for (int i = 0; i < i2c_send_len; i++) */
-        /*                 DebugPrintValue("  I2C send buffer: ", i2c_send_buf[i]); */
-        /*         i2c_send = 0; */
-        /* } */
-#endif
-        
-        if (sensors != new_sensors) {
-                DebugPrintValue("  new sensor settings: ", new_sensors);
-                sensors = new_sensors;
+        if (state.sensors != new_state.sensors) {
+                DebugPrintValue("  new sensor settings: ", new_state.sensors);
+                state.sensors = new_state.sensors;
                 stack_clear();
-                stack_set_framesize(1 + count_sensors(sensors));
+                stack_set_framesize(1 + count_sensors(state.sensors));
         }
         
-        if (period != new_period) {
-                DebugPrintValue("  new period: ", new_period);
-                period = new_period;
+        if (state.reset_stack != new_state.reset_stack) {
+                state.reset_stack = new_state.reset_stack;
         }
 
-        if (new_state != 0) {
-                if ((state != new_state)
-                    && ((new_state == STATE_MEASURING)
-                        || (new_state == STATE_RESETSTACK)
-                        || (new_state == STATE_SUSPEND))) {
-                        DebugPrintValue("  new state settings: ", new_state);
-                        state = new_state;
-                        if (state == STATE_SUSPEND) 
-                                suspend_start = getminutes();
+        if (state.period != new_state.period) {
+                DebugPrintValue("  new period: ", new_state.period);
+                state.period = new_state.period;
+        }
+
+        if (state.suspend != new_state.suspend) {
+                DebugPrintValue("  suspend: ", new_state.suspend);
+                state.suspend = new_state.suspend;
+                if (state.suspend) 
+                        state.suspend_start = minutes;
+                
+        }
+
+        if (new_state.wakeup != 0) {
+                if (new_state.wakeup != state.wakeup) {
+                        DebugPrintValue("  poweroff: wakeup at ", new_state.wakeup); 
+                        state.poweroff = 2;
+                        state.wakeup = new_state.wakeup;
+                        if (state.wakeup < 3) 
+                                state.wakeup = 3;
                 }
-                new_state = 0;
-        }
-
-        if (new_wakeup != wakeup) {
-                DebugPrintValue("  poweroff: wakeup at ", new_wakeup); 
-                poweroff = 2;
-                wakeup = new_wakeup;
-                if (wakeup < 3) 
-                        wakeup = 3;
-                new_wakeup = 0;
+                new_state.wakeup = 0;
         }
 }
 
@@ -633,12 +607,35 @@ void setup()
         delay(1000);  
         digitalWrite(RPi_PIN, HIGH);
 
+
         pinMode(PUMP_PIN, OUTPUT);
         digitalWrite(PUMP_PIN, LOW);
 
-        last_minute = getminutes();
+
+        state.suspend = 0;
+        state.sensors = SENSOR_TRH;
+        state.linux_running = 1;
+        state.debug = 0;
+        state.reset_stack = 0;
+        state.period = 15;
+        state.wakeup = 0;
+        state.measure = 1;
+        state.poweroff = 0;
+        state.read_index = 0;
+        state.last_minute = getminutes();
+        state.suspend_start = 0;
+        state.command =  0xff;
+
+        new_state.suspend = 0;
+        new_state.sensors = SENSOR_TRH;
+        new_state.linux_running = 1;
+        new_state.debug = 0;
+        new_state.reset_stack = 0;
+        new_state.period = 15;
+        new_state.wakeup = 0;
+
         stack_clear();
-        stack_set_framesize(1 + count_sensors(sensors));
+        stack_set_framesize(1 + count_sensors(state.sensors));
 
         DebugPrint("Ready.");  
 }
@@ -649,21 +646,45 @@ void loop()
         unsigned long minutes = seconds / 60;
         unsigned long sleep = 0;
 
-        handle_updates();
+        handle_updates(minutes);
 
-        DebugPrint("--begin loop--"); 
-        DebugPrintValue("  time         ", time(0)); 
-        DebugPrintValue("  seconds      ", seconds); 
-        DebugPrintValue("  minutes      ", minutes); 
-        DebugPrintValue("  stack size   ", _stack.sp); 
-        DebugPrintValue("  stack frames ", _stack.frames); 
-        DebugPrintValue("  measure      ", measure);
-        DebugPrintValue("  period       ", period);
-        DebugPrintValue("  poweroff     ", poweroff);
-        DebugPrintValue("  wakeup       ", wakeup);
-        DebugPrintValue("  state        ", state);
+        if (Serial.available()) {
+                int c = Serial.read();
+                if (c == 'd') 
+                        state.debug |= DEBUG_STACK | DEBUG_STATE;
+        }
 
-        if (state == STATE_SUSPEND) {
+        if (state.debug & DEBUG_STATE) {
+                Serial.println(time(0)); 
+                Serial.println(seconds); 
+                Serial.println(minutes); 
+                Serial.println(_stack.sp); 
+                Serial.println(_stack.frames); 
+                Serial.println(state.period);
+                Serial.println(state.suspend);
+                Serial.println(state.measure);
+                Serial.println(state.poweroff);
+                Serial.println(state.wakeup);
+                state.debug &= ~DEBUG_STATE;
+        }
+
+        if (state.debug & DEBUG_STACK) {
+                unsigned char* data = stack_address();
+                int len = stack_bytesize();
+                Serial.println("t:");
+                for (int i = 0; i < len; i++) {
+                        Serial.print(data[i], HEX);
+                        if ((i % 4) == 3)
+                                Serial.println();
+                        else
+                                Serial.print(" ");
+                }
+                Serial.print("s:");
+                Serial.println(stack_checksum(), HEX);
+                state.debug &= ~DEBUG_STACK;
+        }
+
+        if (state.suspend) {
                 
                 /* Do short sleeps until the transfer is done. */
                 sleep = 100;
@@ -671,65 +692,63 @@ void loop()
                 /* In case the data download failed and the arduino
                    was not resumed correctly, start measuring again
                    after one minute. */
-                if (minutes - suspend_start > 3) {
+                if (minutes - state.suspend_start > 3) {
                         DebugPrint("  TRANSFER TIMEOUT"); 
-                        state = STATE_MEASURING;
+                        new_state.suspend = 0;
                 }
 
-        } else if (state == STATE_RESETSTACK) {
+        } else if (state.reset_stack) {
                 
                 /* Handle a stack reset request after a data transfer
                    or a change in the sensor configuration. */
-                DebugPrint("  stack reset"); 
+                DebugPrint("  STACK RESET"); 
                 stack_clear();
-                state = STATE_MEASURING;
+                state.reset_stack = 0;
+                new_state.reset_stack = 0;
 
-        } else if (state == STATE_MEASURING) {
+        } else {
 
                 /* Measure (and other stuff) */
 
-                blink(1, 100);
+                while (state.last_minute < minutes) {
 
-                while (last_minute < minutes) {
-
-                        if (measure > 0) {
-                                measure--;
-                                if (measure == 0) {
+                        if (state.measure > 0) {
+                                state.measure--;
+                                if (state.measure == 0) {
+                                        blink(1, 100);
                                         measure_sensors();
-                                        measure = period;
+                                        state.measure = state.period;
                                 }
                         }
-                        if (poweroff > 0) {
-                                poweroff--;
-                                if (poweroff == 0) {
+                        if (state.poweroff > 0) {
+                                state.poweroff--;
+                                if (state.poweroff == 0) {
                                         digitalWrite(RPi_PIN, LOW);
                                         DebugPrint("  POWEROFF"); 
+                                        state.linux_running = 0;
                                 }
                         }
-                        if (wakeup > 0) {
-                                wakeup--;
-                                if (wakeup == 0) {
+                        if (state.wakeup > 0) {
+                                state.wakeup--;
+                                if (state.wakeup == 0) {
                                         digitalWrite(RPi_PIN, HIGH);
                                         DebugPrint("  WAKEUP"); 
+                                        state.linux_running = 1;
                                 }
                         }
 
-                        last_minute++;
+                        state.last_minute++;
                 }
 
-                /* Subtract the time it took to take the measurements
-                   from a half minute sleep. */
-                sleep = MAX_SLEEP - 1000 * (getseconds() - seconds); 
-                if (sleep > MAX_SLEEP)
-                        sleep = 0;
+                sleep = DEFAULT_SLEEP;
 
-        } else {
-                state = STATE_MEASURING;
         }
 
-        DebugPrint("--end loop--"); 
-        DebugPrint(""); 
-
-        delay(sleep); 
+        if (sleep) {
+                if (state.linux_running)
+                        delay(sleep); 
+                else 
+                        Narcoleptic.delay(sleep); 
+        }
 }
 
