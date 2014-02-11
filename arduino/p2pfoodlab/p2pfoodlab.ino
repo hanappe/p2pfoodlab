@@ -681,7 +681,9 @@ void loop()
         handle_updates(minutes);
 
 #if DEBUG
-                print_state();
+        delay(100);   
+        print_state();
+        delay(100);   
 #endif
 
         if (Serial.available()) {
