@@ -556,10 +556,11 @@ static void print_state()
 
 static void print_stack()
 {  
+        int i;
         unsigned char* data = stack_address();
         int len = stack_bytesize();
         Serial.println("t:");
-        for (int i = 0; i < len; i++) {
+        for (i = 0; i < len; i++) {
                 Serial.print(data[i], HEX);
                 if ((i % 4) == 3)
                         Serial.println();
