@@ -109,7 +109,7 @@ typedef struct _longstate_t {
         unsigned char measure;
         unsigned short poweroff;
         unsigned short read_index;
-        unsigned long last_minute;
+        unsigned long minutes;
         unsigned long suspend_start;
         unsigned char command;
 } longstate_t;
@@ -425,7 +425,7 @@ static int get_rht03(DHT22* sensor, short* t, short* h)
 
 static void measure_sensors()
 {  
-        DebugPrint("  measure_sensors");
+        DebugPrint("  measure");
 
         if (!hastime()) {
                 DebugPrint("  *TIME NOT SET*");
@@ -541,6 +541,37 @@ static void blink(int count, int msec_on, int msec_off = 0)
         }                
 }
 
+static void print_state()
+{  
+        Serial.println(time(0)); 
+        Serial.println(state.minutes); 
+        Serial.println(_stack.sp); 
+        Serial.println(_stack.frames); 
+        Serial.println(state.period);
+        Serial.println(state.suspend);
+        Serial.println(state.measure);
+        Serial.println(state.poweroff);
+        Serial.println(state.wakeup);
+}
+
+static void print_stack()
+{  
+        unsigned char* data = stack_address();
+        int len = stack_bytesize();
+        Serial.println("t:");
+        for (int i = 0; i < len; i++) {
+                Serial.print(data[i], HEX);
+                if ((i % 4) == 3)
+                        Serial.println();
+                else
+                        Serial.print(" ");
+        }
+        if (((i-1) % 4) != 3)
+                Serial.println();
+        Serial.print("s:");
+        Serial.println(stack_checksum(), HEX);
+}
+
 static void handle_updates(unsigned long minutes)
 {  
         if (state.sensors != new_state.sensors) {
@@ -622,7 +653,7 @@ void setup()
         state.measure = 1;
         state.poweroff = 0;
         state.read_index = 0;
-        state.last_minute = getminutes();
+        state.minutes = getminutes();
         state.suspend_start = 0;
         state.command =  0xff;
 
@@ -648,6 +679,10 @@ void loop()
 
         handle_updates(minutes);
 
+#if DEBUG
+                print_state();
+#endif
+
         if (Serial.available()) {
                 int c = Serial.read();
                 if (c == 'd') 
@@ -655,33 +690,12 @@ void loop()
         }
 
         if (state.debug & DEBUG_STATE) {
-                Serial.println(time(0)); 
-                Serial.println(seconds); 
-                Serial.println(minutes); 
-                Serial.println(_stack.sp); 
-                Serial.println(_stack.frames); 
-                Serial.println(state.period);
-                Serial.println(state.suspend);
-                Serial.println(state.measure);
-                Serial.println(state.poweroff);
-                Serial.println(state.wakeup);
+                print_state();
                 state.debug &= ~DEBUG_STATE;
         }
 
         if (state.debug & DEBUG_STACK) {
-                unsigned char* data = stack_address();
-                int len = stack_bytesize();
-                Serial.println("t:");
-                for (int i = 0; i < len; i++) {
-                        Serial.print(data[i], HEX);
-                        if ((i % 4) == 3)
-                                Serial.println();
-                        else
-                                Serial.print(" ");
-                }
-                Serial.println();
-                Serial.print("s:");
-                Serial.println(stack_checksum(), HEX);
+                print_stack();
                 state.debug &= ~DEBUG_STACK;
         }
 
@@ -711,7 +725,7 @@ void loop()
 
                 /* Measure (and other stuff) */
 
-                while (state.last_minute < minutes) {
+                while (state.minutes < minutes) {
 
                         if (state.measure > 0) {
                                 state.measure--;
@@ -738,7 +752,7 @@ void loop()
                                 }
                         }
 
-                        state.last_minute++;
+                        state.minutes++;
                 }
 
                 sleep = DEFAULT_SLEEP;
