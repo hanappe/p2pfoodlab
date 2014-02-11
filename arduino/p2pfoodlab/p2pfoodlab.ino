@@ -679,6 +679,7 @@ void loop()
                         else
                                 Serial.print(" ");
                 }
+                Serial.println();
                 Serial.print("s:");
                 Serial.println(stack_checksum(), HEX);
                 state.debug &= ~DEBUG_STACK;
