@@ -76,7 +76,7 @@ service apache2 restart
 update-rc.d isc-dhcp-server enable
 
 # Edit update requests to crontab
-echo "* * * * * /var/p2pfoodlab/bin/sensorbox" | crontab -
+echo "* * * * * /var/p2pfoodlab/bin/sensorbox" | crontab -u pi -
 
 cd $curdir
 
