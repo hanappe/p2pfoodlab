@@ -234,6 +234,9 @@ int network_gogo(const char* iface)
                         continue;
                 }
 
+                // give the network layer some time to settle.
+                sleep(7);
+
                 // check to be be sure
                 if (network_connected()) {
                         log_info("Network: Connected");

@@ -48,7 +48,8 @@ web=(web/bg.jpg
     web/session.inc.php
     web/update.inc.php
     web/updates.php
-    web/opensensordata.inc.php)
+    web/opensensordata.inc.php
+    web/error.inc.php)
 
 etc=(etc/modprobe.d/raspi-blacklist.conf
     etc/dhcp/dhcpd.conf
