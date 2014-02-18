@@ -211,6 +211,7 @@ int network_ifchange(const char* name, const char* cmd)
 
 int network_ifup(const char* name)
 {
+        log_info("Network: Bringing up %s", name);
         return network_ifchange(name, "/sbin/ifup");
 }
 
@@ -221,6 +222,8 @@ int network_ifdown(const char* name)
         int r = network_ifaddr(name, buffer, 1024);
         if (r == -1) 
                 return 0;
+
+        log_info("Network: Shutting down %s (%s)", name, buffer);
 
         return network_ifchange(name, "/sbin/ifdown");
 }

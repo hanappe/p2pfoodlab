@@ -176,7 +176,8 @@ int main(int argc, char **argv)
                 sensorbox_handle_events(box);
                 sensorbox_upload_data(box);
                 sensorbox_upload_photos(box);
-                sensorbox_bring_network_down(box);
+                if (sensorbox_powersaving_enabled(box))
+                        sensorbox_bring_network_down(box);
                 sensorbox_poweroff_maybe(box);
 
                 //clock_update(box);
