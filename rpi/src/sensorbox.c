@@ -831,15 +831,16 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
          */
         int uptime = sensorbox_uptime(box);
         int enabled = sensorbox_powersaving_enabled(box);
-        if ((delta > 3) && enabled && (uptime > 180)) {
+        if (!enabled) 
+                return;
+
+        if ((delta > 3) && (uptime > 180)) {
                 if (box->test) 
                         printf("POWEROFF %d\n", delta - 3);
                 else
                         sensorbox_poweroff(box, delta - 3);
         } else if (delta <= 3) {
                 log_info("Not powering off, next event is coming soon");
-        } else if (!enabled) {
-                log_debug("Powering off not enabled in config file");
         } else if (uptime <= 180) {
                 log_info("Not powering off, system just started (%ds < 180s)", uptime);
         }
