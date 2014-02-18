@@ -41,7 +41,7 @@ adduser pi dialout
 
 
 echo --------------------------------------------------------
-echo STEP 4: Download, compile & install sensorbox software
+echo STEP 4: Download, compile and install sensorbox software
 
 # Download the latest version of the sensorbox software and
 # configuration files.
@@ -87,19 +87,25 @@ echo "* * * * * /var/p2pfoodlab/bin/sensorbox" | crontab -u $uid -
 
 
 echo --------------------------------------------------------
-echo STEP 6: Installing & starting system services
+echo STEP 6: Installing and starting system services
 
 # Install the start-up scripts.
+
+echo P2P Food Lab daemon:
 update-rc.d p2pfoodlab start 99 2 3 4 5 . stop 99 0 6 .
 #update-rc.d arduino-hwclock start 10 S . stop 10 0 1 6 .
 
 service p2pfoodlab start
 
 # Restart the web server.
+echo Web server:
 service apache2 restart
 
 # Enable the DHCP server on eth0
+echo DHCP server:
 update-rc.d isc-dhcp-server enable
+
+service isc-dhcp-server start
 
 echo --------------------------------------------------------
 echo Done!
