@@ -147,7 +147,7 @@ int network_ifchange(const char* name, const char* cmd)
 {
         char* const argv[] = { "/usr/bin/sudo", cmd, (char*) name, NULL};
 
-        log_info("Network: Running %s %s", cmd, s);
+        log_info("Network: Running %s %s", cmd, name);
 
         /* char* const argv[] = { "/bin/ls", "/", NULL}; */
 
