@@ -103,5 +103,8 @@ int config_get_sensors(json_object_t config,
         return 0;
 }
 
-
+const char* config_get_network_interface(json_object_t config)
+{
+        return "eth0";
+}
 

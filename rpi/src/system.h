@@ -19,28 +19,39 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
-#ifndef _LOGMESSAGE_H
-#define _LOGMESSAGE_H
+#ifndef _SYSTEM_H_
+#define _SYSTEM_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define LOG_DEBUG 0
-#define LOG_INFO 1
-/* App can continue: */
-#define LOG_WARNING 2
-/* App cannot continue: */
-#define LOG_ERROR 3
+        
+        typedef struct _process_t
+        {
+                pid_t id;
+                int in;
+                int out;
+                int err;
+                int exited;
+                int ret;
+                int status;
+        } process_t;
+        
+        process_t* new_process(pid_t id,
+                               int in,
+                               int out,
+                               int err);
+        
+        void delete_process(process_t* p);
+        void process_wait(process_t* p);
 
-int getLogLevel();
-void setLogLevel(int level);
-void setLogFile(FILE* file);
-
-void logMessage(const char* app, int level, const char* format, ...);
+        process_t* system_exec(const char* path, char* const argv[], int wait);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // _LOGMESSAGE_H
+#endif
+
+

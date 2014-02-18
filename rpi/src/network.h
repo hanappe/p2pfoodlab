@@ -26,10 +26,12 @@
 extern "C" {
 #endif
 
-int network_connected();
-
-/* int network_ifup(const char* iface); */
-/* int network_ifdown(const char* iface); */
+        int network_gogo(const char* iface);
+        int network_byebye(const char* iface);
+        
+        int network_connected();
+        int network_ifup(const char* iface);
+        int network_ifdown(const char* iface);
 
 #ifdef __cplusplus
 }

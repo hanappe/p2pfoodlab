@@ -36,6 +36,7 @@
 #include "event.h"
 #include "arduino.h"
 #include "camera.h"
+#include "network.h"
 #include "opensensordata.h"
 #include "sensorbox.h"
 
@@ -386,7 +387,7 @@ static void sensorbox_handle_event(sensorbox_t* box, event_t* e, time_t t)
         }
 }
 
-void sensorbox_update_camera(sensorbox_t* box, time_t t)
+void sensorbox_grab_image(sensorbox_t* box, const char* filename)
 {
         if (box->camera == NULL)
                 return;
@@ -397,27 +398,21 @@ void sensorbox_update_camera(sensorbox_t* box, time_t t)
                 return;
         }
 
-        char id[512];
-        char filename[512];
-        struct tm tm;
-
-        localtime_r(&t, &tm);
-        snprintf(id, 512, "%04d%02d%02d-%02d%02d%02d.jpg",
-                 1900 + tm.tm_year, 1 + tm.tm_mon, tm.tm_mday, 
-                 tm.tm_hour, tm.tm_min, tm.tm_sec);
-
-        snprintf(filename, 512, "photostream/%s", id);
-
-        char* path = sensorbox_path(box, filename);
-
-        log_info("Sensorbox: Storing photo in %s", path);
+        log_info("Sensorbox: Storing photo in %s", filename);
 
         int size = camera_getimagesize(box->camera);
         unsigned char* buffer = camera_getimagebuffer(box->camera);
 
-        FILE* fp = fopen(path, "w");
+        FILE* fp = NULL;
+
+        if (strcmp(filename, "-") == 0) {
+                fp = stdout;
+        } else {
+                fp = fopen(filename, "w");
+        }
+
         if (fp == NULL) {
-                log_info("Sensorbox: Failed to open file '%s'", path);
+                log_info("Sensorbox: Failed to open file '%s'", filename);
                 return;
         }
 
@@ -427,7 +422,7 @@ void sensorbox_update_camera(sensorbox_t* box, time_t t)
                 if ((m == 0) && (ferror(fp) != 0)) { 
                         fclose(fp);
                         log_info("Sensorbox: Failed to write to file '%s'", 
-                                 path);
+                                 filename);
                         return;
                         
                 }
@@ -437,6 +432,24 @@ void sensorbox_update_camera(sensorbox_t* box, time_t t)
         fclose(fp);
 
         log_info("Sensorbox: Photo capture finished");
+}
+
+void sensorbox_update_camera(sensorbox_t* box, time_t t)
+{
+        char id[512];
+        struct tm tm;
+
+        localtime_r(&t, &tm);
+        snprintf(id, 512, "%04d%02d%02d-%02d%02d%02d.jpg",
+                 1900 + tm.tm_year, 1 + tm.tm_mon, tm.tm_mday, 
+                 tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+        char filename[512];
+        snprintf(filename, 512, "photostream/%s", id);
+
+        char* path = sensorbox_path(box, filename);
+
+        sensorbox_grab_image(box, path);
 }
 
 static int sensorbox_map_datastreams(sensorbox_t* box,
@@ -850,5 +863,19 @@ int sensorbox_uptime(sensorbox_t* box)
         }
         fclose(fp);
         return (int) seconds;
+}
+
+int sensorbox_bring_network_up(sensorbox_t* box)
+{
+        const char* iface = config_get_network_interface(box->config);
+        return network_gogo(iface);
+}
+
+int sensorbox_bring_network_down(sensorbox_t* box)
+{
+        const char* iface = config_get_network_interface(box->config);
+        if (strcmp(iface, "eth0") == 0)
+                return 0;        
+        return network_byebye(iface);
 }
 

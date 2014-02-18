@@ -97,7 +97,7 @@ function P2PFoodLab(root)
                         if (xmlhttp.status == 200) {
                                 this.handleResponse(xmlhttp);
                         } else {
-                                alert("Request for " + xmlhttp._url + " failed: Status " + xmlhttp.status);
+                                //alert("Request for " + xmlhttp._url + " failed: Status " + xmlhttp.status);
                         }
                         delete xmlhttp;
                 }
@@ -638,6 +638,9 @@ function NoteEditor(id, parent, thread, replyto, lang, lang_opt)
         this.docsdiv.className = "editor_docs";
         this.form.appendChild(this.docsdiv);
 
+
+
+
         if (!lang) {
                 this.lang = document.createElement("INPUT");
                 this.lang.setAttribute("type", "hidden");
@@ -664,6 +667,11 @@ function NoteEditor(id, parent, thread, replyto, lang, lang_opt)
         }
 
         this.div.appendChild(this.form);
+
+        var div = document.createElement("DIV");
+        div.className = "editor_docs_errmsg";
+        div.id = "editor_docs_errmsg";
+        this.div.appendChild(div);
 
         this._sendReply = function() {
                 self.form.submit();
@@ -698,6 +706,7 @@ function NoteEditor(id, parent, thread, replyto, lang, lang_opt)
         }
 
         this.showIcon = function(e) {
+
                 var fileInput = e.target;
                 var inputId = e.target.id;
                 var file = e.target.files[0];
@@ -709,10 +718,12 @@ function NoteEditor(id, parent, thread, replyto, lang, lang_opt)
                                 img.src = reader.result;
                                 img.className = "note_icon visible";
                                 fileInput.className = "hidden";
-                        }                
+                        }
                         reader.readAsDataURL(file);	
                 } else {
-                        this.removeLocalDoc(inputId + "_div");
+                        this.removeDocDiv(inputId);
+                        var d = document.getElementById("editor_docs_errmsg");
+                        d.innerHTML = "Only JPEG images are currently supported.";
                 }
         }
 
@@ -736,6 +747,9 @@ function NoteEditor(id, parent, thread, replyto, lang, lang_opt)
                 if (this.docs == 4)
                         return;
 
+                var d = document.getElementById("editor_docs_errmsg");
+                d.innerHTML = "";
+
                 var div = document.createElement("DIV");
                 div.className = "editor_doc";
                 div.id = "doc_loc_" + this.docID;
@@ -751,22 +765,22 @@ function NoteEditor(id, parent, thread, replyto, lang, lang_opt)
                 img.src = "";
                 icondiv.appendChild(img);
 
-                var input = document.createElement("INPUT");
-                input.setAttribute("type", "file");
-                input.setAttribute("id", "doc_" + this.docID);
-                input.setAttribute("name", "docs[]");
-                //input.className = "red";
-                setEventHandler(input, "change", this._showIcon);
-                div.appendChild(input);
-
                 var rmdiv = document.createElement("DIV");
-                rmdiv.className = "editor_rm";
+                rmdiv.className = "editor_rmdoc";
                 rmdiv.id = "doc_" + this.docID + "_rm";
                 div.appendChild(rmdiv);
 
                 var remover = new RemoveDoc(this, this.docID, null);
                 addEventImage(rmdiv, p2pfoodlab.root + "/close.png", 
                               "remove", remover.removeLocalDoc, ""); 
+
+                var input = document.createElement("INPUT");
+                input.setAttribute("type", "file");
+                input.setAttribute("id", "doc_loc_" + this.docID);
+                input.setAttribute("name", "docs[]");
+                input.className = "editor_filechooser";
+                setEventHandler(input, "change", this._showIcon);
+                div.appendChild(input);
 
                 this.docsdiv.appendChild(div);
                 this.docID++;

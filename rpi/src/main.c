@@ -56,7 +56,7 @@ static void usage(FILE* fp, int argc, char** argv)
                  "-d | --d             Directory (default: /var/p2pfoodlab))\n"
                  "-l | --log           Log file ('-' for stderr, default: /var/p2pfoodlab/log.txt)\n"
                  "-t | --test          Test run\n"
-                 "-o | --output-file   Where to write the sensors data to ['-' for console]\n"
+                 "-o | --output-file   Where to write the data/image to ['-' for console]\n"
                  "-D | --debug         Print debug message\n"
                  "Commands:\n"
                  "  update             Parse the config, update sensors and/or camera if necessary,\n"
@@ -177,16 +177,19 @@ int main(int argc, char **argv)
                 sensorbox_upload_data(box);
                 sensorbox_upload_photos(box);
                 sensorbox_poweroff_maybe(box);
-                clock_update(box);
+                //clock_update(box);
 
         } else if (strcmp(command, "upload-data") == 0) {
                 sensorbox_upload_data(box);
 
-        } else if (strcmp(command, "list-events") == 0) {
-                sensorbox_upload_data(box);
-
         } else if (strcmp(command, "upload-photos") == 0) {
                 sensorbox_upload_photos(box);
+
+        } else if (strcmp(command, "list-events") == 0) {
+                sensorbox_print_events(box);
+
+        } else if (strcmp(command, "grab-image") == 0) {
+                sensorbox_grab_image(box, _output_file);
 
         } else if (strcmp(command, "camera") == 0) {
                 time_t t;
@@ -211,6 +214,12 @@ int main(int argc, char **argv)
                         printf("%lu\n", (unsigned long) m);
                 }
                 
+        } else if (strcmp(command, "ifup") == 0) {
+                sensorbox_bring_network_up(box);
+
+        } else if (strcmp(command, "ifdown") == 0) {
+                sensorbox_bring_network_down(box);
+
         } else {
                 usage(stderr, argc, argv);
         }

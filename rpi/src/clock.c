@@ -33,25 +33,25 @@
 #include "network.h"
 #include "clock.h"
 
-static int clock_get_millis(sensorbox_t* box, unsigned long* m)
-{
-        /* unsigned long millis, test; */
+/* static int clock_get_millis(sensorbox_t* box, unsigned long* m) */
+/* { */
+/*         /\* unsigned long millis, test; *\/ */
 
-        /* if (sensorbox_millis(box, &millis) != 0) */
-        /*         return -1; */
+/*         /\* if (sensorbox_millis(box, &millis) != 0) *\/ */
+/*         /\*         return -1; *\/ */
 
-        /* for (int i = 0; i < 3; i++) { */
-        /*         if (sensorbox_millis(box, &test) != 0) */
-        /*                 return -1; */
-        /*         if (test < millis) */
-        /*                 return -1; */
-        /*         if (test > millis + 10000) */
-        /*                 return -1; */
-        /* } */
+/*         /\* for (int i = 0; i < 3; i++) { *\/ */
+/*         /\*         if (sensorbox_millis(box, &test) != 0) *\/ */
+/*         /\*                 return -1; *\/ */
+/*         /\*         if (test < millis) *\/ */
+/*         /\*                 return -1; *\/ */
+/*         /\*         if (test > millis + 10000) *\/ */
+/*         /\*                 return -1; *\/ */
+/*         /\* } *\/ */
 
-        /* *m = millis; */
-        return 0;
-}
+/*         /\* *m = millis; *\/ */
+/*         return 0; */
+/* } */
 
 int clock_update(sensorbox_t* box)
 {

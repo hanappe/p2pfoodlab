@@ -84,12 +84,15 @@
 #define CMD_PERIOD              0x10
 #define CMD_START               0x11
 #define CMD_CHECKSUM            0x12
+#define CMD_DEBUG               0x13
 
-#define STATE_MEASURING         1
-#define STATE_RESETSTACK        2
-#define STATE_SUSPEND           3
+#define STATE_MEASURING         0
+#define STATE_RESETSTACK        1
+#define STATE_SUSPEND           2
 
-#define STACK_SIZE 128
+#define DEBUG_STACK             (1 << 0)
+
+#define STACK_SIZE 1024
 
 typedef union _stack_entry_t {
         unsigned long i;

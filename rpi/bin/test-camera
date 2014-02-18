@@ -5,8 +5,8 @@ home_dir=/var/p2pfoodlab
 result=$home_dir/lib/broken.jpg
 
 rm -f /tmp/image.jpg
-if [ -e $home_dir/bin/grab-image ]; then
-    $home_dir/bin/grab-image -o /tmp/image.jpg
+if [ -e $home_dir/bin/sensorbox ]; then
+    $home_dir/bin/sensorbox -o /tmp/image.jpg grab-image
 fi
 
 if [ $? == 0 -a -s /tmp/image.jpg ]; then

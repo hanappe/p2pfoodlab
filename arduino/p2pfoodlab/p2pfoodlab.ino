@@ -552,6 +552,7 @@ static void print_state()
         Serial.println(state.measure);
         Serial.println(state.poweroff);
         Serial.println(state.wakeup);
+        Serial.println();
 }
 
 static void print_stack()

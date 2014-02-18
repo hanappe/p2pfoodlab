@@ -11,20 +11,13 @@ src=(src/daemon.c
 
 lib=(lib/broken.jpg)
 
-script=(bin/take-measurements
-    bin/test-camera
+script=(bin/test-camera
     bin/update-network
     bin/update-ssh
-    bin/update-crontab
-    bin/update-photostream
-    bin/update-datastreams
-    bin/update-version
-    bin/update-poweroff)
+    bin/update-version)
 
 bin=(bin/p2pfoodlab-daemon 
-    bin/grab-image 
-    bin/config-get 
-    bin/arduino)
+    bin/sensorbox)
 
 web=(web/bg.jpg
     web/white.jpg

@@ -24,7 +24,7 @@
         <div class="content_box">
           <div class="header">
 
-            <div class="header_item">
+            <div class="header_item frame margin">
               <div class="menu">
                 <?php $this->insert_title() ?>
               </div>

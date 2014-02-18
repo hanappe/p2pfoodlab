@@ -58,6 +58,8 @@ span.warning { color: #ba3c21; }
 img.noborder { border: none; }
 .middle { vertical-align: middle; }
 
+div.border { border: solid 1px #326296; }
+
 div.screen {
     position: absolute;
     top: 0px;
@@ -214,70 +216,70 @@ a.selected_menu:hover { color: #326296; }
 a.submenu { padding: 2px; }
 
 div.frame {
-    border-top: solid 1px #326296;
-    border-left: solid 1px #326296;
-    border-bottom: solid 5px #326296;
-    border-right: solid 5px #326296;
+    border-top: solid 2px #326296;
+    border-left: solid 2px #326296;
+    border-bottom: solid 2px #326296;
+    border-right: solid 2px #326296;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
 
 div.frame_red {
-    border-top: solid 1px #ba3c21;
-    border-left: solid 1px #ba3c21;
-    border-bottom: solid 5px #ba3c21;
-    border-right: solid 5px #ba3c21;
+    border-top: solid 2px #ba3c21;
+    border-left: solid 2px #ba3c21;
+    border-bottom: solid 2px #ba3c21;
+    border-right: solid 2px #ba3c21;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
 
 div.frame_yellow {
-    border-top: solid 1px #daaa4c;
-    border-left: solid 1px #daaa4c;
-    border-bottom: solid 5px #daaa4c;
-    border-right: solid 5px #daaa4c;
+    border-top: solid 2px #daaa4c;
+    border-left: solid 2px #daaa4c;
+    border-bottom: solid 2px #daaa4c;
+    border-right: solid 2px #daaa4c;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
 
 div.frame_purple {
-    border-top: solid 1px #84037d;
-    border-left: solid 1px #84037d;
-    border-bottom: solid 5px #84037d;
-    border-right: solid 5px #84037d;
+    border-top: solid 2px #84037d;
+    border-left: solid 2px #84037d;
+    border-bottom: solid 2px #84037d;
+    border-right: solid 2px #84037d;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
 
 div.frame_lightblue {
-    border-top: solid 1px #bcd7dc;
-    border-left: solid 1px #bcd7dc;
-    border-bottom: solid 5px #bcd7dc;
-    border-right: solid 5px #bcd7dc;
+    border-top: solid 2px #bcd7dc;
+    border-left: solid 2px #bcd7dc;
+    border-bottom: solid 2px #bcd7dc;
+    border-right: solid 2px #bcd7dc;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
 
 div.frame_blue {
-    border-top: solid 1px #326296;
-    border-left: solid 1px #326296;
-    border-bottom: solid 5px #326296;
-    border-right: solid 5px #326296;
+    border-top: solid 2px #326296;
+    border-left: solid 2px #326296;
+    border-bottom: solid 2px #326296;
+    border-right: solid 2px #326296;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
 
 div.frame_green {
-    border-top: solid 1px #335e4b;
-    border-left: solid 1px #335e4b;
-    border-bottom: solid 5px #335e4b;
-    border-right: solid 5px #335e4b;
+    border-top: solid 2px #335e4b;
+    border-left: solid 2px #335e4b;
+    border-bottom: solid 2px #335e4b;
+    border-right: solid 2px #335e4b;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
@@ -285,10 +287,10 @@ div.frame_green {
 
 
 div.message {
-    border-top: solid 1px #ba3c21;
-    border-left: solid 1px #ba3c21;
-    border-bottom: solid 5px #ba3c21;
-    border-right: solid 5px #ba3c21;
+    border-top: solid 2px #ba3c21;
+    border-left: solid 2px #ba3c21;
+    border-bottom: solid 2px #ba3c21;
+    border-right: solid 2px #ba3c21;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
@@ -345,6 +347,11 @@ textarea.editor_text {
     border: 1px solid #326296;
 }
 
+input.editor_filechooser {
+    display: inline;
+    padding: 2px;
+}
+
 div.editor_docs {
 }
 
@@ -357,10 +364,14 @@ div.editor_doc {
     margin-bottom: 2px;
 }
 
+div.editor_docs_errmsg {
+    color: #ba3c21;
+    font-size: 12px;
+}
+
 div.editor_icon {
     float: left; 
-    padding: 2px;
-    height: 36px;
+    height: 40px;
 }
 
 div.editor_rmdoc {
@@ -417,60 +428,60 @@ div.note {
 }
 
 div.post_note {
-    border-top: solid 1px #bcd7dc;
-    border-left: solid 1px #bcd7dc;
-    border-bottom: solid 5px #bcd7dc;
-    border-right: solid 5px #bcd7dc;
+    border-top: solid 2px #bcd7dc;
+    border-left: solid 2px #bcd7dc;
+    border-bottom: solid 2px #bcd7dc;
+    border-right: solid 2px #bcd7dc;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
 
 div.post_question {
-    border-left: solid 1px #ba3c21;
-    border-bottom: solid 5px #ba3c21;
-    border-right: solid 5px #ba3c21;
-    border-top: solid 1px #ba3c21;
+    border-left: solid 2px #ba3c21;
+    border-bottom: solid 2px #ba3c21;
+    border-right: solid 2px #ba3c21;
+    border-top: solid 2px #ba3c21;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
 
 div.post_selected {
-    border-top: solid 1px #daaa4c;
-    border-left: solid 1px #daaa4c;
-    border-bottom: solid 5px #daaa4c;
-    border-right: solid 5px #daaa4c;
+    border-top: solid 2px #daaa4c;
+    border-left: solid 2px #daaa4c;
+    border-bottom: solid 2px #daaa4c;
+    border-right: solid 2px #daaa4c;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
 
 div.post_advice {
-    border-top: solid 1px #daaa4c;
-    border-left: solid 1px #daaa4c;
-    border-bottom: solid 5px #daaa4c;
-    border-right: solid 5px #daaa4c;
+    border-top: solid 2px #daaa4c;
+    border-left: solid 2px #daaa4c;
+    border-bottom: solid 2px #daaa4c;
+    border-right: solid 2px #daaa4c;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
 
 div.post_observation {
-    border-top: solid 1px #326296;
-    border-left: solid 1px #326296;
-    border-bottom: solid 5px #326296;
-    border-right: solid 5px #326296;
+    border-top: solid 2px #326296;
+    border-left: solid 2px #326296;
+    border-bottom: solid 2px #326296;
+    border-right: solid 2px #326296;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
 
 div.post_funny {
-    border-top: solid 1px #84037d;
-    border-left: solid 1px #84037d;
-    border-bottom: solid 5px #84037d;
-    border-right: solid 5px #84037d;
+    border-top: solid 2px #84037d;
+    border-left: solid 2px #84037d;
+    border-bottom: solid 2px #84037d;
+    border-right: solid 2px #84037d;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;

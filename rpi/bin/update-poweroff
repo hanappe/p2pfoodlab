@@ -1,9 +1,0 @@
-#!/bin/bash
-
-home_dir=/var/p2pfoodlab
-date=`date +"%Y%m%d-%H%M%S"`
-
-echo "[poweroff @ $date] Shutting down the sensorbox" 2>&1 >> $home_dir/log.txt
-
-sync
-poweroff

@@ -28,10 +28,13 @@ extern "C" {
 
 #include "json.h"
 
-json_object_t config_load(const char* file);
-int config_get_sensors(json_object_t config,
-                       unsigned char* enabled, 
-                       unsigned char* period);
+        json_object_t config_load(const char* file);
+
+        int config_get_sensors(json_object_t config,
+                               unsigned char* enabled, 
+                               unsigned char* period);
+
+        const char* config_get_network_interface(json_object_t config);
 
 #ifdef __cplusplus
 }

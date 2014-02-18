@@ -31,7 +31,7 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include <signal.h>
-#include "logMessage.h"
+#include "log_message.h"
 
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 0
@@ -51,14 +51,14 @@ static int openServerSocket(int port)
 
         int r = inet_aton("127.0.0.1", &addr);
         if (r == 0) {
-                logMessage("daemon", LOG_ERROR, "Failed to convert '127.0.0.1' to an IP address...?!\n");
+                log_err("Daemon: Failed to convert '127.0.0.1' to an IP address...?!\n");
                 return -1;
         }
         //addr.s_addr = htonl(INADDR_ANY);
 
         serverSocket = socket(AF_INET, SOCK_STREAM, 0);
         if (serverSocket == -1) {
-                logMessage("daemon", LOG_ERROR, "Failed to create server socket\n");
+                log_err("Daemon: Failed to create server socket\n");
                 return -1;
         }
 
@@ -71,14 +71,14 @@ static int openServerSocket(int port)
                  sizeof(struct sockaddr_in)) == -1) {
                 close(serverSocket);
                 serverSocket = -1;
-                logMessage("daemon", LOG_ERROR, "Failed to bind server socket\n");
+                log_err("Daemon: Failed to bind server socket\n");
                 return -1;
         }
         
         if (listen(serverSocket, 10) == -1) {
                 close(serverSocket);
                 serverSocket = -1;
-                logMessage("daemon", LOG_ERROR, "Failed to bind server socket\n");
+                log_err("Daemon: Failed to bind server socket\n");
                 return -1;
         }
 
@@ -98,14 +98,14 @@ static int serverSocketAccept(int serverSocket)
         socklen_t addrlen = sizeof(addr);
 
         if (serverSocket == -1) {
-                logMessage("daemon", LOG_ERROR, "Invalid server socket\n");
+                log_err("Daemon: Invalid server socket\n");
                 return -1;
         }
   
         int clientSocket = accept(serverSocket, (struct sockaddr*) &addr, &addrlen);
   
         if (clientSocket == -1) {
-                logMessage("daemon", LOG_ERROR, "Accept failed\n");
+                log_err("Daemon: Accept failed\n");
                 return -1;
         } 
 
@@ -167,7 +167,7 @@ int output_append(output_t* output, char c)
                 int newsize = 1024 + 2 * output->size;
                 output->buf = realloc(output->buf, newsize);
                 if (output->buf == NULL) {
-                        logMessage("daemon", LOG_ERROR, "Out of memory\n");
+                        log_err("Daemon: Out of memory\n");
                         output_clear(output);
                         return -1;
                 }
@@ -179,11 +179,11 @@ int output_append(output_t* output, char c)
 
 int execute(output_t* output, const char* cmdline)
 {
-        logMessage("daemon", LOG_INFO, "Executing: '%s'\n", cmdline);
+        log_info("Daemon: Executing: '%s'\n", cmdline);
 
         FILE * pipe = popen(cmdline, "r");
         if (pipe == NULL) {
-                logMessage("daemon", LOG_WARNING, "Command failed: '%s'\n", cmdline);
+                log_warn("Daemon: Command failed: '%s'\n", cmdline);
                 return -1;
         }
         
@@ -195,7 +195,7 @@ int execute(output_t* output, const char* cmdline)
                         int r = 0;
                         if (err != 0) {
                                 r = -1;
-                                logMessage("daemon", LOG_ERROR, 
+                                log_err(
                                            "Command failed: ferror(%d)\n", err);
                         }
                         pclose(pipe);
@@ -218,7 +218,7 @@ int writePidFile(const char* filename)
                 fclose(fp);
                 return 0;
         } else {
-                logMessage("daemon", LOG_ERROR, "Failed to create the PID file '%s'\n", filename);
+                log_err("Daemon: Failed to create the PID file '%s'\n", filename);
         }
         return -1;
 }
@@ -234,14 +234,14 @@ int daemonise()
         case 0:  
 		break;
         case -1: 
-		logMessage("daemon", LOG_ERROR, "Failed to fork\n");		
+		log_err("Daemon: Failed to fork\n");		
 		return -1;
         default: 
 		_exit(0);
 	}
 	
 	if (setsid() < 0) {
-		logMessage("daemon", LOG_ERROR, "setsid() failed\n");		
+		log_err("Daemon: setsid() failed\n");		
 		return -1;
 	}
 
@@ -251,17 +251,17 @@ int daemonise()
 	int fd;
 
 	if ((fd = open("/dev/null", O_RDONLY)) == -1) {
-		logMessage("daemon", LOG_ERROR, "Failed to open /dev/null\n");		
+		log_err("Daemon: Failed to open /dev/null\n");		
 		return -1;
 	}
 
 	if ((fd = open("/dev/null", O_WRONLY | O_TRUNC, 0644)) == -1) {
-		logMessage("daemon", LOG_ERROR, "Failed to open /dev/null\n");		
+		log_err("Daemon: Failed to open /dev/null\n");		
 		return -1;
 	}
 
 	if ((fd = open("/dev/null", O_WRONLY | O_TRUNC, 0644)) == -1) {
-		logMessage("daemon", LOG_ERROR, "Failed to open /dev/null\n");		
+		log_err("Daemon: Failed to open /dev/null\n");		
 		return -1;
 	}
 
@@ -271,7 +271,7 @@ int daemonise()
 void sighandler(int signum)
 {
 	if ((signum == SIGINT) || (signum == SIGHUP) || (signum == SIGTERM)) {
-		logMessage("daemon", LOG_INFO, "Caught signal. Shutting down.");
+		log_info("Daemon: Caught signal. Shutting down.");
 		signal(SIGINT, sighandler);
 		signal(SIGHUP, sighandler);
 		signal(SIGTERM, sighandler);
@@ -446,7 +446,7 @@ int parseRequest(int client, request_t* req, response_t* resp)
 
                 r = read(client, &c, 1);
                 if ((r == -1) || (r == 0)) {
-                        logMessage("daemon", LOG_WARNING, "Failed to parse the request\n");
+                        log_warn("Daemon: Failed to parse the request\n");
                         return -1;
                 }
                 
@@ -463,7 +463,7 @@ int parseRequest(int client, request_t* req, response_t* resp)
                                 state = REQ_PATH;
 
                         } else if ((c == '\r') || (c == '\n')) {
-                                logMessage("daemon", LOG_WARNING, "Bad request: %s\n", buffer);
+                                log_warn("Daemon: Bad request: %s\n", buffer);
                                 resp->status = 400;
                                 return -1;
                                 
@@ -472,7 +472,7 @@ int parseRequest(int client, request_t* req, response_t* resp)
 
                         } else {
                                 buffer[BUFLEN-1] = 0;
-                                logMessage("daemon", LOG_WARNING, "Request line too long: %s\n", buffer);
+                                log_warn("Daemon: Request line too long: %s\n", buffer);
                                 resp->status = 400;
                                 return -1;
                         }
@@ -494,7 +494,7 @@ int parseRequest(int client, request_t* req, response_t* resp)
                                 state = REQ_ARGS_NAME;
 
                         } else if ((c == '\r') || (c == '\n')) {
-                                logMessage("daemon", LOG_WARNING, "Bad request: %s\n", buffer);
+                                log_warn("Daemon: Bad request: %s\n", buffer);
                                 resp->status = 400;
                                 return -1;
 
@@ -502,7 +502,7 @@ int parseRequest(int client, request_t* req, response_t* resp)
                                 buffer[count++] = (char) c;
                         } else {
                                 buffer[BUFLEN-1] = 0;
-                                logMessage("daemon", LOG_WARNING, "Requested path too long: %s\n", buffer);
+                                log_warn("Daemon: Requested path too long: %s\n", buffer);
                                 resp->status = 400;
                                 return -1;
                         }
@@ -512,7 +512,7 @@ int parseRequest(int client, request_t* req, response_t* resp)
                         if (c == ' ') {
                                 buffer[count++] = 0;
                                 if (req->num_args >= REQ_MAX_ARGS) {
-                                        logMessage("daemon", LOG_WARNING, "Too many arguments: %d\n", REQ_MAX_ARGS);
+                                        log_warn("Daemon: Too many arguments: %d\n", REQ_MAX_ARGS);
                                         resp->status = 400;
                                         return -1;
                                 }
@@ -523,7 +523,7 @@ int parseRequest(int client, request_t* req, response_t* resp)
                         } else if (c == '=') {
                                 buffer[count++] = 0;
                                 if (req->num_args >= REQ_MAX_ARGS) {
-                                        logMessage("daemon", LOG_WARNING, "Too many arguments: %d\n", REQ_MAX_ARGS);
+                                        log_warn("Daemon: Too many arguments: %d\n", REQ_MAX_ARGS);
                                         resp->status = 400;
                                         return -1;
                                 }
@@ -534,7 +534,7 @@ int parseRequest(int client, request_t* req, response_t* resp)
                         } else if (c == '&') {
                                 buffer[count++] = 0;
                                 if (req->num_args >= REQ_MAX_ARGS) {
-                                        logMessage("daemon", LOG_WARNING, "Too many arguments: %d\n", REQ_MAX_ARGS);
+                                        log_warn("Daemon: Too many arguments: %d\n", REQ_MAX_ARGS);
                                         resp->status = 400;
                                         return -1;
                                 }
@@ -543,14 +543,14 @@ int parseRequest(int client, request_t* req, response_t* resp)
                                 state = REQ_ARGS_NAME;
 
                         } else if ((c == '\r') || (c == '\n')) {
-                                logMessage("daemon", LOG_WARNING, "Bad request: %s\n", buffer);
+                                log_warn("Daemon: Bad request: %s\n", buffer);
                                 resp->status = 400;
                                 return -1;
                         } else if (count < BUFLEN-1) {
                                 buffer[count++] = (char) c;
                         } else {
                                 buffer[BUFLEN-1] = 0;
-                                logMessage("daemon", LOG_WARNING, "Requested path too long: %s\n", buffer);
+                                log_warn("Daemon: Requested path too long: %s\n", buffer);
                                 resp->status = 400;
                                 return -1;
                         }
@@ -570,14 +570,14 @@ int parseRequest(int client, request_t* req, response_t* resp)
                                 state = REQ_ARGS_NAME;
 
                         } else if ((c == '\r') || (c == '\n')) {
-                                logMessage("daemon", LOG_WARNING, "Bad request: %s\n", buffer);
+                                log_warn("Daemon: Bad request: %s\n", buffer);
                                 resp->status = 400;
                                 return -1;
                         } else if (count < BUFLEN-1) {
                                 buffer[count++] = (char) c;
                         } else {
                                 buffer[BUFLEN-1] = 0;
-                                logMessage("daemon", LOG_WARNING, "Requested path too long: %s\n", buffer);
+                                log_warn("Daemon: Requested path too long: %s\n", buffer);
                                 resp->status = 400;
                                 return -1;
                         }
@@ -595,7 +595,7 @@ int parseRequest(int client, request_t* req, response_t* resp)
                                 count = 0;
                                 state = REQ_REQLINE_LF;
                         } else if (strchr("HTTP/1.0", c) == NULL) {
-                                logMessage("daemon", LOG_WARNING, "Invalid HTTP version string\n");
+                                log_warn("Daemon: Invalid HTTP version string\n");
                                 resp->status = 400;
                                 return -1;
                         } else {
@@ -605,7 +605,7 @@ int parseRequest(int client, request_t* req, response_t* resp)
 
                 case REQ_REQLINE_LF: 
                         if (c != '\n') {
-                                logMessage("daemon", LOG_WARNING, "Invalid HTTP version string\n");
+                                log_warn("Daemon: Invalid HTTP version string\n");
                                 resp->status = 400;
                                 return -1;
                         } else {
@@ -623,14 +623,14 @@ int parseRequest(int client, request_t* req, response_t* resp)
                                 
                         } else if (c == ':') {
                                 buffer[count++] = 0;
-                                //logMessage("daemon", LOG_INFO, "Header '%s'\n", buffer);
+                                //log_info("Daemon: Header '%s'\n", buffer);
                                 count = 0;
                                 state = REQ_HEADER_VALUE;
                         } else if (count < BUFLEN-1) {
                                 buffer[count++] = (char) c;
                         } else {
                                 buffer[BUFLEN-1] = 0;
-                                logMessage("daemon", LOG_WARNING, "Header name too long: %s\n", buffer);
+                                log_warn("Daemon: Header name too long: %s\n", buffer);
                                 resp->status = 400;
                                 return -1;
                         }
@@ -639,19 +639,17 @@ int parseRequest(int client, request_t* req, response_t* resp)
                 case REQ_HEADER_VALUE: 
                         if (c == '\r') {
                                 buffer[count++] = 0;
-                                //logMessage("daemon", LOG_, "Header value: %s\n", buffer);
                                 count = 0;
                                 state = REQ_HEADER_LF;
                         } else if (c == '\n') {
                                 buffer[count++] = 0;
-                                //logMessage("daemon", LOG_, "Header value: %s\n", buffer);
                                 count = 0;
                                 state = REQ_HEADER_NAME;
                         } else if (count < BUFLEN-1) {
                                 buffer[count++] = (char) c;
                         } else {
                                 buffer[BUFLEN-1] = 0;
-                                logMessage("daemon", LOG_WARNING, "Header value too long: %s\n", buffer);
+                                log_warn("Daemon: Header value too long: %s\n", buffer);
                                 resp->status = 400;
                                 return -1;
                         }
@@ -659,7 +657,7 @@ int parseRequest(int client, request_t* req, response_t* resp)
  
                 case REQ_HEADER_LF: 
                         if (c != '\n') {
-                                logMessage("daemon", LOG_WARNING, "Invalid HTTP header\n");
+                                log_warn("Daemon: Invalid HTTP header\n");
                                 resp->status = 400;
                                 return -1;
                         } else {
@@ -670,7 +668,7 @@ int parseRequest(int client, request_t* req, response_t* resp)
 
                 case REQ_HEADERS_END_LF: 
                         if (c != '\n') {
-                                logMessage("daemon", LOG_WARNING, "Invalid HTTP header\n");
+                                log_warn("Daemon: Invalid HTTP header\n");
                                 resp->status = 400;
                                 return -1;
                         } else {
@@ -734,7 +732,7 @@ int main(int argc, char **argv)
                 const char* cmdline = findCommand(req.path);
 
                 if (cmdline == NULL) {
-                        logMessage("daemon", LOG_WARNING, "Invalid path: '%s'\n", req.path);
+                        log_warn("Daemon: Invalid path: '%s'\n", req.path);
                         clientPrint(client, "HTTP/1.1 404\r\n");
                         closeClient(client);
                         continue;

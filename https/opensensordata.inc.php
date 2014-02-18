@@ -25,13 +25,16 @@ class OpenSensorData
         public $msg = "";
         public $server = "http://opensensordata.net";
         public $key = "no-key";
+        public $cachedir = FALSE;
         public $appkey = "no-key";
         public $err = false;
 
-        function __construct($server, $key) 
+        function __construct($server, $key, $cachedir) 
         {
                 if ($server) $this->server = $server;
                 if ($key) $this->key = $key;
+                if (isset($cachedir))
+                        $this->cachedir = $cachedir;
         }
 
         public function decode($json)
@@ -211,7 +214,7 @@ class OpenSensorData
 
         public function create_datastream($name, $description, $unit, $cached_ok)
         {
-                if ($cached_ok) {
+                if ($cached_ok && $this->cachedir) {
                         $filename = $this->cachedir . "/" . $name . ".json";
                         $json = file_get_contents($filename);
                         if ($json != FALSE) {
@@ -231,7 +234,7 @@ class OpenSensorData
                         return FALSE;
                 }
 
-                if (1) {
+                if ($this->cachedir) {
                         $filename = $this->cachedir . "/" . $name . ".json";
                         $err = file_put_contents($filename, json_encode($reply));
                         if ($err === FALSE) {
