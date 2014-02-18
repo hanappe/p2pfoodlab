@@ -1,13 +1,29 @@
 
-src=(src/daemon.c
-    src/grab-image.c
-    src/config-get.c
-    src/arduino.c
-    src/logMessage.c
-    src/logMessage.h
-    src/json.c
-    src/json.h
-    src/Makefile)
+src=(src/arduino.c
+     src/arduino.h
+     src/camera.c
+     src/camera.h
+     src/clock.c
+     src/clock.h
+     src/config.c
+     src/config.h
+     src/daemon.c
+     src/event.c
+     src/event.h
+     src/json.c
+     src/json.h
+     src/log_message.c
+     src/log_message.h
+     src/main.c
+     src/Makefile
+     src/network.c
+     src/network.h
+     src/opensensordata.c
+     src/opensensordata.h
+     src/sensorbox.c
+     src/sensorbox.h
+     src/system.c
+     src/system.h)
 
 lib=(lib/broken.jpg)
 
