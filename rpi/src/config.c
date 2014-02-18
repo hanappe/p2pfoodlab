@@ -112,8 +112,8 @@ const char* config_get_network_interface(json_object_t config)
                 json_object_t enabled = json_object_get(wifi_config, "enable");
                 if (!json_isstring(enabled)) {
                         log_err("Config: WiFi enabled setting is not a JSON string, as expected"); 
-                } else if (!json_string_equals(enabled, "yes")) {
-                        log_debug("Sensorbox: Camera not enabled");
+                } else if (json_string_equals(enabled, "yes")) {
+                        log_debug("Config: Using WiFi interface");
                         return "wlan0";
                 }
         }
@@ -125,8 +125,8 @@ const char* config_get_network_interface(json_object_t config)
                 json_object_t enabled = json_object_get(gsm_config, "enable");
                 if (!json_isstring(enabled)) {
                         log_err("Config: GSM enabled setting is not a JSON string, as expected"); 
-                } else if (!json_string_equals(enabled, "yes")) {
-                        log_debug("Sensorbox: Camera not enabled");
+                } else if (json_string_equals(enabled, "yes")) {
+                        log_debug("Config: Using GSM interface");
                         return "ppp0";
                 }
         }
