@@ -99,6 +99,7 @@ service p2pfoodlab start
 
 # Restart the web server.
 echo Web server:
+echo "ServerName localhost" > /etc/apache2/conf.d/fqdn
 service apache2 restart
 
 # Enable the DHCP server on eth0
