@@ -13,5 +13,9 @@ ${prefix}/bin/sensorbox: main.c json.c json.h log_message.c log_message.h arduin
 #rtc-arduino: rtc-arduino.c 
 #	gcc -g -Wall -O0 -std=c99 rtc-arduino.c -o $@
 
+install:
+	cp ${prefix}/bin/p2pfoodlab-daemon /var/p2pfoodlab/bin/
+	cp ${prefix}/bin/sensorbox /var/p2pfoodlab/bin/
+
 clean:
 	rm -f ${programs}
