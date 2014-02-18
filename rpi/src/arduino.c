@@ -308,6 +308,7 @@ static int arduino_set_state_(arduino_t* arduino, int state)
         return err;
 }
 
+#if 0
 static int arduino_get_state_(arduino_t* arduino, int* state)
 {
 	unsigned long value;
@@ -319,6 +320,7 @@ static int arduino_get_state_(arduino_t* arduino, int* state)
 
 	return err;
 }
+#endif
 
 static int arduino_get_frames_(arduino_t* arduino, int* frames)
 {

@@ -105,6 +105,32 @@ int config_get_sensors(json_object_t config,
 
 const char* config_get_network_interface(json_object_t config)
 {
+        json_object_t wifi_config = json_object_get(config, "wifi");
+        if (json_isnull(wifi_config) || !json_isobject(wifi_config)) {
+                log_err("Config: Failed to get the WiFi configuration"); 
+        } else {
+                json_object_t enabled = json_object_get(wifi_config, "enable");
+                if (!json_isstring(enabled)) {
+                        log_err("Config: WiFi enabled setting is not a JSON string, as expected"); 
+                } else if (!json_string_equals(enabled, "yes")) {
+                        log_debug("Sensorbox: Camera not enabled");
+                        return "wlan0";
+                }
+        }
+
+        json_object_t gsm_config = json_object_get(config, "gsm");
+        if (json_isnull(gsm_config) || !json_isobject(gsm_config)) {
+                log_err("Config: Failed to get the GSM configuration"); 
+        } else {
+                json_object_t enabled = json_object_get(gsm_config, "enable");
+                if (!json_isstring(enabled)) {
+                        log_err("Config: GSM enabled setting is not a JSON string, as expected"); 
+                } else if (!json_string_equals(enabled, "yes")) {
+                        log_debug("Sensorbox: Camera not enabled");
+                        return "ppp0";
+                }
+        }
+        
         return "eth0";
 }
 

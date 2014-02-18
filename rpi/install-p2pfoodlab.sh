@@ -22,6 +22,7 @@ apt-get autoremove
 adduser pi i2c
 adduser pi video
 adduser pi www-data
+adduser pi dialout
 
 install --directory --owner=$uid --group=$gid --mode=0700 $home/.ssh
 install --directory --owner=$uid --group=www-data --mode=0775 $home/etc/opensensordata
@@ -63,6 +64,9 @@ for file in ${etc[@]}; do
     install --owner=root --group=root $file /$file
 done
 
+# Add update requests to crontab
+echo "* * * * * /var/p2pfoodlab/bin/sensorbox" | crontab -u $uid -
+
 # Install the start-up scripts.
 update-rc.d p2pfoodlab start 99 2 3 4 5 . stop 99 0 6 .
 #update-rc.d arduino-hwclock start 10 S . stop 10 0 1 6 .
@@ -74,9 +78,6 @@ service apache2 restart
 
 # Enable the DHCP server on eth0
 update-rc.d isc-dhcp-server enable
-
-# Edit update requests to crontab
-echo "* * * * * /var/p2pfoodlab/bin/sensorbox" | crontab -u pi -
 
 cd $curdir
 

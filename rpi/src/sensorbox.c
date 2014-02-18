@@ -411,6 +411,7 @@ void sensorbox_grab_image(sensorbox_t* box, const char* filename)
                 fp = fopen(filename, "w");
         }
 
+
         if (fp == NULL) {
                 log_info("Sensorbox: Failed to open file '%s'", filename);
                 return;

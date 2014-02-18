@@ -174,16 +174,27 @@ int main(int argc, char **argv)
         if (strcmp(command, "update") == 0) {
                 sensorbox_check_sensors(box);
                 sensorbox_handle_events(box);
-                sensorbox_upload_data(box);
-                sensorbox_upload_photos(box);
+
+                if (sensorbox_bring_network_up(box) == 0) {
+                        sensorbox_upload_data(box);
+                        sensorbox_upload_photos(box);
+                        sensorbox_bring_network_down(box);
+                }
+
                 sensorbox_poweroff_maybe(box);
                 //clock_update(box);
 
         } else if (strcmp(command, "upload-data") == 0) {
-                sensorbox_upload_data(box);
+                if (sensorbox_bring_network_up(box) == 0) {
+                        sensorbox_upload_data(box);
+                        sensorbox_bring_network_down(box);
+                }
 
         } else if (strcmp(command, "upload-photos") == 0) {
-                sensorbox_upload_photos(box);
+                if (sensorbox_bring_network_up(box) == 0) {
+                        sensorbox_upload_photos(box);
+                        sensorbox_bring_network_down(box);
+                }
 
         } else if (strcmp(command, "list-events") == 0) {
                 sensorbox_print_events(box);
@@ -210,9 +221,8 @@ int main(int argc, char **argv)
         } else if (strcmp(command, "get-time") == 0) {
                 time_t m;
                 int err = sensorbox_get_time(box, &m); 
-                if (!err) {
+                if (!err) 
                         printf("%lu\n", (unsigned long) m);
-                }
                 
         } else if (strcmp(command, "ifup") == 0) {
                 sensorbox_bring_network_up(box);
