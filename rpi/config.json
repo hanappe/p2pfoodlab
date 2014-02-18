@@ -74,6 +74,7 @@
       "key3":""
   },
   "gsm":{
+      "enable":"no",
       "pin":"",
       "apn":"orange.fr",
       "username":"orange",
