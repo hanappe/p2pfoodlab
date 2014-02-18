@@ -10,6 +10,9 @@ dest=/var/p2pfoodlab
 
 cd $home
 
+echo --------------------------------------------------------
+echo STEP 1: Installing required software packages
+
 # Install required packages. Also remove package ifplugd because it is
 # doing a bad job on the Raspberry Pi in combination with the DHCP
 # server isc-dhcp-server.
@@ -18,18 +21,27 @@ apt-get install apache2 php5 libapache2-mod-php5 gcc libjpeg8-dev i2c-tools libi
 apt-get purge ifplugd
 apt-get autoremove
 
+
+echo --------------------------------------------------------
+echo STEP 2: Loading I2C kernel modules
+
+# Load the modules for the I2C bus.
+modprobe i2c_dev
+modprobe i2c_bcm2708
+
+
+echo --------------------------------------------------------
+echo STEP 3: Manage user privileges
+
 # Add user 'pi' to the required groups.
 adduser pi i2c
 adduser pi video
 adduser pi www-data
 adduser pi dialout
 
-install --directory --owner=$uid --group=$gid --mode=0700 $home/.ssh
-install --directory --owner=$uid --group=www-data --mode=0775 $home/etc/opensensordata
 
-# Load the modules for the I2C bus.
-modprobe i2c_dev
-modprobe i2c_bcm2708
+echo --------------------------------------------------------
+echo STEP 4: Download, compile & install sensorbox software
 
 # Download the latest version of the sensorbox software and
 # configuration files.
@@ -53,6 +65,8 @@ install --directory --owner=$uid --group=www-data --mode=0775 $dest/backup
 install --directory --owner=$uid --group=www-data --mode=0775 $dest/photostream
 install --directory --owner=$uid --group=www-data --mode=0775 $dest/etc
 install --owner=$uid --group=www-data --mode=0664 config.json $dest/etc
+install --directory --owner=$uid --group=$gid --mode=0700 $home/.ssh
+install --directory --owner=$uid --group=www-data --mode=0775 $home/etc/opensensordata
 
 touch $dest/log.txt
 chown pi.www-data $dest/log.txt
@@ -64,8 +78,16 @@ for file in ${etc[@]}; do
     install --owner=root --group=root $file /$file
 done
 
+
+echo --------------------------------------------------------
+echo STEP 5: Activate sensorbox update applciation
+
 # Add update requests to crontab
 echo "* * * * * /var/p2pfoodlab/bin/sensorbox" | crontab -u $uid -
+
+
+echo --------------------------------------------------------
+echo STEP 6: Installing & starting system services
 
 # Install the start-up scripts.
 update-rc.d p2pfoodlab start 99 2 3 4 5 . stop 99 0 6 .
@@ -78,6 +100,9 @@ service apache2 restart
 
 # Enable the DHCP server on eth0
 update-rc.d isc-dhcp-server enable
+
+echo --------------------------------------------------------
+echo Done!
 
 cd $curdir
 
