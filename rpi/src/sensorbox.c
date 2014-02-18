@@ -30,6 +30,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include "json.h"
 #include "log_message.h"
 #include "config.h"
@@ -50,6 +51,7 @@ struct _sensorbox_t {
         char filenamebuf[2048];
         int test;
         FILE* datafp;
+        int lock;
 };
 
 static int sensorbox_load_config(sensorbox_t* box);
@@ -92,6 +94,8 @@ sensorbox_t* new_sensorbox(const char* dir)
                 delete_sensorbox(box);
                 return NULL;
         }
+
+        box->lock = -1;
 
         return box;
 }
@@ -895,8 +899,42 @@ int sensorbox_bring_network_up(sensorbox_t* box)
 int sensorbox_bring_network_down(sensorbox_t* box)
 {
         const char* iface = config_get_network_interface(box->config);
-        if (strcmp(iface, "eth0") == 0)
-                return 0;        
         return network_byebye(iface);
 }
 
+void sensorbox_bring_network_down_maybe(sensorbox_t* box)
+{
+        const char* iface = config_get_network_interface(box->config);
+
+        if (strcmp(iface, "eth0") == 0) {
+                return;        
+        } else if ((strcmp(iface, "wlan0") == 0)
+            && sensorbox_powersaving_enabled(box)) {
+                sensorbox_bring_network_down(box);
+        } else if (strcmp(iface, "ppp0") == 0) {
+                sensorbox_bring_network_down(box);
+        }
+}
+
+int sensorbox_lock(sensorbox_t* box) 
+{
+        int fd;
+        if ((fd = open("/tmp/sensorbox.lock", O_CREAT | O_RDWR, 0666))  < 0)
+                return -1;
+        
+        if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
+                close(fd);
+                return -1;
+        }
+        box->lock = fd;
+        return 0;
+}
+
+void sensorbox_unlock(sensorbox_t* box) 
+{
+        if (box->lock == -1)
+                return;
+        flock(box->lock, LOCK_UN);
+        close(box->lock);
+        box->lock = -1;
+}

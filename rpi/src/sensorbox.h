@@ -59,6 +59,10 @@ extern "C" {
 
         int sensorbox_bring_network_up(sensorbox_t* box);
         int sensorbox_bring_network_down(sensorbox_t* box);
+        void sensorbox_bring_network_down_maybe(sensorbox_t* box);
+
+        int sensorbox_lock(sensorbox_t* box);
+        void sensorbox_unlock(sensorbox_t* box);
 
 #ifdef __cplusplus
 }

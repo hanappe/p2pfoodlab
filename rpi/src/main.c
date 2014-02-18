@@ -168,6 +168,12 @@ int main(int argc, char **argv)
         if (box == NULL) 
                 exit(1);
 
+        if (sensorbox_lock(box) != 0) {
+                log_warn("Another process is already active. Exiting.");
+                delete_sensorbox(box);
+                exit(1);
+        } 
+
         if (_test) 
                 sensorbox_test_run(box);
 
@@ -176,8 +182,7 @@ int main(int argc, char **argv)
                 sensorbox_handle_events(box);
                 sensorbox_upload_data(box);
                 sensorbox_upload_photos(box);
-                if (sensorbox_powersaving_enabled(box))
-                        sensorbox_bring_network_down(box);
+                sensorbox_bring_network_down_maybe(box);
                 sensorbox_poweroff_maybe(box);
 
                 //clock_update(box);
@@ -226,6 +231,7 @@ int main(int argc, char **argv)
                 usage(stderr, argc, argv);
         }
 
+        sensorbox_unlock(box);
         delete_sensorbox(box);
 
         return 0;

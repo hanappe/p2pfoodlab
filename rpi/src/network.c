@@ -147,6 +147,8 @@ int network_ifchange(const char* name, const char* cmd)
 {
         char* const argv[] = { "/usr/bin/sudo", cmd, (char*) name, NULL};
 
+        log_info("Network: Running %s %s", cmd, s);
+
         /* char* const argv[] = { "/bin/ls", "/", NULL}; */
 
         process_t* p = system_exec(argv[0], argv, 0);
@@ -212,7 +214,10 @@ int network_ifchange(const char* name, const char* cmd)
 int network_ifup(const char* name)
 {
         log_info("Network: Bringing up %s", name);
-        return network_ifchange(name, "/sbin/ifup");
+        int r = network_ifchange(name, "/sbin/ifup");
+        // give the network layer some time to settle.
+        sleep(20);
+        return r;
 }
 
 int network_ifdown(const char* name)
@@ -242,9 +247,6 @@ int network_gogo(const char* iface)
                         log_info("Network: ifup %s failed", iface);
                         continue;
                 }
-
-                // give the network layer some time to settle.
-                sleep(7);
 
                 // check to be be sure
                 if (network_connected()) {
