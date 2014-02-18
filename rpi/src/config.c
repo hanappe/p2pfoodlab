@@ -134,3 +134,21 @@ const char* config_get_network_interface(json_object_t config)
         return "eth0";
 }
 
+int config_powersaving_enabled(json_object_t config)
+{
+        json_object_t power = json_object_get(config, "power");
+        if (!json_isobject(power)) {
+                log_err("Sensorbox: Power settings are not a JSON object, as expected"); 
+                return 0;
+        }
+        json_object_t poweroff = json_object_get(power, "poweroff");
+        if (!json_isstring(poweroff)) {
+                log_err("Sensorbox: Poweroff setting is not a JSON string, as expected"); 
+                return 0;
+        }
+        if (json_string_equals(poweroff, "yes")) {
+                return 1;
+        }
+        return 0;
+}
+

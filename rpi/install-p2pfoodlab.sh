@@ -80,7 +80,7 @@ done
 
 
 echo --------------------------------------------------------
-echo STEP 5: Activate sensorbox update applciation
+echo STEP 5: Activate sensorbox update application (crontab)
 
 # Add update requests to crontab
 echo "* * * * * /var/p2pfoodlab/bin/sensorbox" | crontab -u $uid -

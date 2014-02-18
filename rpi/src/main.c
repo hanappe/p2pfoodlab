@@ -174,27 +174,18 @@ int main(int argc, char **argv)
         if (strcmp(command, "update") == 0) {
                 sensorbox_check_sensors(box);
                 sensorbox_handle_events(box);
-
-                if (sensorbox_bring_network_up(box) == 0) {
-                        sensorbox_upload_data(box);
-                        sensorbox_upload_photos(box);
-                        sensorbox_bring_network_down(box);
-                }
-
+                sensorbox_upload_data(box);
+                sensorbox_upload_photos(box);
+                sensorbox_bring_network_down(box);
                 sensorbox_poweroff_maybe(box);
+
                 //clock_update(box);
 
         } else if (strcmp(command, "upload-data") == 0) {
-                if (sensorbox_bring_network_up(box) == 0) {
-                        sensorbox_upload_data(box);
-                        sensorbox_bring_network_down(box);
-                }
+                sensorbox_upload_data(box);
 
         } else if (strcmp(command, "upload-photos") == 0) {
-                if (sensorbox_bring_network_up(box) == 0) {
-                        sensorbox_upload_photos(box);
-                        sensorbox_bring_network_down(box);
-                }
+                sensorbox_upload_photos(box);
 
         } else if (strcmp(command, "list-events") == 0) {
                 sensorbox_print_events(box);

@@ -60,7 +60,6 @@ static int sensorbox_add_fixed_events(sensorbox_t* box, json_object_t fixed, int
 static int sensorbox_init_arduino(sensorbox_t* box);
 static int sensorbox_init_camera(sensorbox_t* box);
 static void sensorbox_handle_event(sensorbox_t* box, event_t* e, time_t t);
-static int sensorbox_poweroff_enabled(sensorbox_t* box);
 static void sensorbox_poweroff(sensorbox_t* box, int minutes);
 
 sensorbox_t* new_sensorbox(const char* dir)
@@ -642,6 +641,11 @@ void sensorbox_upload_data(sensorbox_t* box)
 
         log_info("Sensorbox: Uploading datapoints (filesize=%d)", (int) buf.st_size); 
 
+        if (sensorbox_bring_network_up(box) != 0) {
+                log_err("Sensorbox: Failed to bring the network up");
+                return;
+        }
+
         int ret = opensensordata_put_datapoints(box->osd, filename);
         if (ret != 0) {
                 log_err("Sensorbox: Uploading of datapoints failed"); 
@@ -687,8 +691,36 @@ void sensorbox_upload_photos(sensorbox_t* box)
                 log_err("Sensorbox: Failed to open the photo directory '%s'", dirname);
                 return;
         }
-                
+
+        int count = 0;
+        while ((entry = readdir(dir)) != NULL) {
+                snprintf(filename, 511, "%s/%s", dirname, entry->d_name);
+                filename[511] = 0;
+        
+                if ((stat(filename, &buf) == -1)
+                    || ((buf.st_mode & S_IFMT) != S_IFREG)
+                    || (buf.st_size == 0))
+                        continue;
+
+                count++;
+        }
+
+        if (count == 0) {
+                closedir(dir);
+                return;
+        }
+
+        log_info("Sensorbox: Found %d %s on the disk", 
+                 count, (count == 1)? "photo" : "photos");
+
         int photostream = opensensordata_get_datastream_id(box->osd, "webcam");
+        
+        if (sensorbox_bring_network_up(box) != 0) {
+                log_err("Sensorbox: Failed to bring the network up");
+                return;
+        }
+
+        rewinddir(dir);
 
         while ((entry = readdir(dir)) != NULL) {
                 snprintf(filename, 511, "%s/%s", dirname, entry->d_name);
@@ -727,22 +759,9 @@ void sensorbox_upload_photos(sensorbox_t* box)
         closedir(dir);
 }
 
-static int sensorbox_poweroff_enabled(sensorbox_t* box)
+int sensorbox_powersaving_enabled(sensorbox_t* box)
 {
-        json_object_t power = json_object_get(box->config, "power");
-        if (!json_isobject(power)) {
-                log_err("Sensorbox: Power settings are not a JSON object, as expected"); 
-                return 0;
-        }
-        json_object_t poweroff = json_object_get(power, "poweroff");
-        if (!json_isstring(poweroff)) {
-                log_err("Sensorbox: Poweroff setting is not a JSON string, as expected"); 
-                return 0;
-        }
-        if (json_string_equals(poweroff, "yes")) {
-                return 1;
-        }
-        return 0;
+        return config_powersaving_enabled(box->config);
 }
 
 static void sensorbox_poweroff(sensorbox_t* box, int minutes)
@@ -811,7 +830,7 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
            too quickly to allow people to connect to it.
          */
         int uptime = sensorbox_uptime(box);
-        int enabled = sensorbox_poweroff_enabled(box);
+        int enabled = sensorbox_powersaving_enabled(box);
         if ((delta > 3) && enabled && (uptime > 180)) {
                 if (box->test) 
                         printf("POWEROFF %d\n", delta - 3);

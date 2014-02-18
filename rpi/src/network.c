@@ -216,7 +216,7 @@ int network_ifup(const char* name)
 
 int network_ifdown(const char* name)
 {
-        return network_ifchange(name, "/sbin/ifup");
+        return network_ifchange(name, "/sbin/ifdown");
 }
 
 int network_gogo(const char* iface)
