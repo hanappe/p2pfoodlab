@@ -216,6 +216,12 @@ int network_ifup(const char* name)
 
 int network_ifdown(const char* name)
 {
+        char buffer[1024];
+
+        int r = network_ifaddr(name, buffer, 1024);
+        if (r == -1) 
+                return 0;
+
         return network_ifchange(name, "/sbin/ifdown");
 }
 
