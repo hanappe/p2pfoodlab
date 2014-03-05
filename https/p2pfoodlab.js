@@ -706,12 +706,12 @@ function NoteEditor(id, parent, thread, replyto, lang, lang_opt)
         }
 
         this.showIcon = function(e) {
-
                 var fileInput = e.target;
                 var inputId = e.target.id;
                 var file = e.target.files[0];
 
                 if (file.type == "image/jpeg") {
+
                         var reader = new FileReader();
                         reader.onload = function(e) {
                                 img = document.getElementById(inputId + "_img");
@@ -761,7 +761,7 @@ function NoteEditor(id, parent, thread, replyto, lang, lang_opt)
 
                 var img = document.createElement("IMG");
                 img.className = "note_icon hidden";
-                img.id = "doc_" + this.docID + "_img";
+                img.id = "doc_loc_" + this.docID + "_img";
                 img.src = "";
                 icondiv.appendChild(img);
 

@@ -46,7 +46,8 @@ extern "C" {
         void delete_process(process_t* p);
         void process_wait(process_t* p);
 
-        process_t* system_exec(const char* path, char* const argv[], int wait);
+        process_t* system_exec(char* const argv[], int wait);
+        int system_run(char* const argv[]);
 
 #ifdef __cplusplus
 }

@@ -173,6 +173,7 @@ static int opensensordata_put_file(opensensordata_t* osd,
         curl_easy_setopt(osd->curl, CURLOPT_READDATA, fp);
         curl_easy_setopt(osd->curl, CURLOPT_WRITEFUNCTION, opensensordata_write_function);
         curl_easy_setopt(osd->curl, CURLOPT_WRITEDATA, osd);
+        curl_easy_setopt(osd->curl, CURLOPT_TIMEOUT, 300L); // 5 minutes
         
         CURLcode res = curl_easy_perform(osd->curl);
         if (res != CURLE_OK) {

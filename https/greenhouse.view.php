@@ -185,6 +185,9 @@ if ($this->errmsg) {
            && ($this->host != NULL)
            && ($this->visitor->id == $this->host->id)
            && (count($host->sensorbox) <= 0)) {
+
+        
+        /* echo "    COUNT " . count($host->sensorbox) . "\n"; */
         
         echo "    <div class=\"strip\">\n";
         echo "        <div class=\"content_box frame margin\">\n";

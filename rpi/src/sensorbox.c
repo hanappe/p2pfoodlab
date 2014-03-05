@@ -39,6 +39,7 @@
 #include "camera.h"
 #include "network.h"
 #include "opensensordata.h"
+#include "system.h"
 #include "sensorbox.h"
 
 struct _sensorbox_t {
@@ -893,7 +894,23 @@ int sensorbox_uptime(sensorbox_t* box)
 int sensorbox_bring_network_up(sensorbox_t* box)
 {
         const char* iface = config_get_network_interface(box->config);
-        return network_gogo(iface);
+        int r = network_gogo(iface);
+        
+        if (r == 0) {
+                // Use the opportunity to update the clock
+                log_info("Network: Running NTPD");
+                char* const argv[] = { "/usr/bin/sudo", 
+                                       "/usr/sbin/ntpd", 
+                                       "-q", "-g", NULL};
+                r = system_run(argv);
+                
+                if (r == 0) {
+                        time_t m = time(NULL);
+                        sensorbox_set_time(box, m); 
+                }
+        }
+
+        return r;
 }
 
 int sensorbox_bring_network_down(sensorbox_t* box)
@@ -907,11 +924,18 @@ void sensorbox_bring_network_down_maybe(sensorbox_t* box)
         const char* iface = config_get_network_interface(box->config);
 
         if (strcmp(iface, "eth0") == 0) {
+                log_info("Sensorbox: Bring eth0 down? No.");
                 return;        
-        } else if ((strcmp(iface, "wlan0") == 0)
-            && sensorbox_powersaving_enabled(box)) {
-                sensorbox_bring_network_down(box);
+        } else if (strcmp(iface, "wlan0") == 0) {
+                if (sensorbox_powersaving_enabled(box)) {
+                        log_info("Sensorbox: Bring wlan0 down? Yes.");
+                        sensorbox_bring_network_down(box);
+                } else {
+                        log_info("Sensorbox: Bring wlan0 down? No. "
+                                 "Not in power saving mode.");
+                }
         } else if (strcmp(iface, "ppp0") == 0) {
+                log_info("Sensorbox: Bring ppp0 down? Yes.");
                 sensorbox_bring_network_down(box);
         }
 }

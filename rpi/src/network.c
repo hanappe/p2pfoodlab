@@ -145,70 +145,9 @@ int network_ifaddr(const char* name, char *addr, int len)
 
 int network_ifchange(const char* name, const char* cmd)
 {
-        char* const argv[] = { "/usr/bin/sudo", cmd, (char*) name, NULL};
-
         log_info("Network: Running %s %s", cmd, name);
-
-        /* char* const argv[] = { "/bin/ls", "/", NULL}; */
-
-        process_t* p = system_exec(argv[0], argv, 0);
-        if (p == NULL) 
-                return -1;
-
-        fd_set rfds;
-        struct timeval tv;
-        int retval;
-
-        while (1) {
-
-                FD_ZERO(&rfds);
-                FD_SET(p->out, &rfds);
-                FD_SET(p->err, &rfds);
-
-                tv.tv_sec = 10;
-                tv.tv_usec = 0;
-
-                int nfds = (p->out > p->err)? p->out : p->err;
-
-                retval = select(nfds + 1, &rfds, NULL, NULL, &tv);
-
-                if (retval == -1) {
-                        log_err("Network: select() failed", strerror(errno));
-                        break;
-
-                } else if (retval) {
-                        char buffer[1024];
-                        int count = 0;
-
-                        if (FD_ISSET(p->out, &rfds)) {
-                                ssize_t n = read(p->out, buffer, 1023);
-                                if (n > 0) {
-                                        count++;
-                                        buffer[n] = 0;
-                                        log_info("%s", buffer);
-                                }
-                        }
-                        if (FD_ISSET(p->err, &rfds)) {
-                                ssize_t n = read(p->err, buffer, 1023);
-                                if (n > 0) {
-                                        count++;
-                                        buffer[n] = 0;
-                                        log_err("%s", buffer);
-                                } 
-                        }
-                        if (count == 0)
-                                break;
-
-                } else {
-                        break;
-                }
-        }
-
-        int ret = (p->exited && (p->ret == 0))? 0 : -1;
-
-        delete_process(p);
-
-        return ret;
+        char* const argv[] = { "/usr/bin/sudo", cmd, (char*) name, NULL};
+        return system_run(argv);
 }
 
 int network_ifup(const char* name)
@@ -222,14 +161,13 @@ int network_ifup(const char* name)
 
 int network_ifdown(const char* name)
 {
-        char buffer[1024];
+        /* char buffer[1024]; */
+        /* int r = network_ifaddr(name, buffer, 1024); */
+        /* if (r == -1)  */
+        /*         return 0; */
+        /* log_info("Network: Shutting down %s (%s)", name, buffer); */
 
-        int r = network_ifaddr(name, buffer, 1024);
-        if (r == -1) 
-                return 0;
-
-        log_info("Network: Shutting down %s (%s)", name, buffer);
-
+        log_info("Network: Shutting down %s", name);
         return network_ifchange(name, "/sbin/ifdown");
 }
 
@@ -246,6 +184,16 @@ int network_gogo(const char* iface)
                 if (ret != 0) {
                         log_info("Network: ifup %s failed", iface);
                         continue;
+                }
+                
+                // wait until the interface has an IP address
+                for (int j = 0; j < 5; j++) {
+                        char addr[1024];
+                        ret = network_ifaddr(iface, addr, 1024);
+                        if (ret == 0) 
+                                break;
+                        else
+                                sleep(10);
                 }
 
                 // check to be be sure

@@ -234,5 +234,5 @@ int main(int argc, char **argv)
         sensorbox_unlock(box);
         delete_sensorbox(box);
 
-        return 0;
+        exit(0);
 }

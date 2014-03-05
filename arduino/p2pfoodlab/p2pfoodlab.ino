@@ -62,12 +62,12 @@
 #define STATE_RESETSTACK        1
 #define STATE_SUSPEND           2
 
-#define RHT03_1_PIN             12
+#define RHT03_1_PIN             4
 #define RHT03_2_PIN             9
 #define SHT15_1_DATA_PIN        4
 #define SHT15_1_CLOCK_PIN       3
 #define LUMINOSITY_PIN          A2
-#define RPi_PIN                 2
+#define RPi_PIN                 9
 #define PUMP_PIN                10
 
 #define SENSOR_TRH              (1 << 0)
@@ -650,7 +650,7 @@ void setup()
         state.linux_running = 1;
         state.debug = 0;
         state.reset_stack = 0;
-        state.period = 15;
+        state.period = 1;
         state.wakeup = 0;
         state.measure = 1;
         state.poweroff = 0;
@@ -664,7 +664,8 @@ void setup()
         new_state.linux_running = 1;
         new_state.debug = 0;
         new_state.reset_stack = 0;
-        new_state.period = 15;
+        
+        new_state.period = 1;
         new_state.wakeup = 0;
 
         stack_clear();
