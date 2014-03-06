@@ -57,6 +57,7 @@
 #include "config.h"
 #include "log_message.h"
 #include "opensensordata.h"
+#include "arduino-serial-lib.h"
 #include "arduino.h"
 
 #define DS1374_REG_TOD0		0x00 /* Time of Day */
@@ -86,6 +87,17 @@
 #define CMD_CHECKSUM            0x12
 #define CMD_DEBUG               0x13
 
+#define SCMD_POWEROFF           '0'
+#define SCMD_SENSORS            'S'
+#define SCMD_STATE              'T'
+#define SCMD_FRAMES             'F'
+#define SCMD_READ               'R'
+#define SCMD_PUMP               'W'
+#define SCMD_PERIOD             'P'
+#define SCMD_START              'A'
+#define SCMD_CHECKSUM           'C'
+#define SCMD_DEBUG              'D'
+
 #define STATE_MEASURING         0
 #define STATE_RESETSTACK        1
 #define STATE_SUSPEND           2
@@ -94,22 +106,25 @@
 
 #define STACK_SIZE 1024
 
-typedef union _stack_entry_t {
-        unsigned long i;
-        float f;
-} stack_entry_t;
+/* typedef union _stack_entry_t { */
+/*         unsigned long i; */
+/*         float f; */
+/* } stack_entry_t; */
+
+typedef short stack_value_t; 
 
 typedef struct _stack_t {
         unsigned char checksum;
         int frames;
         int framesize;
-        stack_entry_t values[STACK_SIZE];
+        stack_value_t values[STACK_SIZE];
 } stack_t;
 
 struct _arduino_t {
         int bus;
         int address;
         int fd;
+        int serial;
 };
 
 arduino_t* new_arduino(int bus, int address)
@@ -124,12 +139,19 @@ arduino_t* new_arduino(int bus, int address)
         arduino->bus = bus;
         arduino->address = address;
         arduino->fd = -1;
+        arduino->serial = serialport_init("/dev/ttyAMA0", 9600);
+        if (arduino->serial == -1) { 
+                log_err("Arduino: failed to open the serial connection");
+        }
 
         return arduino;
 }
 
 int delete_arduino(arduino_t* arduino)
 {
+        if (arduino->serial != -1) { 
+                serialport_close(arduino->serial);
+        }
         free(arduino);
         return 0;
 }
@@ -168,6 +190,32 @@ static int arduino_disconnect(arduino_t* arduino)
                 close(arduino->fd);
         arduino->fd = -1;
         return 0;
+}
+
+static int arduino_read_serial(arduino_t* arduino,
+                               int reg, 
+                               int nbytes, 
+                               char* buf)
+{
+        int r = serialport_writebyte(arduino->serial, (uint8_t) reg);
+        if (r != 0) 
+                return -1;
+        r = serialport_flush(arduino->serial);
+        return serialport_read_until(arduino->serial, buf, 0, nbytes, 1000);
+}
+
+static int arduino_read_value_serial(arduino_t* arduino, 
+                                     unsigned long *value,
+                                     int reg, int nbytes)
+{
+        char buf[64];
+        int r = arduino_read_serial(arduino, reg, 64, buf); 
+        if (r == 0) {
+                unsigned long v = atol(buf);
+                *value = v;
+                return 0;
+        }
+        return r;
 }
 
 static int arduino_read(arduino_t* arduino,
@@ -460,18 +508,25 @@ static int arduino_copy_stack_(arduino_t* arduino,
 {
         unsigned char* ptr = (unsigned char*) &stack->values[0];
         int index = 0;
-        int len = stack->frames * stack->framesize * 4;
+        int len = stack->frames * stack->framesize * sizeof(stack_value_t);
         int err;
 
         if (arduino_start_transfer(arduino) != 0)
                 return -1;
 
         while (index <= len) {
-                err = arduino_read(arduino, CMD_READ, 4, ptr + index);
+                err = arduino_read(arduino, CMD_READ, sizeof(stack_value_t), ptr + index);
                 if (err != 0)
                         return -1;
-                index += 4;
+                index += sizeof(stack_value_t);
         }
+
+        /* while (index <= len) { */
+        /*         err = arduino_read_serial(arduino, SCMD_READ, 4, (char*) ptr + index); */
+        /*         if (err != 0) */
+        /*                 return -1; */
+        /*         index += 4; */
+        /* } */
 
         return 0;
 }
@@ -497,10 +552,10 @@ static datapoint_t* arduino_convert_stack_(arduino_t* arduino,
 
         for (int i = 0; i < stack->frames; i++) {
                 
-                time_t timestamp = (time_t) stack->values[index++].i;
+                time_t timestamp = (time_t) stack->values[index++];
 
                 for (int j = 0; j < num_streams; j++) {
-                        float v = stack->values[index++].f;                        
+                        short v = stack->values[index++];                        
                         datapoints[datapoint].datastream = datastreams[j];
                         datapoints[datapoint].timestamp = timestamp;
                         datapoints[datapoint].value = v;
@@ -581,7 +636,7 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
                         continue;
 
                 unsigned char* ptr = (unsigned char*) &stack.values[0];
-                int len = stack.frames * stack.framesize * 4;
+                int len = stack.frames * stack.framesize * sizeof(stack_value_t);
                 unsigned char checksum = crc8(0, ptr, len);
                 
                 log_info("Arduino: Checksum Linux 0x%02x", checksum); 

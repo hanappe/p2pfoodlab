@@ -63,12 +63,12 @@
 #define STATE_SUSPEND           2
 
 #define RHT03_1_PIN             4
-#define RHT03_2_PIN             9
+#define RHT03_2_PIN             2
 #define SHT15_1_DATA_PIN        4
 #define SHT15_1_CLOCK_PIN       3
 #define LUMINOSITY_PIN          A2
 #define RPi_PIN                 9
-#define PUMP_PIN                10
+#define PUMP_PIN                8
 
 #define SENSOR_TRH              (1 << 0)
 #define SENSOR_TRHX             (1 << 1)
@@ -140,76 +140,6 @@ static unsigned char crc8(unsigned char crc, const unsigned char *data, unsigned
 }
 
 /*
- * Stack 
- */
-
-/* The timestamps and sensor data are pushed onto the stack until the
-   RPi downloads it. */
-#define STACK_SIZE 128
-
-typedef struct _stack_t {
-        unsigned short sp;
-        unsigned short frames;
-        unsigned char framesize;
-        unsigned char checksum;
-        unsigned long offset;
-        short values[STACK_SIZE];
-} stack_t;
-
-stack_t _stack;
-
-static void stack_clear()
-{
-        _stack.sp = 0;
-        _stack.frames = 0;
-        _stack.checksum = 0;
-        _stack.offset = time(0);
-}
-
-#define stack_set_framesize(__framesize)  { _stack.framesize = __framesize; }
-#define stack_frame_begin()               (_stack.sp)
-#define stack_frame_unroll(__sp)          { _stack.sp = __sp; }
-#define stack_address()                   ((unsigned char*) &_stack.values[0])
-#define stack_bytesize()                  (_stack.frames * _stack.framesize * sizeof(short))
-#define stack_frame_bytesize()            (_stack.framesize * sizeof(short))
-#define stack_geti(__n)                   (_stack.values[__n].i)
-#define stack_checksum()                  (_stack.checksum)
-#define stack_num_frames()                (_stack.frames)
-
-static void stack_frame_end()
-{
-        /* This update should be called with interupts disabled!
-           Without it, we might be sending back the wrong checksum
-           and/or number of frames when an I2C request comes in. */
-        unsigned char* data = stack_address();
-        unsigned short offset = stack_bytesize();
-        unsigned short len = stack_frame_bytesize();
-        unsigned char crc = crc8(_stack.checksum, data + offset, len);
-        _stack.checksum = crc;
-        _stack.frames++;
-}
-
-static int stack_pushdate(unsigned long t)
-{
-        if (_stack.sp < STACK_SIZE) {
-                _stack.values[_stack.sp++] = (short) ((t - _stack.offset) / 60);
-                return 1;
-        }
-        DebugPrint("  STACK FULL");
-        return 0;
-}
-
-static int stack_push(short value)
-{
-        if (_stack.sp < STACK_SIZE) {
-                _stack.values[_stack.sp++] = value;
-                return 1;
-        }
-        DebugPrint("  STACK FULL");
-        return 0;
-}
-
-/*
  * Time functions
  */
 
@@ -238,6 +168,84 @@ static unsigned long time(unsigned long t)
 
 #define getminutes() (getseconds() / 60)
 #define hastime() (_start != 0)
+
+/*
+ * Stack 
+ */
+
+/* The timestamps and sensor data are pushed onto the stack until the
+   RPi downloads it. */
+#define STACK_SIZE 128
+
+typedef short stack_value_t; 
+
+typedef struct _stack_t {
+        unsigned short sp;
+        unsigned short frames;
+        unsigned char framesize;
+        unsigned char checksum;
+        unsigned long offset;
+        stack_value_t values[STACK_SIZE];
+} stack_t;
+
+stack_t _stack;
+
+static void stack_clear()
+{
+        _stack.sp = 0;
+        _stack.frames = 0;
+        _stack.checksum = 0;
+        _stack.offset = time(0);
+}
+
+#define stack_set_framesize(__framesize)  { _stack.framesize = __framesize; }
+#define stack_frame_begin()               (_stack.sp)
+#define stack_frame_unroll(__sp)          { _stack.sp = __sp; }
+#define stack_address()                   ((unsigned char*) &_stack.values[0])
+#define stack_bytesize()                  (_stack.frames * _stack.framesize * sizeof(stack_value_t))
+#define stack_frame_bytesize()            (_stack.framesize * sizeof(stack_value_t))
+#define stack_geti(__n)                   (_stack.values[__n].i)
+#define stack_checksum()                  (_stack.checksum)
+#define stack_num_frames()                (_stack.frames)
+
+static void stack_frame_end()
+{
+        /* This update should be called with interupts disabled!
+           Without it, we might be sending back the wrong checksum
+           and/or number of frames when an I2C request comes in. */
+        unsigned char* data = stack_address();
+        unsigned short offset = stack_bytesize();
+        unsigned short len = stack_frame_bytesize();
+        unsigned char crc = crc8(_stack.checksum, data + offset, len);
+        _stack.checksum = crc;
+        _stack.frames++;
+}
+
+static int stack_pushdate(unsigned long t)
+{
+        if (!hastime()) {
+                return 1; // skip
+        } else if (_stack.sp < STACK_SIZE) {
+                _stack.values[_stack.sp++] = (stack_value_t) ((t - _stack.offset) / 60);
+                return 1;
+        } else {
+                DebugPrint("  STACK FULL");
+                return 0;
+        }
+}
+
+static int stack_push(short value)
+{
+        if (!hastime()) {
+                return 1; // skip
+        } else if (_stack.sp < STACK_SIZE) {
+                _stack.values[_stack.sp++] = (stack_value_t) value;
+                return 1;
+        } else {
+                DebugPrint("  STACK FULL");
+                return 0;
+        }
+}
 
 
 /*
@@ -368,17 +376,13 @@ static void send_data()
         } else if (state.command == CMD_READ) {
                 unsigned char* ptr = stack_address();
                 unsigned short len = stack_bytesize();
-                send_len = 4;
+                send_len = sizeof(stack_value_t);
                 if ((len == 0) || (state.read_index >= len)) {
-                        send_buf[0] = 0;
-                        send_buf[1] = 0;
-                        send_buf[2] = 0;
-                        send_buf[3] = 0;
+                        for (int k = 0; k < sizeof(stack_value_t); k++)
+                                send_buf[k] = 0;
                 } else  {
-                        send_buf[0] = ptr[state.read_index++];
-                        send_buf[1] = ptr[state.read_index++];
-                        send_buf[2] = ptr[state.read_index++];
-                        send_buf[3] = ptr[state.read_index++]; 
+                        for (int k = 0; k < sizeof(stack_value_t); k++)
+                                send_buf[k] = ptr[state.read_index++];
                 }
 
         } else if (state.command == CMD_PUMP) {
@@ -416,9 +420,8 @@ static int get_rht03(DHT22* sensor, short* t, short* h)
                         *h = 10 * sensor->getHumidityInt();
                         return 0;
                 }
-                //Serial.print("rht03 error ");
-                //Serial.println(errorCode);
-                delay(200);  
+                DebugPrintValue("rht03 error: ", errorCode);
+                delay(500);  
         }
         return -1;
 }
@@ -429,7 +432,6 @@ static void measure_sensors()
 
         if (!hastime()) {
                 DebugPrint("  *TIME NOT SET*");
-                return;
         }
 
         unsigned short old_sp = stack_frame_begin();
@@ -644,7 +646,6 @@ void setup()
         pinMode(PUMP_PIN, OUTPUT);
         digitalWrite(PUMP_PIN, LOW);
 
-
         state.suspend = 0;
         state.sensors = SENSOR_TRH;
         state.linux_running = 1;
@@ -692,6 +693,23 @@ void loop()
                 int c = Serial.read();
                 if (c == 'd') 
                         state.debug |= DEBUG_STACK | DEBUG_STATE;
+                /* if (c == 'R') { */
+                /*         unsigned char* ptr = stack_address(); */
+                /*         unsigned short len = stack_bytesize(); */
+                        
+                /*         send_len = 4; */
+                /*         if ((len == 0) || (state.read_index >= len)) { */
+                /*                 send_buf[0] = 0; */
+                /*                 send_buf[1] = 0; */
+                /*                 send_buf[2] = 0; */
+                /*                 send_buf[3] = 0; */
+                /*         } else  { */
+                /*                 send_buf[0] = ptr[state.read_index++]; */
+                /*                 send_buf[1] = ptr[state.read_index++]; */
+                /*                 send_buf[2] = ptr[state.read_index++]; */
+                /*                 send_buf[3] = ptr[state.read_index++];  */
+                /*         } */
+                /* } */
         }
 
         if (state.debug & DEBUG_STATE) {
