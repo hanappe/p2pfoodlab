@@ -25,12 +25,24 @@
 #define RHT03_1_PIN             4
 #define RHT03_2_PIN             2
 #define LUMINOSITY_PIN          A2
+#define BAT_USB_PIN             A1
+#define BAT_AAA_PIN             A3
 
 #define DebugPrint(_s) { Serial.println(_s); } 
 #define DebugPrintValue(_s,_v) { Serial.print(_s); Serial.println(_v); } 
 
 DHT22 rht03_1(RHT03_1_PIN);
 DHT22 rht03_2(RHT03_2_PIN);
+
+static short get_level_usb_batttery()
+{
+        return analogRead(BAT_USB_PIN);
+}
+
+static short get_level_aaa_batttery()
+{
+        return analogRead(BAT_AAA_PIN);
+}
 
 static short get_luminosity()
 {

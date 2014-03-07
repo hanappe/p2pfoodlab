@@ -85,7 +85,8 @@
 #define CMD_PERIOD              0x10
 #define CMD_START               0x11
 #define CMD_CHECKSUM            0x12
-#define CMD_DEBUG               0x13
+#define CMD_OFFSET              0x13
+#define CMD_DEBUG               0xff
 
 #define SCMD_POWEROFF           '0'
 #define SCMD_SENSORS            'S'
@@ -114,9 +115,10 @@
 typedef short stack_value_t; 
 
 typedef struct _stack_t {
-        unsigned char checksum;
         int frames;
         int framesize;
+        unsigned char checksum;
+        unsigned long offset;
         stack_value_t values[STACK_SIZE];
 } stack_t;
 
@@ -404,6 +406,23 @@ static int arduino_get_checksum_(arduino_t* arduino, unsigned char* checksum)
 	return err;
 }
 
+static int arduino_get_offset_(arduino_t* arduino, unsigned long* offset)
+{
+        log_debug("Arduino: Getting the time offset on the Arduino"); 
+	unsigned long value;
+	int err;
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+                err = arduino_read_value(arduino, &value, CMD_OFFSET, 4);
+                if (err == 0) {
+                        *offset = value;
+                        break;
+                }
+        }
+
+	return err;
+}
+
 static int arduino_pump_(arduino_t* arduino, int seconds)
 {
         /* int err; */
@@ -528,12 +547,31 @@ static int arduino_copy_stack_(arduino_t* arduino,
         /*         index += 4; */
         /* } */
 
+        {
+                unsigned char* ptr = (unsigned char*) &stack->values[0];
+                int index = 0;
+                int len = stack->frames * stack->framesize * sizeof(stack_value_t);
+
+                printf("len=%d\n", len);
+
+                for (int i = 0; i < len; i++) {
+                        printf("%02x", ptr[i]);
+                        if ((i % 4) == 3)
+                                printf("\n");
+                        else
+                                printf(" ");
+                }
+                if (((len - 1) % 4) != 3)
+                        printf("\n");
+        }
+
         return 0;
 }
 
 static datapoint_t* arduino_convert_stack_(arduino_t* arduino,
                                            stack_t* stack,
                                            int* datastreams,
+                                           float* factors,
                                            int* num_points)
 {
         datapoint_t* datapoints = NULL;
@@ -552,13 +590,13 @@ static datapoint_t* arduino_convert_stack_(arduino_t* arduino,
 
         for (int i = 0; i < stack->frames; i++) {
                 
-                time_t timestamp = (time_t) stack->values[index++];
+                time_t timestamp = (time_t) (stack->offset + stack->values[index++] * 60);
 
                 for (int j = 0; j < num_streams; j++) {
-                        short v = stack->values[index++];                        
+                        float v = (float) stack->values[index++];                        
                         datapoints[datapoint].datastream = datastreams[j];
                         datapoints[datapoint].timestamp = timestamp;
-                        datapoints[datapoint].value = v;
+                        datapoints[datapoint].value = factors[j] * v;
                         datapoint++;
                 }
         }
@@ -575,6 +613,7 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
         int datastreams[32];
         int num_streams = 0;
         datapoint_t* datapoints = NULL;
+        float factors[32];
 
         *num_points = 0;
 
@@ -587,17 +626,23 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
                 goto error_recovery;
 
         if (sensors & SENSOR_TRH) {
+                factors[num_streams] = 0.01f;
                 datastreams[num_streams++] = DATASTREAM_T;
+                factors[num_streams] = 0.01f;
                 datastreams[num_streams++] = DATASTREAM_RH;
         }
         if (sensors & SENSOR_TRHX) {
+                factors[num_streams] = 0.01f;
                 datastreams[num_streams++] = DATASTREAM_TX;
+                factors[num_streams] = 0.01f;
                 datastreams[num_streams++] = DATASTREAM_RHX;
         }
         if (sensors & SENSOR_LUM) {
+                factors[num_streams] = 1.0f;
                 datastreams[num_streams++] = DATASTREAM_LUM;
         }
         if (sensors & SENSOR_SOIL) {
+                factors[num_streams] = 1.0f;
                 datastreams[num_streams++] = DATASTREAM_SOIL;
         }
 
@@ -625,6 +670,12 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
                 goto error_recovery;
 
         log_info("Arduino: Checksum Arduino 0x%02x", stack.checksum); 
+
+        err = arduino_get_offset_(arduino, &stack.offset);
+        if (err != 0)
+                goto error_recovery;
+
+        log_info("Arduino: Time offset Arduino %lu", (unsigned int) stack.offset); 
 
 
         for (int attempt = 0; attempt < 5; attempt++) {
@@ -661,6 +712,7 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
         if (err == 0)
                 datapoints = arduino_convert_stack_(arduino, &stack, 
                                                     datastreams,
+                                                    factors,
                                                     num_points);
 
  clean_exit:

@@ -53,7 +53,8 @@
 #define CMD_PERIOD              0x10
 #define CMD_START               0x11
 #define CMD_CHECKSUM            0x12
-#define CMD_DEBUG               0x13
+#define CMD_OFFSET              0x13
+#define CMD_DEBUG               0xff
 
 #define DEBUG_STACK             (1 << 0)
 #define DEBUG_STATE             (1 << 1)
@@ -161,8 +162,9 @@ static unsigned long getseconds()
 static unsigned long time(unsigned long t)
 {
         unsigned long s = getseconds();
-        if (t)
+        if (t) {
                 _start = t - s;
+        }
         return _start + s;
 }
 
@@ -206,10 +208,14 @@ static void stack_clear()
 #define stack_frame_bytesize()            (_stack.framesize * sizeof(stack_value_t))
 #define stack_geti(__n)                   (_stack.values[__n].i)
 #define stack_checksum()                  (_stack.checksum)
+#define stack_offset()                    (_stack.offset)
 #define stack_num_frames()                (_stack.frames)
 
 static void stack_frame_end()
 {
+        if (!hastime()) 
+                return; // skip
+
         /* This update should be called with interupts disabled!
            Without it, we might be sending back the wrong checksum
            and/or number of frames when an I2C request comes in. */
@@ -269,11 +275,13 @@ static void receive_data(int len)
         if ((state.command == DS1374_REG_TOD0) 
             && (recv_len == 5)) {
                 unsigned long t;
+                int hadtime = hastime();
                 t = recv_buf[1];
                 t = (t << 8) | recv_buf[2];
                 t = (t << 8) | recv_buf[3];
                 t = (t << 8) | recv_buf[4];
                 time(t);
+                if (!hadtime) stack_clear();
 
         } else if ((state.command == CMD_POWEROFF) 
                    && (recv_len == 3)) {
@@ -299,6 +307,9 @@ static void receive_data(int len)
                 state.read_index = 0;
 
         } else if (state.command == CMD_CHECKSUM) {
+                // Do nothing here
+
+        } else if (state.command == CMD_OFFSET) {
                 // Do nothing here
 
         } else if (state.command == CMD_READ) {
@@ -390,6 +401,14 @@ static void send_data()
         } else if (state.command == CMD_CHECKSUM) {
                 send_len = 1;
                 send_buf[0] = stack_checksum();
+
+        } else if (state.command == CMD_OFFSET) {
+                unsigned long t = stack_offset();
+                send_len = 4;
+                send_buf[0] = (t & 0xff000000) >> 24;
+                send_buf[1] = (t & 0x00ff0000) >> 16;
+                send_buf[2] = (t & 0x0000ff00) >> 8;
+                send_buf[3] = (t & 0x000000ff);
         }
         
         Wire.write(send_buf, send_len);
@@ -574,6 +593,8 @@ static void print_stack()
                 Serial.println();
         Serial.print("s:");
         Serial.println(stack_checksum(), HEX);
+        Serial.print("o:");
+        Serial.println(stack_offset());
 }
 
 static void handle_updates(unsigned long minutes)
@@ -755,6 +776,7 @@ void loop()
                                 if (state.measure == 0) {
                                         blink(1, 100);
                                         measure_sensors();
+                                        print_stack(); // DEBUG
                                         state.measure = state.period;
                                 }
                         }
