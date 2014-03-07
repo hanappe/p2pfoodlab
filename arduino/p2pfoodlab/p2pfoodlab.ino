@@ -420,7 +420,7 @@ static void send_data()
 
 static short get_luminosity()
 {
-        return 0;
+        return analogRead(LUMINOSITY_PIN);
 }
 
 static short get_soilhumidity()
