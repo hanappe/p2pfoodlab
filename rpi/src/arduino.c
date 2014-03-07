@@ -57,7 +57,7 @@
 #include "config.h"
 #include "log_message.h"
 #include "opensensordata.h"
-#include "arduino-serial-lib.h"
+//#include "arduino-serial-lib.h"
 #include "arduino.h"
 
 #define DS1374_REG_TOD0		0x00 /* Time of Day */
@@ -126,7 +126,7 @@ struct _arduino_t {
         int bus;
         int address;
         int fd;
-        int serial;
+        //        int serial;
 };
 
 arduino_t* new_arduino(int bus, int address)
@@ -141,19 +141,19 @@ arduino_t* new_arduino(int bus, int address)
         arduino->bus = bus;
         arduino->address = address;
         arduino->fd = -1;
-        arduino->serial = serialport_init("/dev/ttyAMA0", 9600);
-        if (arduino->serial == -1) { 
-                log_err("Arduino: failed to open the serial connection");
-        }
+        /* arduino->serial = serialport_init("/dev/ttyAMA0", 9600); */
+        /* if (arduino->serial == -1) {  */
+        /*         log_err("Arduino: failed to open the serial connection"); */
+        /* } */
 
         return arduino;
 }
 
 int delete_arduino(arduino_t* arduino)
 {
-        if (arduino->serial != -1) { 
-                serialport_close(arduino->serial);
-        }
+        /* if (arduino->serial != -1) {  */
+        /*         serialport_close(arduino->serial); */
+        /* } */
         free(arduino);
         return 0;
 }
@@ -194,31 +194,31 @@ static int arduino_disconnect(arduino_t* arduino)
         return 0;
 }
 
-static int arduino_read_serial(arduino_t* arduino,
-                               int reg, 
-                               int nbytes, 
-                               char* buf)
-{
-        int r = serialport_writebyte(arduino->serial, (uint8_t) reg);
-        if (r != 0) 
-                return -1;
-        r = serialport_flush(arduino->serial);
-        return serialport_read_until(arduino->serial, buf, 0, nbytes, 1000);
-}
+/* static int arduino_read_serial(arduino_t* arduino, */
+/*                                int reg,  */
+/*                                int nbytes,  */
+/*                                char* buf) */
+/* { */
+/*         int r = serialport_writebyte(arduino->serial, (uint8_t) reg); */
+/*         if (r != 0)  */
+/*                 return -1; */
+/*         r = serialport_flush(arduino->serial); */
+/*         return serialport_read_until(arduino->serial, buf, 0, nbytes, 1000); */
+/* } */
 
-static int arduino_read_value_serial(arduino_t* arduino, 
-                                     unsigned long *value,
-                                     int reg, int nbytes)
-{
-        char buf[64];
-        int r = arduino_read_serial(arduino, reg, 64, buf); 
-        if (r == 0) {
-                unsigned long v = atol(buf);
-                *value = v;
-                return 0;
-        }
-        return r;
-}
+/* static int arduino_read_value_serial(arduino_t* arduino,  */
+/*                                      unsigned long *value, */
+/*                                      int reg, int nbytes) */
+/* { */
+/*         char buf[64]; */
+/*         int r = arduino_read_serial(arduino, reg, 64, buf);  */
+/*         if (r == 0) { */
+/*                 unsigned long v = atol(buf); */
+/*                 *value = v; */
+/*                 return 0; */
+/*         } */
+/*         return r; */
+/* } */
 
 static int arduino_read(arduino_t* arduino,
                         int reg, 
