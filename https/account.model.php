@@ -407,7 +407,7 @@ class Account
                           . "NULL,NULL,NULL)"
                           );
 
-                echo $query . "<br/>\n";
+                //echo $query . "<br/>\n";
                 
                 $res = $mysqli->query($query);
                 if ($mysqli->errno) {
