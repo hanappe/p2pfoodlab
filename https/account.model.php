@@ -194,10 +194,10 @@ function create_account()
         $account->locale = $locale;
 
         if (!$account->create()) 
-                internalServerError("Create: Database error");
+                internalServerError("Create: Database error: " . $account->err);
 
         if (!$account->set_lang($locale, true)) 
-                internalServerError("Create: Database error");
+                internalServerError("Create: Database error: " . $account->err);
 
         $subject = 'Welcome to P2P Food Lab!';
         $message = 
@@ -407,7 +407,7 @@ class Account
                           . "NULL,NULL,NULL)"
                           );
 
-                //echo $query . "<br/>\n";
+                echo $query . "<br/>\n";
                 
                 $res = $mysqli->query($query);
                 if ($mysqli->errno) {
