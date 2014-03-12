@@ -143,12 +143,11 @@ if ($view == "post") {
                 $account = create_account();
                 $page = new EmailSentPage($account);
                 $page->generate();
+
         } else if ($op == "validate") {
-                if (!validate_account()) {
-                        internalServerError("Failed to validate the account");
-                }
+                $visitor_account = validate_account();
                 //echo "ok";
-                header("Location: ". $base_url . "/people/" . $account->username);
+                header("Location: ". $base_url . "/people/" . $visitor_account->username);
                 db_close();
                 exit(0);
         }
