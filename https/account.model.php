@@ -564,6 +564,10 @@ class Account
                         return false;
                 }
 
+                $this->osd_id = $osd_account->id;
+                $this->osd_username = $osd_account->username;
+                $this->osd_key = $osd_account->key;
+
                 return true;
         }
 
