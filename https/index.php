@@ -147,8 +147,8 @@ if ($view == "post") {
                 if (!validate_account()) {
                         internalServerError("Failed to validate the account");
                 }
-                echo "ok";
-                //header("Location: ". $base_url . "/people/" . $account->username);
+                //echo "ok";
+                header("Location: ". $base_url . "/people/" . $account->username);
                 db_close();
                 exit(0);
         }

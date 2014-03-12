@@ -110,7 +110,7 @@ function removeError()
 }
 </script>
 
-<?php if ($this->message): ?>
+<?php if (isset($this->message)): ?>
         <div class="strip">
             <div class="content_box message">
                 <?php echo $this->message ?>
@@ -123,9 +123,6 @@ function removeError()
               <form action="<?php url('createaccount') ?>" method="post" name="input" onsubmit="return validate();">
                 <input type="hidden" name="op" value="create" />
                 <table class="createaccount">
-                  <tr>
-                    <td colspan="3"><?php echo $message; ?></td>
-                  </tr>
                   <tr>
                     <td class="label"><label for="username"><?php _p("User name") ?></label></td>
                     <td class="input"><input type="text" name="username" size="20" maxlength="32" value="<?php echo $this->username ?>" /></td>

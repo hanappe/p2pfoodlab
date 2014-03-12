@@ -155,12 +155,12 @@ class OpenSensorData
                 $url = $this->server . "/" . $path;
                 $r = file_get_contents($url, false, $context);
 
-                echo "-------------------------------------------<br>\n";
-                echo "PUT/AppKey $url<br>\n";
-                echo "-> data: "; var_dump($data); echo "<br>\n";
-                echo "-> json: " . json_encode($data) . "<br>\n";
-                echo "<- resp header: "; var_dump($http_response_header); echo "<br>\n";
-                echo "<- resp data: "; var_dump($r); echo "<br>\n";
+                /* echo "-------------------------------------------<br>\n"; */
+                /* echo "PUT/AppKey $url<br>\n"; */
+                /* echo "-> data: "; var_dump($data); echo "<br>\n"; */
+                /* echo "-> json: " . json_encode($data) . "<br>\n"; */
+                /* echo "<- resp header: "; var_dump($http_response_header); echo "<br>\n"; */
+                /* echo "<- resp data: "; var_dump($r); echo "<br>\n"; */
 
                 if ($r === FALSE) {
                         $this->msg = "Failed to retrieve data from OpenSensorData.net: unknown error. ";
