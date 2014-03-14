@@ -28,303 +28,6 @@ require_once "opensensordata.inc.php";
 $system_output = FALSE;
 $msg = "";
 
-/*
-function check_update_rates($config)
-{
-        $num_sensors = 0;
-        $sensors_config = $config->sensors;
-        if ($sensors_config->rht03_1 == "yes") 
-                $num_sensors += 2;
-        if ($sensors_config->rht03_2 == "yes") 
-                $num_sensors += 2;
-        if ($sensors_config->sht15_1 == "yes") 
-                $num_sensors += 2;
-        if ($sensors_config->sht15_2 == "yes") 
-                $num_sensors += 2;
-        if ($sensors_config->light == "yes") 
-                $num_sensors += 1;
-        if ($sensors_config->soil == "yes") 
-                $num_sensors += 1;
-
-        $num_frames = 0;
-        $interval = 24;
-
-        $sensors_config->update;
-        if ($sensors_config->upload == "periodical") {
-                $interval = $sensors_config->period;
-        }
-        if ($sensors_config->upload == "fixed") {
-                $h = array();
-                for ($i = 0; $i < 4; $i++) {
-                        if ($sensors_config->fixed[$i]->h != "")
-                                $h[] = $sensors_config->fixed[$i]->h;
-                }
-                // FIXME: sort
-                $max = 0;                
-                for ($i = 0; $i < count($h) - 1; $i++) {
-                        $delta = $h[$i+1] - $h[$i];
-                        if ($delta > $max) $delta = $max;
-                }
-                if ($max == 0) $max = 24;
-                $interval = $max;
-        }
-
-        if ($interval < $sensors_config->update)
-                return NULL;
-
-        $num_frames = $interval / $sensors_config->update;
-        $required = $num_frames * $num_sensors;
-
-        if ($required > 256) 
-                return ("With the current configuration, the Arduino does not have enough memory to store the measurements. "
-                        . "Data will be lost. Please increase the time between two measurements. "
-                        . "Alternatively, you can select a shorter period between the data upload. "
-                        . "Required memory size: " . $required . ", available memory size: 256.");
-        if ($required > 128) 
-                return ("With the current configuration, the Arduino may loose measurements if the data uploads go wrong. "
-                        . "Data might be lost. Please increase the time between two measurements. "
-                        . "Alternatively, you can select a shorter period between the data upload. "
-                                . "Required memory size: " . $required . ", available memory size: 256.");
-        }
-}
-*/
-
-function find_old_datastream($group, $name)
-{
-        if (!$group || !$group->datastreams) 
-                return NULL;
-        for ($i = 0; $i < count($group->datastreams); $i++) {
-                $d = $group->datastreams[$i];
-                if ($d->name == $name)
-                        return $d;
-        }
-        return NULL;
-}
-
-function opensensordata_put($config, $path, $data)
-{
-        global $msg;
-
-        // Set the POST options
-	$options = array('http' => 
-		array (
-			"method" => "PUT",
-			"header" => ("Content-type: application/json\r\n"
-                                     . "X-OpenSensorData-Key: " . $config->opensensordata->key . "\r\n"),
-			"content" => $data
-		)
-	);
-
-	$context  = stream_context_create($options);
- 
-	$url = $config->opensensordata->server . "/" . $path;
-	
-        $r = file_get_contents($url, false, $context);
-
-        /* echo "-------------------------------------------<br>\n"; */
-        /* echo "PUT $url<br>\n"; */
-        /* echo "-> ". var_dump($data) . "<br>\n"; */
-        /* echo "-> ". var_dump($r) . "<br>\n"; */
-
-        return $r;
-}
-
-function create_group($config, $name, $description,
-                      $timezone, $latitude, $longitude,
-                      $datastreams, $photostreams, 
-                      $cached_ok)
-{
-        global $osd_dir, $msg;
-
-        $g = new StdClass();
-        $g->name = $name;
-        $g->description = $description;
-        if ($timezone != "") 
-                $g->timezone = $timezone;
-        if ($latitude != "") 
-                $g->latitude = $latitude;
-        if ($longitude != "") 
-                $g->longitude = $longitude;
-        $g->datastreams = $datastreams;
-        $g->photostreams = $photostreams;
-
-        if ($cached_ok) {
-                $filename = $osd_dir . "/group.json";
-                $json = file_get_contents($filename);
-                if ($json != FALSE) {
-                        $oldgroup = json_decode($json);
-                        if ($oldgroup != FALSE) {
-                                if ($oldgroup->id) $g->id = $oldgroup->id;
-                                if ($oldgroup->owner) $g->owner = $oldgroup->owner;
-                        }
-                }
-        }
-
-        $reply = opensensordata_put($config, "groups/", json_encode($g));
-        if ($reply === FALSE) {
-                $msg .= " Failed to post the group definition to the OpenSensorData server. Call for help!";
-                return FALSE;
-        }
-
-        if (1) {
-                $filename = $osd_dir . "/group.json";
-                $err = file_put_contents($filename, $reply);
-                if ($err === FALSE) {
-                        $msg .= " Failed to save the OpenSensorData.net group definition. Call for help!";
-                        return FALSE;
-                }
-        }
-
-        //echo "<pre>Server reply: \n" . $reply . "</pre><br>\n";
-
-        return json_decode($reply);
-}
-
-function create_photostream($config, $name, $description, $cached_ok)
-{
-        global $osd_dir, $msg;
-
-        $filename = $osd_dir . "/" . $name . ".json";
-
-        if ($cached_ok) {
-                $json = file_get_contents($filename);
-                if ($json != FALSE) {
-                        // FIXME: if the description changed, shouldn't we create a new definition?
-                        return json_decode($json);
-                }
-        }
-
-        $p = new StdClass();
-        $p->name = $name;
-        $p->description = $description;
-
-        $reply = opensensordata_put($config, "photostreams/", json_encode($p));
-        if ($reply === FALSE) {
-                $msg .= " Failed to post the photostream definition to the OpenSensorData server. Call for help!";
-                return FALSE;
-        }
-
-        $err = file_put_contents($filename, $reply);
-        if ($err === FALSE) {
-                $msg .= " Failed to save the OpenSensorData.net photostream definition. Call for help!";
-                return FALSE;
-        }
-
-        return json_decode($reply);
-}
-
-function update_opensensordata_definitions($config, $cached_ok)
-{
-        global $msg, $osd_dir;
-
-        $osd = new OpenSensorData($config->opensensordata->server,
-                                  $config->opensensordata->key,
-                                  $osd_dir);
-
-        $datastreams = array();
-
-        $sensors_config = $config->sensors;
-        if ($sensors_config->rht03_1 == "yes") {
-                $d = $osd->create_datastream("t", "Internal temperature (RHT03)", "Celsius", $cached_ok);
-                if (!$d) {
-		  $msg .= $osd->msg;
-		  return FALSE;
-		}
-                $datastreams[] = $d;
-
-                $d = $osd->create_datastream("rh", "Internal humidity (RHT03)", "RH%", $cached_ok);
-                if (!$d) {
-		  $msg .= $osd->msg;
-		  return FALSE;
-		}
-                $datastreams[] = $d;
-        }
-        if ($sensors_config->rht03_2 == "yes") {
-                $d = $osd->create_datastream("tx", "External temperature (RHT03)", "Celsius", $cached_ok);
-                if (!$d) {
-		  $msg .= $osd->msg;
-		  return FALSE;
-		}
-                $datastreams[] = $d;
-
-                $d = $osd->create_datastream("rhx", "External humidity (RHT03)", "RH%", $cached_ok);
-                if (!$d) {
-		  $msg .= $osd->msg;
-		  return FALSE;
-		}
-                $datastreams[] = $d;
-        }
-        if ($sensors_config->sht15_1 == "yes") {
-                $d = $osd->create_datastream("t2", "Internal temperature (SHT15)", "Celsius", $cached_ok);
-                if (!$d) {
-		  $msg .= $osd->msg;
-		  return FALSE;
-		}
-                $datastreams[] = $d;
-
-                $d = $osd->create_datastream("rh2", "Internal humidity (SHT15)", "RH%", $cached_ok);
-                if (!$d) {
-		  $msg .= $osd->msg;
-		  return FALSE;
-		}
-                $datastreams[] = $d;
-        }
-        if ($sensors_config->sht15_2 == "yes") {
-                $d = $osd->create_datastream("tx2", "External temperature (SHT15)", "Celsius", $cached_ok);
-                if (!$d) {
-		  $msg .= $osd->msg;
-		  return FALSE;
-		}
-                $datastreams[] = $d;
-
-                $d = $osd->create_datastream("rhx2", "External humidity (SHT15)", "RH%", $cached_ok);
-                if (!$d) {
-		  $msg .= $osd->msg;
-		  return FALSE;
-		}
-                $datastreams[] = $d;
-        }
-        if ($sensors_config->light == "yes") {
-                $d = $osd->create_datastream("lum", "Illuminance", "none", $cached_ok);
-                if (!$d) {
-		  $msg .= $osd->msg;
-		  return FALSE;
-		}
-                $datastreams[] = $d;
-        }
-        if ($sensors_config->soil == "yes") {
-                $d = $osd->create_datastream("soil", "Soil humidity", "none", $cached_ok);
-                if (!$d) {
-		  $msg .= $osd->msg;
-		  return FALSE;
-		}
-                $datastreams[] = $d;
-        }
-
-        $photostreams = array();
-
-        $camera_config = $config->camera;
-        if ($camera_config->enable == "yes") {
-                $p = create_photostream($config, "webcam", "Webcam", $cached_ok);
-                if (!$p) return FALSE;
-                $photostreams[] = $p;
-        }
-
-        $general_config = $config->general;
-
-        $g = create_group($config, 
-                          $general_config->name, 
-                          "P2P Food Lab Sensorbox", 
-                          $general_config->timezone,
-                          $general_config->latitude,
-                          $general_config->longitude,
-                          $datastreams, $photostreams,
-                          $cached_ok);
-        if (!$g) return FALSE;
-
-        return TRUE;        
-}
-
 function update_general()
 {
         global $config_error, $msg;
@@ -388,11 +91,6 @@ function update_general()
         if (!save_config($tmp)) {
                 echo $config_error . "<br>";
                 return NULL;
-        }
-
-        if (!update_opensensordata_definitions($tmp, 1)) {
-                $msg .= ("The changes have been saved but the OpenSensorData group definition has not been uploaded. "
-                         . "Please try to update the configuration again later. Otherwise, call for help!");
         }
 
         return $tmp; 
@@ -887,111 +585,6 @@ function update_gsm()
         return $tmp;
 }
 
-function call_low_level_crontab_update()
-{
-        return call_update_daemon("http://127.0.0.1:10080/update/crontab");
-}
-
-function write_crontab($config)
-{
-        global $crontab_file, $msg;
-
-        $events = array();
-
-        $camera_config = $config->camera;
-
-        if ($camera_config->enable == "yes") {
-                if ($camera_config->update == "fixed") {
-                        for ($i = 0; $i < 4; $i++) {
-                                if (($camera_config->fixed[$i]->h != "")
-                                    && ($camera_config->fixed[$i]->m != "")) {
-                                        $m = 60 * $camera_config->fixed[$i]->h + $camera_config->fixed[$i]->m;
-                                        $events[$m] = "/var/p2pfoodlab/bin/take-measurements --camera";
-                                }
-                        }
-                } else if ($camera_config->update == "periodical") {
-                        $period = (int) $camera_config->period;
-                        for ($m = 0; $m < 1440; $m += $period) {
-                                $events[$m] = "/var/p2pfoodlab/bin/take-measurements --camera";
-                        }
-                }
-        }  
-
-        $sensors_config = $config->sensors;
-
-        if ($sensors_config->upload == "fixed") {
-                for ($i = 0; $i < 4; $i++) {
-                        if (($sensors_config->fixed[$i]->h != "")
-                            && ($sensors_config->fixed[$i]->m != "")) {
-                                $m = 60 * $sensors_config->fixed[$i]->h + $sensors_config->fixed[$i]->m;
-                                if (isset($events[$m])) 
-                                        $events[$m] = "/var/p2pfoodlab/bin/take-measurements --camera --sensors";
-                                else
-                                        $events[$m] = "/var/p2pfoodlab/bin/take-measurements --sensors";
-                        }
-                }
-        } else if ($sensors_config->upload == "periodical") {
-                $period = (int) $sensors_config->period;
-                for ($m = 0; $m < 1440; $m += $period) {
-                        if (isset($events[$m])) 
-                                $events[$m] = "/var/p2pfoodlab/bin/take-measurements --camera --sensors";
-                        else
-                                $events[$m] = "/var/p2pfoodlab/bin/take-measurements --sensors";
-                }
-        }  
-
-        $power_config = $config->power;
-        $powersaving = (isset($power_config) 
-                        && isset($power_config->poweroff) 
-                        && ($power_config->poweroff == "yes"));
-
-        ksort($events);
-
-        $contents = "";
-
-        $prevmin = -1;
-        $prevcmd = NULL;
-        $firstmin = -1;
-        $firstcmd = NULL;
-        foreach ($events as $min => $cmd) {
-                if (!$firstcmd) {
-                        $firstmin = $min;
-                        $firstcmd = $cmd;
-                } else {
-                        $h = floor($prevmin / 60);
-                        $m = $prevmin % 60;
-                        $delta = 0;
-                        if ($prevmin >= 0) 
-                        $delta = $min - $prevmin - 5;
-                        if ($powersaving && ($delta > 5))
-                                $contents .= "$m $h * * * $prevcmd --poweroff $delta\n";
-                        else
-                                $contents .= "$m $h * * * $prevcmd\n";
-                }
-                $prevmin = $min;
-                $prevcmd = $cmd;
-        }
-
-        $delta = 0;
-        if ($prevmin >= 0) 
-                $delta = 1440 + $firstmin - $prevmin - 5;
-        $h = floor($prevmin / 60);
-        $m = $prevmin % 60;
-        if ($powersaving && ($delta > 5))
-                $contents .= "$m $h * * * $prevcmd --poweroff $delta\n";
-        else
-                $contents .= "$m $h * * * $prevcmd\n";
-        
-
-        $err = file_put_contents($crontab_file, $contents);
-        if ($err === FALSE) {
-                $msg .= "Failed to save the crontab. Call for help!";
-                return FALSE;
-        }
-
-        return TRUE;
-}
-
 function update_camera()
 {
         global $config_error, $msg, $system_output;
@@ -1060,27 +653,10 @@ function update_camera()
                 $camera_config->fixed[$i]->h = $h;
                 $camera_config->fixed[$i]->m = $m;
         }
-
-        if (!write_crontab($tmp)) {
-                $msg .= "Failed to save the crontab";
-                return NULL;
-        }
-
-        $output = call_low_level_crontab_update();
-        if ($output === FALSE) {
-                $msg .= "Failed to install the new crontab";
-                return NULL;
-        }
-        $system_output = $output;
         
         if (!save_config($tmp)) {
                 echo $config_error . "<br>";
                 return NULL;
-        }
-
-        if (!update_opensensordata_definitions($tmp, 1)) {
-                $msg .= ("The changes have been saved but the OpenSensorData group definition has not been uploaded. "
-                         . "Please try to update the configuration again later. Otherwise, call for help!");
         }
 
         return $tmp;
@@ -1208,19 +784,9 @@ function update_opensensordata()
                 }
                 
                 $osd_config->username = $account->username;
-
-                if (!update_opensensordata_definitions($tmp, 0)) {
-                        $msg .= "The new OpenSensorData group definition could not be created.";
-                        return NULL;
-                }
         }
         
         return $tmp;
-}
-
-function call_low_level_sensors_update()
-{
-        return call_update_daemon("http://127.0.0.1:10080/update/sensors");
 }
 
 function update_sensors()
@@ -1244,28 +810,23 @@ function update_sensors()
         }
 
         $sensors_config->rht03_1 = "no";
-        if (isset($_REQUEST['rht03_1'])) {
-                $rht03_1 = $_REQUEST['rht03_1'];
-                $sensors_config->rht03_1 = ($rht03_1 == "yes")? "yes" : "no";
+        if (isset($_REQUEST['rht03_1']) && !isset($_REQUEST['trh'])) {
+                $trh = $_REQUEST['rht03_1'];
+                $sensors_config->trh = ($trh == "yes")? "yes" : "no";
+        } 
+        if (isset($_REQUEST['trh'])) {
+                $trh = $_REQUEST['trh'];
+                $sensors_config->trh = ($trh == "yes")? "yes" : "no";
         } 
 
-        $sensors_config->rht03_2 = "no";
-        if (isset($_REQUEST['rht03_2'])) {
-                $rht03_2 = $_REQUEST['rht03_2'];
-                $sensors_config->rht03_2 = ($rht03_2 == "yes")? "yes" : "no";
-        }
-
-        $sensors_config->sht15_1 = "no";
-        if (isset($_REQUEST['sht15_1'])) {
-                $sht15_1 = $_REQUEST['sht15_1'];
-                $sensors_config->sht15_1 = ($sht15_1 == "yes")? "yes" : "no";
-        }
-
-        $sensors_config->sht15_2 = "no";
-        if (isset($_REQUEST['sht15_2'])) {
-                $sht15_2 = $_REQUEST['sht15_2'];
-                $sensors_config->sht15_2 = ($sht15_2 == "yes")? "yes" : "no";
-        }
+        if (isset($_REQUEST['rht03_2']) && !isset($_REQUEST['trhx'])) {
+                $trhx = $_REQUEST['rht03_2'];
+                $sensors_config->trhx = ($trhx == "yes")? "yes" : "no";
+        } 
+        if (isset($_REQUEST['trhx'])) {
+                $trhx = $_REQUEST['trhx'];
+                $sensors_config->trhx = ($trhx == "yes")? "yes" : "no";
+        } 
 
         $sensors_config->light = "no";
         if (isset($_REQUEST['light'])) {
@@ -1273,10 +834,10 @@ function update_sensors()
                 $sensors_config->light = ($light == "yes")? "yes" : "no";
         }
 
-        $sensors_config->soil = "no";
-        if (isset($_REQUEST['soil'])) {
-                $soil = $_REQUEST['soil'];
-                $sensors_config->soil = ($soil == "yes")? "yes" : "no";
+        $sensors_config->usbbat = "no";
+        if (isset($_REQUEST['usbbat'])) {
+                $usbbat = $_REQUEST['usbbat'];
+                $sensors_config->usbbat = ($usbbat == "yes")? "yes" : "no";
         }
 
         $update = $_REQUEST['update'];
@@ -1324,31 +885,6 @@ function update_sensors()
                 echo $config_error . "<br>";
                 return NULL;
         }
-
-        if (!update_opensensordata_definitions($tmp, 1)) {
-                $msg .= ("The changes have been saved but the OpenSensorData "
-                         . "group definition has not been uploaded. "
-                         . "Please try to update the configuration again later. "
-                         . "Otherwise, call for help!\n");
-        }
-
-        if (!write_crontab($tmp)) {
-                $msg .= "Failed to save the crontab";
-        } else {
-                $output = call_low_level_crontab_update();
-                if ($output === FALSE) {
-                        $msg .= "Failed to install the new crontab";
-                }
-                $system_output .= $output;
-        }
-
-        $output = call_low_level_sensors_update();
-        if ($output === FALSE) {
-                $msg .= ("Failed to enable/disable the sensors. Your changes "
-                         . "have been saved but press the update button again "
-                         . "to try to apply the new settings.");
-        }
-        $system_output .= $output;
         
         return $tmp;
 }
@@ -1380,18 +916,6 @@ function update_power()
                 echo $config_error . "<br>";
                 return NULL;
         }
-
-        if (!write_crontab($tmp)) {
-                $msg .= "Failed to save the crontab";
-                return NULL;
-        }
-
-        $output = call_low_level_crontab_update();
-        if ($output === FALSE) {
-                $msg .= "Failed to install the new crontab";
-                return NULL;
-        }
-        $system_output .= $output;
         
         return $tmp;
 }

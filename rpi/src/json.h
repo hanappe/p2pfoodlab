@@ -74,6 +74,8 @@ void json_init_memory(char* ptr, int32 size);
 /* Return zero to continue, non-zero to stop the iteration. */
 typedef int32 (*json_iterator_t)(const char* key, json_object_t* value, void* data);
 
+/* Return zero if all went well, and non-zero when an error
+   occured. The error code will be returned by json_serialise(). */
 typedef int32 (*json_writer_t)(void* userdata, const char* s, int32 len);
 
 //
@@ -82,7 +84,7 @@ typedef int32 (*json_writer_t)(void* userdata, const char* s, int32 len);
 
 //
 
-json_object_t json_load(const char* filename, char* err, int len);
+json_object_t json_load(const char* filename, int* err, char* errmsg, int len);
 
 // object
 
@@ -94,7 +96,7 @@ json_object_t json_object_get(json_object_t object, const char* key);
 int32 json_object_set(json_object_t object, const char* key, json_object_t value);
 int32 json_object_unset(json_object_t object, const char* key);
 
-double json_object_getnum(json_object_t object, char* key);
+double json_object_getnum(json_object_t object, const char* key);
 const char* json_object_getstr(json_object_t object, const char* key);
 
 int32 json_object_setnum(json_object_t object, const char* key, double value);

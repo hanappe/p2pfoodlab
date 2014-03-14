@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <dirent.h> 
@@ -53,9 +54,15 @@ struct _sensorbox_t {
         int test;
         FILE* datafp;
         int lock;
+        unsigned char sensors_enabled;
+        unsigned char sensors_period;
+        sensor_t sensors[SENSOR_COUNT];
+        datastream_t datastreams[DATASTREAM_COUNT];
+        photostream_t photostream;
 };
 
 static int sensorbox_load_config(sensorbox_t* box);
+static int sensorbox_load_sensors(sensorbox_t* box);
 static char* sensorbox_path(sensorbox_t* box, const char* filename);
 static int sensorbox_init_osd(sensorbox_t* box);
 static int sensorbox_add_periodic_events(sensorbox_t* box, int period, int type);
@@ -92,6 +99,11 @@ sensorbox_t* new_sensorbox(const char* dir)
         }
 
         if (sensorbox_init_osd(box) != 0) {
+                delete_sensorbox(box);
+                return NULL;
+        }
+
+        if (sensorbox_load_sensors(box) != 0) {
                 delete_sensorbox(box);
                 return NULL;
         }
@@ -159,6 +171,139 @@ static int sensorbox_init_osd(sensorbox_t* box)
         opensensordata_set_cache_dir(box->osd, sensorbox_path(box, "etc/opensensordata"));
 
         return 0;
+}
+
+static int sensorbox_load_sensors(sensorbox_t* box)
+{
+        /* sensors */
+        box->sensors[SENSOR_TRH_ID].index = SENSOR_TRH_ID;
+        box->sensors[SENSOR_TRH_ID].flag = SENSOR_TRH;
+        box->sensors[SENSOR_TRH_ID].name = "trh";
+        
+        box->sensors[SENSOR_TRHX_ID].index = SENSOR_TRHX_ID;
+        box->sensors[SENSOR_TRHX_ID].flag = SENSOR_TRHX;
+        box->sensors[SENSOR_TRHX_ID].name = "trhx";
+        
+        box->sensors[SENSOR_LUM_ID].index = SENSOR_LUM_ID;
+        box->sensors[SENSOR_LUM_ID].flag = SENSOR_LUM;
+        box->sensors[SENSOR_LUM_ID].name = "lum";
+
+        box->sensors[SENSOR_USBBAT_ID].flag = SENSOR_USBBAT;
+        box->sensors[SENSOR_USBBAT_ID].enabled = 1;
+        box->sensors[SENSOR_USBBAT_ID].name = "usbbat";
+
+        box->sensors[SENSOR_SOIL_ID].index = SENSOR_SOIL_ID;
+        box->sensors[SENSOR_SOIL_ID].flag = SENSOR_SOIL;
+        box->sensors[SENSOR_SOIL_ID].name = "soil";
+
+        /* datastreams */
+        box->datastreams[DATASTREAM_T].index = DATASTREAM_T;
+        box->datastreams[DATASTREAM_T].sensor = SENSOR_TRH_ID;
+        box->datastreams[DATASTREAM_T].name = "t";
+        box->datastreams[DATASTREAM_T].unit = "Celsius";
+        
+        box->datastreams[DATASTREAM_RH].index = DATASTREAM_RH;
+        box->datastreams[DATASTREAM_RH].sensor = SENSOR_TRH_ID;
+        box->datastreams[DATASTREAM_RH].name = "rh";
+        box->datastreams[DATASTREAM_RH].unit = "RH%";
+        
+        box->datastreams[DATASTREAM_TX].index = DATASTREAM_TX;
+        box->datastreams[DATASTREAM_TX].sensor = SENSOR_TRHX_ID;
+        box->datastreams[DATASTREAM_TX].name = "tx";
+        box->datastreams[DATASTREAM_TX].unit = "Celsius";
+        
+        box->datastreams[DATASTREAM_RHX].index = DATASTREAM_RHX;
+        box->datastreams[DATASTREAM_RHX].sensor = SENSOR_TRHX_ID;
+        box->datastreams[DATASTREAM_RHX].name = "rhx";
+        box->datastreams[DATASTREAM_RHX].unit = "RH%";
+
+        box->datastreams[DATASTREAM_LUM].index = DATASTREAM_LUM;
+        box->datastreams[DATASTREAM_LUM].sensor = SENSOR_LUM_ID;
+        box->datastreams[DATASTREAM_LUM].name = "lum";
+        box->datastreams[DATASTREAM_LUM].unit = "none";
+
+        box->datastreams[DATASTREAM_USBBAT].index = DATASTREAM_USBBAT;
+        box->datastreams[DATASTREAM_USBBAT].sensor = SENSOR_USBBAT_ID;
+        box->datastreams[DATASTREAM_USBBAT].name = "usbbat";
+        box->datastreams[DATASTREAM_USBBAT].unit = "%";
+
+        box->datastreams[DATASTREAM_SOIL].index = DATASTREAM_SOIL;
+        box->datastreams[DATASTREAM_SOIL].sensor = SENSOR_SOIL_ID;
+        box->datastreams[DATASTREAM_SOIL].name = "soil";
+        box->datastreams[DATASTREAM_SOIL].unit = "RH%";
+
+        int err = config_get_sensors(box->config, 
+                                     box->sensors, SENSOR_COUNT,
+                                     &box->sensors_enabled, 
+                                     &box->sensors_period);
+        if (err != 0) 
+                return err;
+
+        if (box->sensors_enabled & SENSOR_TRH) {
+                box->sensors[SENSOR_TRH_ID].enabled = 1;
+                box->datastreams[DATASTREAM_T].enabled = 1;
+                box->datastreams[DATASTREAM_RH].enabled = 1;
+                box->datastreams[DATASTREAM_T].osd_id = 
+                        opensensordata_get_datastream_id(box->osd, 
+                                                         box->datastreams[DATASTREAM_T].name);
+
+                box->datastreams[DATASTREAM_RH].osd_id = 
+                        opensensordata_get_datastream_id(box->osd, 
+                                                         box->datastreams[DATASTREAM_RH].name);
+        }
+
+        if (box->sensors_enabled & SENSOR_TRHX) {
+                box->sensors[SENSOR_TRHX_ID].enabled = 1;
+                box->datastreams[DATASTREAM_TX].enabled = 1;
+                box->datastreams[DATASTREAM_RHX].enabled = 1;
+                box->datastreams[DATASTREAM_TX].osd_id = 
+                        opensensordata_get_datastream_id(box->osd, 
+                                                         box->datastreams[DATASTREAM_TX].name);
+                box->datastreams[DATASTREAM_RHX].osd_id = 
+                        opensensordata_get_datastream_id(box->osd, 
+                                                         box->datastreams[DATASTREAM_RHX].name);
+        }
+
+        if (box->sensors_enabled & SENSOR_LUM) {
+                box->sensors[SENSOR_LUM_ID].enabled = 1;
+                box->datastreams[DATASTREAM_LUM].enabled = 1;
+                box->datastreams[DATASTREAM_LUM].osd_id = 
+                        opensensordata_get_datastream_id(box->osd, 
+                                                         box->datastreams[DATASTREAM_LUM].name);
+        }
+
+        if (box->sensors_enabled & SENSOR_SOIL) {
+                box->sensors[SENSOR_SOIL_ID].enabled = 1;
+                box->datastreams[DATASTREAM_SOIL].enabled = 1;
+                box->datastreams[DATASTREAM_SOIL].osd_id = 
+                        opensensordata_get_datastream_id(box->osd, 
+                                                         box->datastreams[DATASTREAM_SOIL].name);
+        }
+
+        if (box->sensors_enabled & SENSOR_USBBAT) {
+                box->sensors[SENSOR_USBBAT_ID].enabled = 1;
+                box->datastreams[DATASTREAM_USBBAT].enabled = 1;
+                box->datastreams[DATASTREAM_USBBAT].osd_id = 
+                        opensensordata_get_datastream_id(box->osd, 
+                                                         box->datastreams[DATASTREAM_USBBAT].name);
+        }
+
+        /* photostream */
+        
+        box->photostream.enabled = config_camera_enabled(box->config);
+        box->photostream.name = "webcam";
+        if (box->photostream.enabled) 
+                box->photostream.osd_id = 
+                        opensensordata_get_photostream_id(box->osd, 
+                                                          "webcam");
+
+
+        /* for (int i = 0; i < DATASTREAM_COUNT; i++)  */
+        /*         if (ids[i] == -1) */
+        /*                 return -1; */
+
+        return 0;
+        
 }
 
 static int get_image_size(const char* symbol, unsigned int* width, unsigned int* height)
@@ -249,19 +394,15 @@ static int sensorbox_add_fixed_events(sensorbox_t* box, json_object_t fixed, int
 
 static int sensorbox_init_camera(sensorbox_t* box)
 {
+        if (!config_camera_enabled(box->config)) {
+                log_debug("Sensorbox: Camera not enabled");
+                return 0;
+        }
+        
         json_object_t camera_obj = json_object_get(box->config, "camera");
         if (json_isnull(camera_obj)) {
                 log_err("Sensorbox: Could not find the camera configuration"); 
                 return -1;
-        }
-        json_object_t enabled = json_object_get(camera_obj, "enable");
-        if (!json_isstring(enabled)) {
-                log_err("Sensorbox: Camera enabled setting is not a JSON string, as expected"); 
-                return -1;
-        }
-        if (!json_string_equals(enabled, "yes")) {
-                log_debug("Sensorbox: Camera not enabled");
-                return 0;
         }
 
         json_object_t update = json_object_get(camera_obj, "update");
@@ -457,45 +598,11 @@ void sensorbox_update_camera(sensorbox_t* box, time_t t)
         sensorbox_grab_image(box, path);
 }
 
-static int sensorbox_map_datastreams(sensorbox_t* box,
-                                     unsigned char enabled, 
-                                     int* ids)
-{
-        memset(ids, 0, DATASTREAM_LAST * sizeof(int));
-
-        if (enabled & SENSOR_TRH) {
-                ids[DATASTREAM_T] = opensensordata_get_datastream_id(box->osd, "t");
-                ids[DATASTREAM_RH] = opensensordata_get_datastream_id(box->osd, "rh");
-        }
-        if (enabled & SENSOR_TRHX) {
-                ids[DATASTREAM_TX] = opensensordata_get_datastream_id(box->osd, "tx");
-                ids[DATASTREAM_RHX] = opensensordata_get_datastream_id(box->osd, "rhx");
-        }
-        if (enabled & SENSOR_LUM) {
-                ids[DATASTREAM_LUM] = opensensordata_get_datastream_id(box->osd, "lum");
-        }
-        if (enabled & SENSOR_SOIL) {
-                ids[DATASTREAM_SOIL] = opensensordata_get_datastream_id(box->osd, "soil");
-        }
-
-        for (int i = 0; i < DATASTREAM_LAST; i++) 
-                if (ids[i] == -1)
-                        return -1;
-
-        return 0;
-}
-
 int sensorbox_check_sensors(sensorbox_t* box)
 {
         unsigned char sensors_a;
         unsigned char period_a;
-        unsigned char sensors_c;
-        unsigned char period_c;
         int err;
-
-        err = config_get_sensors(box->config, &sensors_c, &period_c);
-        if (err != 0) 
-                return err;
         
         err = arduino_get_sensors(box->arduino, &sensors_a);
         if (err != 0) 
@@ -506,18 +613,149 @@ int sensorbox_check_sensors(sensorbox_t* box)
                 return err;
 
         log_info("Sensorbox: Arduino: sensors: 0x%02x, period %d", sensors_a, period_a); 
-        log_info("Sensorbox: Config:  sensors: 0x%02x, period %d", sensors_c, period_c); 
+        log_info("Sensorbox: Config:  sensors: 0x%02x, period %d", box->sensors_enabled, box->sensors_period); 
 
-        if (sensors_c != sensors_a) {
+        if (box->sensors_enabled != sensors_a) {
                 log_info("Sensorbox: Sensor settings differ between Arduino and config file"); 
-                err = arduino_set_sensors(box->arduino, sensors_c);
+                err = arduino_set_sensors(box->arduino, box->sensors_enabled);
         }
-        if (period_c != period_a) {
+        if (box->sensors_period != period_a) {
                 log_info("Sensorbox: Period settings differ between Arduino and config file"); 
-                err = arduino_set_period(box->arduino, period_c);
+                err = arduino_set_period(box->arduino, box->sensors_period);
         }
 
         return err;
+}
+
+static int sensorbox_create_datastream(sensorbox_t* box, 
+                                       const char* name, 
+                                       const char* unit)
+{
+        double timezone = config_get_timezone(box->config);
+        double latitude = config_get_latitude(box->config);
+        double longitude = config_get_longitude(box->config);
+        
+        json_object_t d = new_osd_datastream(name, name, timezone,
+                                             latitude, longitude, unit);
+
+        int r = opensensordata_create_datastream(box->osd, name, d);
+        if (r != 0) 
+                return -1;
+
+        json_unref(d);
+
+        return 0;
+}
+
+static int sensorbox_create_photostream(sensorbox_t* box, const char* name)
+{
+        double timezone = config_get_timezone(box->config);
+        double latitude = config_get_latitude(box->config);
+        double longitude = config_get_longitude(box->config);
+        
+        json_object_t d = new_osd_photostream(name, name, timezone,
+                                              latitude, longitude);
+
+        int r = opensensordata_create_photostream(box->osd, name, d);
+        if (r != 0) 
+                return -1;
+
+        json_unref(d);
+
+        return 0;
+}
+
+int sensorbox_check_osd_definitions(sensorbox_t* box)
+{
+        for (int i = 0; i < DATASTREAM_COUNT; i++) {
+                if (box->datastreams[i].enabled
+                    && (box->datastreams[i].osd_id == -1)) 
+                        return -1;
+        }
+        
+        if (box->photostream.enabled
+            && (box->photostream.osd_id == -1))
+                return -1;
+
+        json_object_t group = opensensordata_get_group(box->osd, 1);
+        if (json_isnull(group)) 
+                return -1;
+        
+        int id = osd_object_get_id(group);
+        if (id == -1)
+                return -1;
+
+        for (int i = 0; i < DATASTREAM_COUNT; i++) {
+                if (box->datastreams[i].enabled
+                    && (osd_group_has_datastream(group, box->datastreams[i].osd_id) != 1))
+                        return -1;
+        }
+        
+        if (box->photostream.enabled
+            && (osd_group_has_photostream(group, box->photostream.osd_id) != 1))
+                return -1;
+
+        return 0;
+}
+
+int sensorbox_create_osd_definitions(sensorbox_t* box)
+{
+        int r;
+
+        for (int i = 0; i < DATASTREAM_COUNT; i++) {
+                if (box->datastreams[i].enabled
+                    && (box->datastreams[i].osd_id == -1)) {
+                        log_info("Sensorbox: Creating datastream '%s'",
+                                 box->datastreams[i].name);
+                        r = sensorbox_create_datastream(box,
+                                                        box->datastreams[i].name,
+                                                        box->datastreams[i].unit);
+                        if (r == 0) 
+                                box->datastreams[i].osd_id =
+                                        opensensordata_get_datastream_id(box->osd,
+                                                                         box->datastreams[i].name);
+                }
+        }
+
+        if (box->photostream.enabled
+            && (box->photostream.osd_id == -1)) {
+                log_info("Sensorbox: Creating photostream '%s'",
+                         box->photostream.name);
+                r = sensorbox_create_photostream(box,
+                                                 box->photostream.name);
+                if (r == 0) 
+                        box->photostream.osd_id =
+                                opensensordata_get_photostream_id(box->osd,
+                                                                  box->photostream.name);
+        }
+
+        const char* name = config_get_sensorbox_name(box->config);
+
+        json_object_t g = new_osd_group(name, "P2P Food Lab sensorbox");
+        
+        int id = opensensordata_get_group_id(box->osd);
+        if (id > 0)
+                json_object_setnum(g, "id", id);
+
+        for (int i = 0; i < DATASTREAM_COUNT; i++) {
+                if (box->datastreams[i].enabled
+                    && (box->datastreams[i].osd_id != -1)) {
+                        osd_group_add_datastream(g, box->datastreams[i].osd_id);
+                }
+        }
+
+        if (box->photostream.enabled
+            && (box->photostream.osd_id != -1)) {                        
+                osd_group_add_photostream(g, box->photostream.osd_id);
+        }
+
+        log_info("Sensorbox: Creating group '%s'", name);
+
+        r = opensensordata_create_group(box->osd, g);
+
+        json_unref(g);
+
+        return r;
 }
 
 int sensorbox_store_sensor_data(sensorbox_t* box, 
@@ -526,17 +764,12 @@ int sensorbox_store_sensor_data(sensorbox_t* box,
         unsigned char sensors_a;
         unsigned char period_a;
         int err;
-        int osd_id[DATASTREAM_LAST];
 
         err = arduino_get_sensors(box->arduino, &sensors_a);
         if (err != 0) 
                 return err;
 
         err = arduino_get_period(box->arduino, &period_a);
-        if (err != 0) 
-                return err;
-
-        err = sensorbox_map_datastreams(box, sensors_a, osd_id);
         if (err != 0) 
                 return err;
 
@@ -564,13 +797,16 @@ int sensorbox_store_sensor_data(sensorbox_t* box,
                 struct tm r;
                 char s[256];
                 
+                if (box->datastreams[datapoints[i].datastream].osd_id == -1)
+                        continue;
+
                 localtime_r(&datapoints[i].timestamp, &r);
                 snprintf(s, 256, "%04d-%02d-%02dT%02d:%02d:%02d",
                          1900 + r.tm_year, 1 + r.tm_mon, r.tm_mday, 
                          r.tm_hour, r.tm_min, r.tm_sec);
                 
                 fprintf(box->datafp, "%d,%s,%f\n", 
-                        osd_id[datapoints[i].datastream], 
+                        box->datastreams[datapoints[i].datastream].osd_id, 
                         s, 
                         datapoints[i].value);
         } 
@@ -902,9 +1138,9 @@ int sensorbox_bring_network_up(sensorbox_t* box)
                 char* const argv[] = { "/usr/bin/sudo", 
                                        "/usr/sbin/ntpd", 
                                        "-q", "-g", NULL};
-                r = system_run(argv);
+                int x = system_run(argv);
                 
-                if (r == 0) {
+                if (x == 0) {
                         time_t m = time(NULL);
                         sensorbox_set_time(box, m); 
                 }

@@ -25,8 +25,9 @@
 #define RHT03_1_PIN             4
 #define RHT03_2_PIN             2
 #define LUMINOSITY_PIN          A2
-#define BAT_USB_PIN             A1
+#define BAT_USB_PIN             A3
 #define BAT_AAA_PIN             A3
+#define V_REF                   3.3f
 
 #define DebugPrint(_s) { Serial.println(_s); } 
 #define DebugPrintValue(_s,_v) { Serial.print(_s); Serial.println(_v); } 
@@ -36,7 +37,11 @@ DHT22 rht03_2(RHT03_2_PIN);
 
 static short get_level_usb_batttery()
 {
-        return analogRead(BAT_USB_PIN);
+        int a = analogRead(BAT_USB_PIN);
+        DebugPrintValue("  A3 ", a);
+        float v = V_REF * 2.0f * a / 1024.0f;
+        short r = (short) (100 * v);
+        return r;
 }
 
 static short get_level_aaa_batttery()
@@ -94,6 +99,11 @@ static void measure_sensors()
         if (1) {
                 short luminosity = get_luminosity(); 
                 DebugPrintValue("  lum ", luminosity);
+        }
+
+        if (1) {
+                short level = get_level_usb_batttery();
+                DebugPrintValue("  usbbat ", level);
         }
 
         if (0) {

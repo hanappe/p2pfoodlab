@@ -22,24 +22,97 @@
 #ifndef _OPENSENSORDATA_H_
 #define _OPENSENSORDATA_H_
 
+#include "json.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-typedef struct _opensensordata_t opensensordata_t;
+        int osd_object_get_id(json_object_t obj);
 
-opensensordata_t* new_opensensordata(const char* url);
-void delete_opensensordata(opensensordata_t* osd);
+        json_object_t new_osd_group(const char* name, 
+                                    const char* description);
 
-void opensensordata_set_cache_dir(opensensordata_t* osd, const char* dir);
-void opensensordata_set_key(opensensordata_t* osd, const char* key);
-int opensensordata_put_datapoints(opensensordata_t* osd, const char* filename);
-int opensensordata_put_photo(opensensordata_t* osd, int photostream, const char* id, const char* filename);
-int opensensordata_get_datastream_id(opensensordata_t* osd, const char* name);
-int opensensordata_get_photostream_id(opensensordata_t* osd, const char* name);
-char* opensensordata_get_response(opensensordata_t* osd);
+        /*
+          Returns: 
+          -1: group object is corrupted
+          0: didn't find datastream
+          1: found datastream
+        */
+        int osd_group_has_datastream(json_object_t g, int id);
+        int osd_group_has_photostream(json_object_t g, int id);
 
+        void osd_group_add_datastream(json_object_t g, int id);
+        void osd_group_add_photostream(json_object_t g, int id);
+
+        json_object_t new_osd_datastream(const char* name, 
+                                         const char* description, 
+                                         double timezone,
+                                         double latitude,
+                                         double longitude,
+                                         const char* unit);
+
+        json_object_t new_osd_photostream(const char* name, 
+                                          const char* description, 
+                                          double timezone,
+                                          double latitude,
+                                          double longitude);
+
+        /* opensensordata */
+
+        typedef struct _opensensordata_t opensensordata_t;
+
+        opensensordata_t* new_opensensordata(const char* url);
+        void delete_opensensordata(opensensordata_t* osd);
+
+        void opensensordata_set_cache_dir(opensensordata_t* osd, const char* dir);
+        void opensensordata_set_key(opensensordata_t* osd, const char* key);
+
+        char* opensensordata_get_response(opensensordata_t* osd);
+
+        /* groups */
+
+        json_object_t opensensordata_get_group(opensensordata_t* osd, int cache_ok);
+
+        int opensensordata_get_group_id(opensensordata_t* osd);
+
+        int opensensordata_create_group(opensensordata_t* osd, 
+                                        json_object_t group);
+
+        int opensensordata_update_group(opensensordata_t* osd, json_object_t g);
+
+
+        /* datastream */
+
+        json_object_t opensensordata_get_datastream(opensensordata_t* osd, 
+                                                    const char* name, 
+                                                    int cache_ok);
+
+        int opensensordata_create_datastream(opensensordata_t* osd, 
+                                             const char* name,
+                                             json_object_t datastream);
+
+        int opensensordata_get_datastream_id(opensensordata_t* osd, const char* name);
+
+        int opensensordata_put_datapoints(opensensordata_t* osd, const char* filename);
+
+        /* photostream */
+
+        json_object_t opensensordata_get_photostream(opensensordata_t* osd, 
+                                                     const char* name, 
+                                                     int cache_ok);
+
+        int opensensordata_get_photostream_id(opensensordata_t* osd, const char* name);
+
+        int opensensordata_create_photostream(opensensordata_t* osd,  
+                                              const char* name,
+                                              json_object_t photostream);
+
+        int opensensordata_put_photo(opensensordata_t* osd, 
+                                     int photostream, 
+                                     const char* id, 
+                                     const char* filename);
 
 #ifdef __cplusplus
 }

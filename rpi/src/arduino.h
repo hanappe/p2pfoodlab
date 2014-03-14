@@ -29,10 +29,19 @@
 extern "C" {
 #endif
 
+#define SENSOR_TRH_ID      0
+#define SENSOR_TRHX_ID     1
+#define SENSOR_LUM_ID      2
+#define SENSOR_USBBAT_ID   3
+#define SENSOR_SOIL_ID     4
+#define SENSOR_COUNT       5
+
 #define SENSOR_TRH         (1 << 0)
 #define SENSOR_TRHX        (1 << 1)
 #define SENSOR_LUM         (1 << 2)
-#define SENSOR_SOIL        (1 << 3)
+#define SENSOR_USBBAT      (1 << 3)
+#define SENSOR_SOIL        (1 << 4)
+
 
 #define DATASTREAM_T       1
 #define DATASTREAM_RH      2
@@ -40,7 +49,8 @@ extern "C" {
 #define DATASTREAM_RHX     4
 #define DATASTREAM_LUM     5
 #define DATASTREAM_SOIL    6
-#define DATASTREAM_LAST    7
+#define DATASTREAM_USBBAT  7
+#define DATASTREAM_COUNT   8
 
 typedef struct _datapoint_t {
         int datastream;

@@ -19,38 +19,43 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
+#define _BSD_SOURCE
 #include <stdlib.h>
+#include <string.h>
 #include "config.h"
 #include "log_message.h"
 #include "arduino.h"
 
-typedef struct _sensor_t {
-        char* name;
-        int flag;
-} sensor_t;
-
-sensor_t sensorlist[] = {
-        { "rht03_1", SENSOR_TRH },
-        { "rht03_2", SENSOR_TRHX },
-        { "trh", SENSOR_TRH },
-        { "trhx", SENSOR_TRHX },
-        { "light", SENSOR_LUM },
-        { "soil", SENSOR_SOIL },
-        { NULL, 0 } };
+static char* _file = NULL;
 
 json_object_t config_load(const char* file)
 {
+        int err;
         char buffer[512];
 
-        json_object_t config = json_load(file, buffer, 512);
-        if (json_isnull(config)) {
+        // For backward compatibility.
+        {
+                if (_file != NULL)
+                        free(_file);
+                _file = strdup(file);
+        }
+
+        json_object_t config = json_load(file, &err, buffer, 512);
+        if (err != 0) {
                 log_err("%s", buffer); 
                 return json_null();
         } 
         return config;
 }
 
+// For backward compatibility.
+static void config_save(json_object_t config)
+{
+        json_tofile(config, k_json_pretty, _file);
+}
+
 int config_get_sensors(json_object_t config, 
+                       sensor_t* sensors, int len,                       
                        unsigned char* enabled, 
                        unsigned char* period)
 {
@@ -66,22 +71,43 @@ int config_get_sensors(json_object_t config,
                 return -1;
         } 
 
-        for (int i = 0; sensorlist[i].name != NULL; i++) {
-                json_object_t s = json_object_get(sensors_config, sensorlist[i].name);
+        // For backward compatibility.
+        {
+                int save = 0;
+                json_object_t s = json_object_get(sensors_config, "rht03_1");
+                if (!json_isnull(s)) {
+                        save = 1;
+                        json_object_set(sensors_config, "trh", s);
+                        json_object_unset(sensors_config, "rht03_1");
+                }
+                s = json_object_get(sensors_config, "rht03_2");
+                if (!json_isnull(s)) {
+                        save = 1;
+                        json_object_set(sensors_config, "trhx", s);
+                        json_object_unset(sensors_config, "rht03_2");
+                }
+                if (save)
+                        config_save(config);
+        }
+        //
+
+
+        for (int i = 0; i < len; i++) {
+                json_object_t s = json_object_get(sensors_config, sensors[i].name);
                 if (json_isnull(s)) {
-                        log_info("Config: sensor %s not configured", sensorlist[i].name); 
+                        log_info("Config: sensor %s not configured", sensors[i].name); 
                         continue;
                 }
                 if (!json_isstring(s)) {
                         log_warn("Config: Sensor setting is not a JSON string (%s)", 
-                                sensorlist[i].name); 
+                                sensors[i].name); 
                         continue;
                 }
                 if (json_string_equals(s, "yes")) {
-                        log_info("Config: sensor %s enabled", sensorlist[i].name); 
-                        _enabled |= sensorlist[i].flag;
+                        log_info("Config: sensor %s enabled", sensors[i].name); 
+                        _enabled |= sensors[i].flag;
                 } else {
-                        log_info("Config: sensor %s disabled", sensorlist[i].name); 
+                        log_info("Config: sensor %s disabled", sensors[i].name); 
                 }
         }
 
@@ -138,12 +164,12 @@ int config_powersaving_enabled(json_object_t config)
 {
         json_object_t power = json_object_get(config, "power");
         if (!json_isobject(power)) {
-                log_err("Sensorbox: Power settings are not a JSON object, as expected"); 
+                log_err("Config: Power settings are not a JSON object, as expected"); 
                 return 0;
         }
         json_object_t poweroff = json_object_get(power, "poweroff");
         if (!json_isstring(poweroff)) {
-                log_err("Sensorbox: Poweroff setting is not a JSON string, as expected"); 
+                log_err("Config: Poweroff setting is not a JSON string, as expected"); 
                 return 0;
         }
         if (json_string_equals(poweroff, "yes")) {
@@ -151,4 +177,65 @@ int config_powersaving_enabled(json_object_t config)
         }
         return 0;
 }
+
+int config_camera_enabled(json_object_t config)
+{
+        json_object_t camera_obj = json_object_get(config, "camera");
+        if (json_isnull(camera_obj)) {
+                log_err("Config: Could not find the camera configuration"); 
+                return -1;
+        }
+        json_object_t enabled = json_object_get(camera_obj, "enable");
+        if (!json_isstring(enabled)) {
+                log_err("Config: Camera enabled setting is not a JSON string, as expected"); 
+                return -1;
+        }
+        return json_string_equals(enabled, "yes")? 1 : 0;
+}
+
+static double config_get_general_value(json_object_t config, const char* name)
+{
+        json_object_t general_obj = json_object_get(config, "general");
+        if (json_isnull(general_obj)) {
+                log_err("Config: Could not find the general configuration"); 
+                return 0.0;
+        }
+
+        json_object_t v = json_object_get(general_obj, name);
+        double x;
+        if (json_isstring(v)) {
+                x = atof(json_string_value(v));
+        } else if (json_isnumber(v)) {
+                x = json_number_value(v);
+        } else {
+                x = NAN;
+        }
+        return x;
+}
+
+double config_get_timezone(json_object_t config)
+{
+        return config_get_general_value(config, "timezone");
+}
+
+double config_get_latitude(json_object_t config)
+{
+        return config_get_general_value(config, "latitude");
+}
+
+double config_get_longitude(json_object_t config)
+{
+        return config_get_general_value(config, "longitude");
+}
+
+const char* config_get_sensorbox_name(json_object_t config)
+{
+        json_object_t general_obj = json_object_get(config, "general");
+        if (json_isnull(general_obj)) {
+                log_err("Config: Could not find the general configuration"); 
+                return "sensorbox";
+        }
+        return json_object_getstr(general_obj, "name");
+}
+
 

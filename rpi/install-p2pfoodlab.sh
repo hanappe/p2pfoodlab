@@ -10,17 +10,27 @@ dest=/var/p2pfoodlab
 
 cd $home
 
+first_time="yes"
+if [ -d $dest ]; then
+  first_time="no"
+fi
+
 echo --------------------------------------------------------
 echo STEP 1: Installing required software packages
 
-# Install required packages. Also remove package ifplugd because it is
-# doing a bad job on the Raspberry Pi in combination with the DHCP
-# server isc-dhcp-server.
 apt-get update
-apt-get install apache2 php5 libapache2-mod-php5 gcc libjpeg8-dev i2c-tools libi2c-dev isc-dhcp-server git libcurl4-openssl-dev bc wvdial
-apt-get purge ifplugd
-apt-get autoremove
 
+if [ "$first_time" == "yes" ]; then
+    # Clean up unused packages to save space.
+    apt-get purge --auto-remove scratch debian-reference-en dillo idle3 python3-tk idle python-pygame python-tk lightdm gnome-themes-standard gnome-icon-theme raspberrypi-artwork gvfs-backends gvfs-fuse desktop-base lxpolkit netsurf-gtk zenity xdg-utils mupdf gtk2-engines alsa-utils lxde lxtask menu-xdg gksu midori xserver-xorg xinit xserver-xorg-video-fbdev libraspberrypi-dev libraspberrypi-doc dbus-x11 libx11-6 libx11-data libx11-xcb1 x11-common x11-utils lxde-icon-theme gconf-service gconf2-common ifplugd
+
+    # Install required packages. Also remove package ifplugd because
+    # it is doing a bad job on the Raspberry Pi in combination with
+    # the DHCP server isc-dhcp-server.
+    apt-get install apache2 php5 libapache2-mod-php5 gcc libjpeg8-dev i2c-tools libi2c-dev isc-dhcp-server git libcurl4-openssl-dev bc wvdial
+else
+    apt-get --yes upgrade
+fi
 
 echo --------------------------------------------------------
 echo STEP 2: Loading I2C kernel modules
@@ -29,16 +39,16 @@ echo STEP 2: Loading I2C kernel modules
 modprobe i2c_dev
 modprobe i2c_bcm2708
 
-
 echo --------------------------------------------------------
 echo STEP 3: Manage user privileges
 
 # Add user 'pi' to the required groups.
-adduser pi i2c
-adduser pi video
-adduser pi www-data
-adduser pi dialout
-
+if [ "$first_time" == "yes" ]; then
+    adduser pi i2c
+    adduser pi video
+    adduser pi www-data
+    adduser pi dialout
+fi
 
 echo --------------------------------------------------------
 echo STEP 4: Download, compile and install sensorbox software
@@ -78,13 +88,15 @@ for file in ${etc[@]}; do
     install --owner=root --group=root $file /$file
 done
 
+if [ "$first_time" == "yes" ]; then
+    install --owner=root --group=root etc/network/interfaces /etc/network/interfaces
+fi
 
 echo --------------------------------------------------------
 echo STEP 5: Activate sensorbox update application (crontab)
 
 # Add update requests to crontab
 echo "* * * * * /var/p2pfoodlab/bin/sensorbox" | crontab -u $uid -
-
 
 echo --------------------------------------------------------
 echo STEP 6: Installing and starting system services
@@ -95,18 +107,21 @@ echo P2P Food Lab daemon:
 update-rc.d p2pfoodlab start 99 2 3 4 5 . stop 99 0 6 .
 #update-rc.d arduino-hwclock start 10 S . stop 10 0 1 6 .
 
-service p2pfoodlab start
+service p2pfoodlab restart
 
 # Restart the web server.
-echo Web server:
-echo "ServerName localhost" > /etc/apache2/conf.d/fqdn
-service apache2 restart
+if [ "$first_time" == "yes" ]; then
+    echo Web server:
+    echo "ServerName localhost" > /etc/apache2/conf.d/fqdn
+    service apache2 restart
+fi
 
 # Enable the DHCP server on eth0
-echo DHCP server:
-update-rc.d isc-dhcp-server enable
-
-service isc-dhcp-server start
+if [ "$first_time" == "yes" ]; then
+    echo DHCP server:
+    update-rc.d isc-dhcp-server enable
+    service isc-dhcp-server restart
+fi
 
 echo --------------------------------------------------------
 echo Done!

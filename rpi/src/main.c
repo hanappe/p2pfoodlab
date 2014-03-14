@@ -59,15 +59,19 @@ static void usage(FILE* fp, int argc, char** argv)
                  "-o | --output-file   Where to write the data/image to ['-' for console]\n"
                  "-D | --debug         Print debug message\n"
                  "Commands:\n"
-                 "  update             Parse the config, update sensors and/or camera if necessary,\n"
+                 "  update             Parse the config, create the OpenSensorData definitions if needed,\n"
+                 "                     update sensors and/or camera if necessary,\n"
                  "                     upload data and photos [default]\n"
                  "  sensors            Store the latest sensor values\n"
                  "  camera             Grab a photo\n"
                  "  upload-data        Upload the datapoints\n"
-                 "  upload-photos      Upload the photos\n"
+                 "  upload-photos      Upload the photos on the disk\n"
                  "  get-time           Get the current time on the arduino\n"
                  "  set-time           Set the time on the arduino\n"
                  "  list-events        Set the time on the arduino\n"
+                 "  ifup               Bring the network inerface up\n"
+                 "  ifdown             Bring the network inerface down\n"
+                 "  osd                Create the OpenSensorData definitions\n"
                  "",
                  argv[0]);
 }
@@ -178,6 +182,12 @@ int main(int argc, char **argv)
                 sensorbox_test_run(box);
 
         if (strcmp(command, "update") == 0) {
+                
+                if (sensorbox_check_osd_definitions(box) != 0) {
+                        if (sensorbox_bring_network_up(box) == 0)
+                                sensorbox_create_osd_definitions(box);
+                }
+
                 sensorbox_check_sensors(box);
                 sensorbox_handle_events(box);
                 sensorbox_upload_data(box);
@@ -226,6 +236,9 @@ int main(int argc, char **argv)
 
         } else if (strcmp(command, "ifdown") == 0) {
                 sensorbox_bring_network_down(box);
+
+        } else if (strcmp(command, "osd") == 0) {
+                sensorbox_create_osd_definitions(box);
 
         } else {
                 usage(stderr, argc, argv);

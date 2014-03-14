@@ -549,7 +549,7 @@ static int arduino_copy_stack_(arduino_t* arduino,
 
         {
                 unsigned char* ptr = (unsigned char*) &stack->values[0];
-                int index = 0;
+                //int index = 0;
                 int len = stack->frames * stack->framesize * sizeof(stack_value_t);
 
                 printf("len=%d\n", len);
@@ -640,6 +640,10 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
         if (sensors & SENSOR_LUM) {
                 factors[num_streams] = 1.0f;
                 datastreams[num_streams++] = DATASTREAM_LUM;
+        }
+        if (sensors & SENSOR_USBBAT) {
+                factors[num_streams] = 0.01f;
+                datastreams[num_streams++] = DATASTREAM_USBBAT;
         }
         if (sensors & SENSOR_SOIL) {
                 factors[num_streams] = 1.0f;

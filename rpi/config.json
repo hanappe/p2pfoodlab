@@ -8,7 +8,7 @@
       "pwhash":"dd9dc0780de4c0ff4bad8789f821e16b"
   },
   "general": {
-      "name":"greenhouse",
+      "name":"test_test",
       "email":"yourname@example.com",
       "timezone":"0",
       "latitude":"0.000000",
@@ -50,11 +50,10 @@
       "period":"30"
   },
   "sensors":{
-      "rht03_1":"yes",
-      "rht03_2":"no",
-      "sht15_1":"no",
-      "sht15_2":"no",
-      "light":"no",
+      "trh":"yes",
+      "trhx":"yes",
+      "light":"yes",
+      "usbbat":"yes",
       "soil":"no",
       "update":"60",
       "upload":"fixed",

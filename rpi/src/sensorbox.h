@@ -29,6 +29,31 @@
 extern "C" {
 #endif
 
+        typedef struct _sensor_t
+        {
+                int index;
+                int flag;
+                int enabled;
+                const char* name;
+        } sensor_t;
+
+        typedef struct _datastream_t
+        {
+                int index;
+                int enabled;
+                int sensor;
+                const char* name;
+                const char* unit;
+                int osd_id;
+        } datastream_t;
+
+        typedef struct _photostream_t
+        {
+                int enabled;
+                const char* name;
+                int osd_id;
+        } photostream_t;
+
         typedef struct _sensorbox_t sensorbox_t;
 
         sensorbox_t* new_sensorbox(const char* dir);
@@ -42,6 +67,8 @@ extern "C" {
         void sensorbox_poweroff_maybe(sensorbox_t* box);
         int sensorbox_powersaving_enabled(sensorbox_t* box);
         int sensorbox_check_sensors(sensorbox_t* box);
+        int sensorbox_check_osd_definitions(sensorbox_t* box);
+        int sensorbox_create_osd_definitions(sensorbox_t* box);
         int sensorbox_print_events(sensorbox_t* box);
 
         /* If filename is NULL, the default output file will be

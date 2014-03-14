@@ -28,36 +28,38 @@ src=(src/arduino.c
 lib=(lib/broken.jpg)
 
 script=(bin/test-camera
-    bin/update-network
-    bin/update-ssh
-    bin/update-version)
+        bin/update-network
+        bin/update-ssh
+        bin/update-version)
 
 bin=(bin/p2pfoodlab-daemon 
-    bin/sensorbox)
+     bin/sensorbox)
 
 web=(web/bg.jpg
-    web/white.jpg
-    web/camera.php
-    web/config.inc.php
-    web/configuration.php
-    web/index.php
-    web/log.php
-    web/login.inc.php
-    web/md5.js
-    web/sensorbox.css
-    web/session.inc.php
-    web/update.inc.php
-    web/updates.php
-    web/opensensordata.inc.php
-    web/error.inc.php)
+     web/white.jpg
+     web/camera.php
+     web/config.inc.php
+     web/configuration.php
+     web/index.php
+     web/log.php
+     web/login.inc.php
+     web/md5.js
+     web/sensorbox.css
+     web/session.inc.php
+     web/update.inc.php
+     web/updates.php
+     web/opensensordata.inc.php
+     web/error.inc.php)
 
-etc=(etc/modprobe.d/raspi-blacklist.conf
-    etc/dhcp/dhcpd.conf
-    etc/network/interfaces
-    etc/apache2/sites-available/default
-    etc/ssh/sshd_config
-    etc/default/isc-dhcp-server
-    etc/modules
-    etc/init.d/p2pfoodlab
-    etc/init.d/arduino-hwclock)
+etc=(boot/cmdline.txt
+     etc/modprobe.d/raspi-blacklist.conf
+     etc/modprobe.d/i2c.conf
+     etc/dhcp/dhcpd.conf
+     etc/apache2/sites-available/default
+     etc/ssh/sshd_config
+     etc/default/isc-dhcp-server
+     etc/modules
+     etc/init.d/p2pfoodlab
+     etc/init.d/arduino-hwclock)
+
 

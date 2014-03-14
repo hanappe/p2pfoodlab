@@ -604,6 +604,20 @@ json_object_t json_object_get(json_object_t object, const char* key)
 	return json_hashtable_get(hashtable, key);
 }
 
+double json_object_getnum(json_object_t object, const char* key)
+{
+	if (object.type != k_json_object) {
+		return NAN;
+	}
+	json_hashtable_t* hashtable = (json_hashtable_t*) object.value.data;
+	json_object_t val = json_hashtable_get(hashtable, key);
+        if (val.type == k_json_number) {
+                return json_number_value(val);
+        } else {
+                return NAN;
+        }
+}
+
 const char* json_object_getstr(json_object_t object, const char* key)
 {
 	if (object.type != k_json_object) {
@@ -1952,38 +1966,43 @@ json_object_t json_parser_result(json_parser_t* parser)
 	return parser->value_stack[0];
 }
 
-json_object_t json_load(const char* filename, char* err, int len)
+json_object_t json_load(const char* filename, int* err, char* errmsg, int len)
 {
-        if (err) err[0] = 0;
+        errmsg[0] = 0;
+        *err = 0;
 
         json_parser_t* parser = json_parser_create();
         if (parser == NULL) {
-                snprintf(err, len, "json_load: Failed to create the file parser.");
-                err[len-1] = 0;
+                *err = 1;
+                snprintf(errmsg, len, "json_load: Failed to create the file parser.");
+                errmsg[len-1] = 0;
                 return json_null();
         }
         FILE* fp = fopen(filename, "r");
         if (fp == NULL) {
-                snprintf(err, len, "json_load: Failed to open the file: %s", filename);
-                err[len-1] = 0;
+                *err = 1;
+                snprintf(errmsg, len, "json_load: Failed to open the file: %s", filename);
+                errmsg[len-1] = 0;
                 json_parser_destroy(parser);
                 return json_null();
         }
         while (!json_parser_done(parser)) {
                 int c = fgetc(fp);
                 if (c == EOF) {
-                        snprintf(err, len, "json_load: The file is corrupt.");
-                        err[len-1] = 0;
+                        *err = 1;
+                        snprintf(errmsg, len, "json_load: The file is corrupt.");
+                        errmsg[len-1] = 0;
                         fclose(fp);
                         json_parser_destroy(parser);
                         return json_null();
                 }
                 int32 r = json_parser_feed_one(parser, c);
                 if (r != 0) {
-                        snprintf(err, len, 
+                        *err = 1;
+                        snprintf(errmsg, len, 
                                  "json_load: Failed to parse the file: %s: %s.\n",
                                  filename, json_parser_errstr(parser));
-                        err[len-1] = 0;
+                        errmsg[len-1] = 0;
                         fclose(fp);
                         json_parser_destroy(parser);
                         return json_null();

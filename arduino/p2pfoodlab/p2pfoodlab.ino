@@ -27,6 +27,7 @@
 #define DEBUG 1
 
 #define SLAVE_ADDRESS           0x04
+#define V_REF                   3.3f
 
 #define DS1374_REG_TOD0		0x00 /* Time of Day */
 #define DS1374_REG_TOD1		0x01
@@ -65,16 +66,16 @@
 
 #define RHT03_1_PIN             4
 #define RHT03_2_PIN             2
-#define SHT15_1_DATA_PIN        4
-#define SHT15_1_CLOCK_PIN       3
 #define LUMINOSITY_PIN          A2
 #define RPi_PIN                 9
+#define BAT_USB_PIN             A3
 #define PUMP_PIN                8
 
 #define SENSOR_TRH              (1 << 0)
 #define SENSOR_TRHX             (1 << 1)
 #define SENSOR_LUM              (1 << 2)
-#define SENSOR_SOIL             (1 << 3)
+#define SENSOR_USBBAT           (1 << 3)
+#define SENSOR_SOIL             (1 << 4)
 
 #define DEFAULT_SLEEP           20000
 
@@ -417,6 +418,15 @@ static void send_data()
 /*
  * Sensors & measurements
  */
+
+static short get_level_usb_batttery()
+{
+        int a = analogRead(BAT_USB_PIN);
+        //DebugPrintValue("  A3 ", a);
+        float v = V_REF * 2.0f * a / 1024.0f;
+        short r = (short) (100 * v);
+        return r;
+}
 
 static short get_luminosity()
 {

@@ -419,7 +419,17 @@ function testCamera()
       <div class="panel">
         <h1>Sensors</h1>
         
-        <?php $sensors_config = $config->sensors; ?>
+<?php
+$sensors_config = $config->sensors; 
+if (isset($sensors_config->rht03_1)
+    && !isset($sensors_config->trh))
+        $sensors_config->trh = $sensors_config->rht03_1;
+
+if (isset($sensors_config->rht03_2)
+    && !isset($sensors_config->trhx))
+        $sensors_config->trhx = $sensors_config->rht03_2;
+
+?>
         <form action="configuration.php" method="post" name="sensors">
           <input type="hidden" name="op" value="update" />
           <input type="hidden" name="section" value="sensors" />
@@ -427,27 +437,19 @@ function testCamera()
           <table>
             <tr>
               <td class="label">Enable internal temperature and humidity sensor (RHT03)?</td>
-              <td class="input"><input type="checkbox" name="rht03_1" <?php if ($sensors_config->rht03_1 == "yes") echo "checked" ?> value="yes" /></td>
+              <td class="input"><input type="checkbox" name="trh" <?php if ($sensors_config->trh == "yes") echo "checked" ?> value="yes" /></td>
             </tr>
             <tr>
               <td class="label">Enable external temperature and humidity sensor (RHT03)?</td>
-              <td class="input"><input type="checkbox" name="rht03_2" <?php if ($sensors_config->rht03_2 == "yes") echo "checked" ?> value="yes" /></td>
-            </tr>
-            <tr>
-              <td class="label">Enable internal temperature and humidity sensor (SHT15)?</td>
-              <td class="input"><input type="checkbox" name="sht15_1" <?php if ($sensors_config->sht15_1 == "yes") echo "checked" ?> value="yes" /></td>
-            </tr>
-            <tr>
-              <td class="label">Enable external temperature and humidity sensor (SHT15)?</td>
-              <td class="input"><input type="checkbox" name="sht15_2" <?php if ($sensors_config->sht15_2 == "yes") echo "checked" ?> value="yes" /></td>
+              <td class="input"><input type="checkbox" name="trhx" <?php if ($sensors_config->trhx == "yes") echo "checked" ?> value="yes" /></td>
             </tr>
             <tr>
               <td class="label">Enable luminosity sensor?</td>
               <td class="input"><input type="checkbox" name="light" <?php if ($sensors_config->light == "yes") echo "checked" ?> value="yes" /></td>
             </tr>
             <tr>
-              <td class="label">Enable soil humidity sensor?</td>
-              <td class="input"><input type="checkbox" name="soil" <?php if ($sensors_config->soil == "yes") echo "checked" ?> value="yes" /></td>
+              <td class="label">Enable USB battery level sensor?</td>
+              <td class="input"><input type="checkbox" name="usbbat" <?php if ($sensors_config->usbbat == "yes") echo "checked" ?> value="yes" /></td>
             </tr>
 
             <tr>
@@ -522,7 +524,6 @@ function testCamera()
      </div>
       
 
-
       <div class="panel">
         <h1>OpenSensorData.net</h1>    
         <?php 
@@ -539,10 +540,6 @@ function testCamera()
           <input type="hidden" name="section" value="opensensordata" />
           
           <table>
-            <tr>
-              <td class="label">Server</td>
-              <td class="input"><input type="text" name="server" size="20" maxlength="64" value="<?php echo $osd_config->server ?>" /></td>
-            </tr>
             <tr>
               <td class="label">Account key</td>
               <td class="input"><input type="text" name="key" size="32" maxlength="36" value="<?php echo $osd_config->key ?>" /></td>
