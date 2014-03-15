@@ -93,7 +93,7 @@ if [ "$first_time" == "yes" ]; then
 fi
 
 echo --------------------------------------------------------
-echo STEP 5: Activate sensorbox update application (crontab)
+echo "STEP 5: Activate sensorbox update application (crontab)"
 
 # Add update requests to crontab
 echo "* * * * * /var/p2pfoodlab/bin/sensorbox" | crontab -u $uid -
