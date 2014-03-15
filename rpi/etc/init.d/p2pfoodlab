@@ -24,7 +24,7 @@ do_start_daemon() {
 
 do_stop_daemon() {
     log_message "[p2pfoodlab] Info: Stopping P2P Food Lab daemon" 
-    start-stop-daemon --stop --pidfile /var/run/p2pfoodlab-daemon.pid
+    killall -HUP p2pfoodlab-daemon
 }
 
 do_start() {
