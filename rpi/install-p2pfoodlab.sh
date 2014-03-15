@@ -16,7 +16,7 @@ if [ -d $dest ]; then
 fi
 
 echo --------------------------------------------------------
-echo STEP 1: Installing required software packages
+echo STEP 1: Updating and installing software packages
 
 apt-get update
 
