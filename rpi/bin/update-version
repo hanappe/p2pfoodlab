@@ -1,64 +1,17 @@
 #!/bin/bash
 
-home_dir=/var/p2pfoodlab
-date=`date +"%Y%m%d-%H%M%S"`
+uid=pi
+gid=pi
+home=/home/pi
+dest=/var/p2pfoodlab
 
-if [ ! -e $home_dir/etc/install-version ]; then
-    echo "[install-version] Can't find " $home_dir/etc/install-version 2>&1 >> $home_dir/log.txt
-    exit 1
+# Download the latest version of the sensorbox software and
+# configuration files.
+if [ -d $home/p2pfoodlab ]; then
+    su -l -c "cd $home/p2pfoodlab && git pull" $uid 
+else
+    su -l -c "cd $home && git clone https://github.com/hanappe/p2pfoodlab.git" $uid
 fi
 
-source $home_dir/etc/install-version
-
-if [ "x$URL" == "x" ]; then
-    echo "[install-version] Empty URL" 2>&1 >> $home_dir/log.txt
-    exit 1
-fi
-
-rm -rf /tmp/dist /tmp/update.tar.gz
-
-echo "[install-version] Downloading '$URL'" 2>&1 >> $home_dir/log.txt
-
-status=`curl --silent --output /tmp/update.tar.gz -w "%{http_code}" $URL`
-
-if [ "x$status" != "x200" ]; then
-    echo "[install-version] Download failed: status $status" 2>&1 >> $home_dir/log.txt
-    exit 1
-fi
-
-if [ ! -f /tmp/update.tar.gz ]; then
-    echo "[install-version] Downloaded file seems invalid" 2>&1 >> $home_dir/log.txt
-    exit 1
-fi
-
-NEWSUM=`md5sum /tmp/update.tar.gz | cut -f1 -d' '`
-if [ $NEWSUM != $CHECKSUM ]; then
-    echo "[install-version] Checksums don't match" 2>&1 >> $home_dir/log.txt
-    exit 1
-fi
-
-echo "[install-version] Checksum OK" 2>&1 >> $home_dir/log.txt
-
-
-cd /tmp
-tar xvf update.tar.gz
-if [ $? != 0 ]; then
-    echo "[install-version] Failed to extract the archive" 2>&1 >> $home_dir/log.txt
-    exit 1
-fi
-
-chown -R pi.pi dist update.tar.gz
-
-echo "[install-version] Compiling" 2>&1 >> $home_dir/log.txt
-su -l -c "make -C /tmp/dist/src clean all" pi
-if [ $? != 0 ]; then
-    echo "[install-version] Compilation failed" 2>&1 >> $home_dir/log.txt
-    exit 1
-fi
-cd ..
- 
-echo "[install-version] Running install script" 2>&1 >> $home_dir/log.txt
-cd /tmp/dist/
-bash ./install.sh $home_dir pi pi
-
-echo "[install-version] Installation done" 2>&1 >> $home_dir/log.txt
+# Run the install/update script
+bash $home/p2pfoodlab/rpi/install-p2pfoodlab.sh
