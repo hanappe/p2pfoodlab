@@ -59,7 +59,7 @@ if (isset($update) && ($update == "yes")) {
                 echo "Failed to connect to the local P2P Food Lab daemon\n";
         } else {
                 while (!feof($h))
-                        echo fread($h, 1024);
+                        echo fread($h, 80);
                 fclose($h);
         }
         echo "</pre></div>\n";
