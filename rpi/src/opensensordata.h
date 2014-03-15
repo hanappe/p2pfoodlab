@@ -30,6 +30,7 @@ extern "C" {
 
 
         int osd_object_get_id(json_object_t obj);
+        const char* osd_object_get_name(json_object_t obj);
 
         json_object_t new_osd_group(const char* name, 
                                     const char* description);

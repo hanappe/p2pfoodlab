@@ -415,6 +415,7 @@ static int opensensordata_put_object(opensensordata_t* osd,
         return 0;
 }
 
+/*
 static int opensensordata_get(opensensordata_t* osd, 
                               const char* path,
                               const char* filename)
@@ -497,6 +498,7 @@ static int opensensordata_get(opensensordata_t* osd,
 
         return 0;
 }
+*/
 
 int opensensordata_put_datapoints(opensensordata_t* osd, const char* filename)
 {
@@ -532,6 +534,20 @@ int osd_object_get_id(json_object_t obj)
         }
         
         return id;
+}
+
+const char* osd_object_get_name(json_object_t obj)
+{
+        json_object_t v = json_object_get(obj, "name");
+        if (json_isstring(v))
+                return json_string_value(v);
+
+        if (json_isnull(v)) {
+                log_err("OpenSensorData: Object has no name!"); 
+        } else {
+                log_err("OpenSensorData: Object name is not a string!"); 
+        }
+        return NULL;
 }
 
 static int opensensordata_get_cached_id(opensensordata_t* osd, const char* name)

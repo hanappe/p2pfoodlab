@@ -685,6 +685,15 @@ int sensorbox_check_osd_definitions(sensorbox_t* box)
         if (id == -1)
                 return -1;
 
+        const char* config_name = config_get_sensorbox_name(box->config);
+
+        const char* group_name = osd_object_get_name(group);
+        if (group_name == NULL)
+                return -1;
+
+        if (strcmp(config_name, group_name) != 0)
+                return -1;
+
         for (int i = 0; i < DATASTREAM_COUNT; i++) {
                 if (box->datastreams[i].enabled
                     && (osd_group_has_datastream(group, box->datastreams[i].osd_id) != 1))

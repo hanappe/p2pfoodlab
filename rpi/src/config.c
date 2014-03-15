@@ -235,7 +235,8 @@ const char* config_get_sensorbox_name(json_object_t config)
                 log_err("Config: Could not find the general configuration"); 
                 return "sensorbox";
         }
-        return json_object_getstr(general_obj, "name");
+        const char* name = json_object_getstr(general_obj, "name");
+        return (name == NULL)? "sensorbox" : name;
 }
 
 
