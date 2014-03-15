@@ -750,12 +750,15 @@ function update_opensensordata()
         $oldserver = $osd_config->server;
         $oldkey = $osd_config->key;
 
+        /*
         $server = $_REQUEST['server'];
         if (!filter_var($server, FILTER_VALIDATE_URL)) {
                 $msg .= "Please verify the OpenSensorData.net server URL.";
                 return NULL;
         }
         $osd_config->server = $server;
+        */
+        $osd_config->server = "http://opensensordata.net";
 
         $key = $_REQUEST['key'];
         if (!preg_match('/^[a-zA-Z0-9]{8,8}-[a-zA-Z0-9]{4,4}-[a-zA-Z0-9]{4,4}-[a-zA-Z0-9]{4,4}-[a-zA-Z0-9]{12,12}$/', $key)) {
