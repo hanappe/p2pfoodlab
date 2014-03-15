@@ -28,7 +28,22 @@ function run_update()
 {
         global $error, $output;
         
-        $output = file_get_contents("http://127.0.0.1:10080/update/version");
+        $h = fopen("http://127.0.0.1:10080/update/version", "r");
+        if ($h === false) {
+                echo "Failed to connect to the local P2P Food Lab daemon\n";
+                return;
+        }
+        while (!feof($rh)) {
+            if (fwrite($wh, fread($rh, 1024)) === FALSE) {
+                   // 'Download error: Cannot write to file ('.$file_target.')';
+                   return true;
+               }
+        }
+        fclose($rh);
+        fclose($wh);
+
+
+
         if ($output === FALSE) {
                 $error = "Failed to run the low-level updater.";
                 return FALSE;                
@@ -37,8 +52,6 @@ function run_update()
         return TRUE;
 }
 
-$update = $_REQUEST['do_update'];
-if (isset($update) && ($update == "yes")) {
         run_update();
 }
 
@@ -65,11 +78,23 @@ if (isset($update) && ($update == "yes")) {
       </div>
       
       <div class="main">
-        <a href='updates.php?do_update=yes'>Update software</a>
+        <a href='updates.php?do_update=yes'>Click to run the update script</a>
 
-        <?php if (isset($error)) echo "<div><pre>$error</pre></div>\n"; ?>
-        <?php if (isset($output)) echo "<div><pre>$output</pre></div>\n"; ?>
-
+<?php 
+$update = $_REQUEST['do_update'];
+if (isset($update) && ($update == "yes")) {
+        echo "<div><pre>\n";
+        $h = fopen("http://127.0.0.1:10080/update/version", "r");
+        if ($h === false) {
+                echo "Failed to connect to the local P2P Food Lab daemon\n";
+        } else {
+                while (!feof($h))
+                        echo fread($h, 1024);
+                fclose($h);
+        }
+        echo "</pre></div>\n";
+}
+?>
       </div>
     </div>
   </body>
