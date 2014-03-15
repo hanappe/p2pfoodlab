@@ -24,38 +24,8 @@ require_once "config.inc.php";
 require_once "session.inc.php";
 require_once "error.inc.php";
 
-function run_update()
-{
-        global $error, $output;
-        
-        $h = fopen("http://127.0.0.1:10080/update/version", "r");
-        if ($h === false) {
-                echo "Failed to connect to the local P2P Food Lab daemon\n";
-                return;
-        }
-        while (!feof($rh)) {
-            if (fwrite($wh, fread($rh, 1024)) === FALSE) {
-                   // 'Download error: Cannot write to file ('.$file_target.')';
-                   return true;
-               }
-        }
-        fclose($rh);
-        fclose($wh);
-
-
-
-        if ($output === FALSE) {
-                $error = "Failed to run the low-level updater.";
-                return FALSE;                
-        }
-        
-        return TRUE;
-}
-
-        run_update();
-}
-
-?><html>
+?>
+<html>
   <head>
     <title>P2P Food Lab Sensorbox</title>
     <script src="md5.js" type="text/javascript"></script>
@@ -93,7 +63,7 @@ if (isset($update) && ($update == "yes")) {
                 fclose($h);
         }
         echo "</pre></div>\n";
-}
+ }
 ?>
       </div>
     </div>
