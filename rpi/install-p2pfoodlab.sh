@@ -75,7 +75,6 @@ install --directory --owner=$uid --group=www-data --mode=0775 $dest/backup
 install --directory --owner=$uid --group=www-data --mode=0775 $dest/photostream
 install --directory --owner=$uid --group=www-data --mode=0775 $dest/etc
 install --directory --owner=$uid --group=www-data --mode=0775 $dest/etc/opensensordata
-install --owner=$uid --group=www-data --mode=0664 config.json $dest/etc
 install --directory --owner=$uid --group=$gid --mode=0700 $home/.ssh
 
 touch $dest/log.txt
@@ -87,6 +86,10 @@ source ./files.txt
 for file in ${etc[@]}; do
     install --owner=root --group=root $file /$file
 done
+
+if [ "$first_time" == "yes" ]; then
+    install --owner=$uid --group=www-data --mode=0664 config.json $dest/etc
+fi
 
 if [ "$first_time" == "yes" ]; then
     install --owner=root --group=root etc/network/interfaces /etc/network/interfaces
