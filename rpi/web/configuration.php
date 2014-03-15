@@ -527,13 +527,13 @@ if (isset($sensors_config->rht03_2)
       <div class="panel">
         <h1>OpenSensorData.net</h1>    
         <?php 
-             $osd_config = $config->opensensordata; 
+             /* $osd_config = $config->opensensordata; 
 
              if ($osd_config->username) {
                 echo "Account name: " . $osd_config->username . "<br/>\n";
              } else {
                 echo "Click update to download the account data.<br/>\n";
-             }
+             } */
         ?>
         <form action="configuration.php" method="post" name="opensensordata">
           <input type="hidden" name="op" value="update" />

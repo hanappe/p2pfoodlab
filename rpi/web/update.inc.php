@@ -772,22 +772,22 @@ function update_opensensordata()
                 return NULL;
         }
 
-        if (($osd_config->server != $oldserver) 
-            || ($osd_config->key != $oldkey)
-            || 1) { // FIXME
+        /* if (($osd_config->server != $oldserver)  */
+        /*     || ($osd_config->key != $oldkey) */
+        /*     || 1) { // FIXME */
 
-                $osd = new OpenSensorData($osd_config->server,
-                                          $osd_config->key,
-                                          $osd_dir);
+        /*         $osd = new OpenSensorData($osd_config->server, */
+        /*                                   $osd_config->key, */
+        /*                                   $osd_dir); */
                 
-                $account = $osd->get_my_account();
-                if ($account === NULL) {
-                        $msg .= $osd->msg;
-                        return NULL;
-                }
+        /*         $account = $osd->get_my_account(); */
+        /*         if ($account === NULL) { */
+        /*                 $msg .= $osd->msg; */
+        /*                 return NULL; */
+        /*         } */
                 
-                $osd_config->username = $account->username;
-        }
+        /*         $osd_config->username = $account->username; */
+        /* } */
         
         return $tmp;
 }
