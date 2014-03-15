@@ -747,9 +747,6 @@ function update_opensensordata()
                 }
         }
 
-        $oldserver = $osd_config->server;
-        $oldkey = $osd_config->key;
-
         /*
         $server = $_REQUEST['server'];
         if (!filter_var($server, FILTER_VALIDATE_URL)) {
@@ -771,23 +768,6 @@ function update_opensensordata()
                 echo $config_error . "<br>";
                 return NULL;
         }
-
-        /* if (($osd_config->server != $oldserver)  */
-        /*     || ($osd_config->key != $oldkey) */
-        /*     || 1) { // FIXME */
-
-        /*         $osd = new OpenSensorData($osd_config->server, */
-        /*                                   $osd_config->key, */
-        /*                                   $osd_dir); */
-                
-        /*         $account = $osd->get_my_account(); */
-        /*         if ($account === NULL) { */
-        /*                 $msg .= $osd->msg; */
-        /*                 return NULL; */
-        /*         } */
-                
-        /*         $osd_config->username = $account->username; */
-        /* } */
         
         return $tmp;
 }
