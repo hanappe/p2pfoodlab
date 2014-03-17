@@ -91,8 +91,8 @@
    minutes. */
 
 typedef struct _shortstate_t {
+        int sensors: 8;
         int suspend: 1;
-        int sensors: 4;
         int linux_running: 1;
         int debug: 2;
         int reset_stack: 1;
@@ -101,8 +101,8 @@ typedef struct _shortstate_t {
 } shortstate_t;
 
 typedef struct _longstate_t {
+        int sensors: 8;
         int suspend: 1;
-        int sensors: 4;
         int linux_running: 1;
         int debug: 1;
         int reset_stack: 1;
