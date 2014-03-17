@@ -186,7 +186,7 @@ static int sensorbox_load_sensors(sensorbox_t* box)
         
         box->sensors[SENSOR_LUM_ID].index = SENSOR_LUM_ID;
         box->sensors[SENSOR_LUM_ID].flag = SENSOR_LUM;
-        box->sensors[SENSOR_LUM_ID].name = "lum";
+        box->sensors[SENSOR_LUM_ID].name = "light";
 
         box->sensors[SENSOR_USBBAT_ID].flag = SENSOR_USBBAT;
         box->sensors[SENSOR_USBBAT_ID].enabled = 1;
@@ -219,7 +219,7 @@ static int sensorbox_load_sensors(sensorbox_t* box)
 
         box->datastreams[DATASTREAM_LUM].index = DATASTREAM_LUM;
         box->datastreams[DATASTREAM_LUM].sensor = SENSOR_LUM_ID;
-        box->datastreams[DATASTREAM_LUM].name = "lum";
+        box->datastreams[DATASTREAM_LUM].name = "light";
         box->datastreams[DATASTREAM_LUM].unit = "none";
 
         box->datastreams[DATASTREAM_USBBAT].index = DATASTREAM_USBBAT;
