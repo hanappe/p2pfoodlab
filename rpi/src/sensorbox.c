@@ -302,8 +302,7 @@ static int sensorbox_load_sensors(sensorbox_t* box)
         /*         if (ids[i] == -1) */
         /*                 return -1; */
 
-        return 0;
-        
+        return 0;        
 }
 
 static int get_image_size(const char* symbol, unsigned int* width, unsigned int* height)
@@ -1136,6 +1135,16 @@ int sensorbox_uptime(sensorbox_t* box)
         return (int) seconds;
 }
 
+int sensorbox_run_ntp(sensorbox_t* box)
+{
+        // Use the opportunity to update the clock
+        log_info("Network: Running NTPD");
+        char* const argv[] = { "/usr/bin/sudo", 
+                               "/usr/sbin/ntpd", 
+                               "-q", "-g", NULL};
+        return system_run(argv);
+}
+
 int sensorbox_bring_network_up(sensorbox_t* box)
 {
         const char* iface = config_get_network_interface(box->config);
@@ -1143,16 +1152,8 @@ int sensorbox_bring_network_up(sensorbox_t* box)
         
         if (r == 0) {
                 // Use the opportunity to update the clock
-                log_info("Network: Running NTPD");
-                char* const argv[] = { "/usr/bin/sudo", 
-                                       "/usr/sbin/ntpd", 
-                                       "-q", "-g", NULL};
-                int x = system_run(argv);
-                
-                if (x == 0) {
-                        time_t m = time(NULL);
-                        sensorbox_set_time(box, m); 
-                }
+                if (sensorbox_run_ntp(box) == 0)
+                        sensorbox_set_time(box, time(NULL)); 
         }
 
         return r;

@@ -183,16 +183,42 @@ int main(int argc, char **argv)
 
         if (strcmp(command, "update") == 0) {
                 
+                /* Check whether the time needs to be set. */
+                time_t t;
+                int r = sensorbox_get_time(box, &t);
+                if (r != 0) {
+                        log_warn("Failed to get Arduino's current time.");
+                } else if (t < 1395332000L) {
+                        /* The time on the Arduino has not been
+                           set. Run NTP and pass the correct date to
+                           Arduino. */
+                        if (sensorbox_run_ntp(box) == 0)
+                                sensorbox_set_time(box, time(NULL)); 
+                }
+
+                /* Check whether the definitions of the datastream are
+                   up-to-date. */
                 if (sensorbox_check_osd_definitions(box) != 0) {
                         if (sensorbox_bring_network_up(box) == 0)
                                 sensorbox_create_osd_definitions(box);
                 }
 
+                /* Check whether the active sensors on the Arduino are
+                   up-to-date. */
                 sensorbox_check_sensors(box);
+
+                /* Handle all data and camera events. */
                 sensorbox_handle_events(box);
+
+                /* Upload what ever data we have. */
                 sensorbox_upload_data(box);
                 sensorbox_upload_photos(box);
+
+                /* Bring the network down, if not needed (particularly
+                   GSM). */
                 sensorbox_bring_network_down_maybe(box);
+
+                /* Power of the RPi if in energy saving mode. */
                 sensorbox_poweroff_maybe(box);
 
                 //clock_update(box);
