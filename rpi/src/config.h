@@ -47,6 +47,9 @@ extern "C" {
         double config_get_latitude(json_object_t config);
         double config_get_longitude(json_object_t config);
 
+        const char* config_getstr(json_object_t config, const char* expr);
+        double config_getnum(json_object_t config, const char* expr);
+
 #ifdef __cplusplus
 }
 #endif

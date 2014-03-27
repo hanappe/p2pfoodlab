@@ -45,6 +45,9 @@ extern "C" {
                 const char* name;
                 const char* unit;
                 int osd_id;
+
+                time_t timestamp;
+                short value;
         } datastream_t;
 
         typedef struct _photostream_t
@@ -53,6 +56,25 @@ extern "C" {
                 const char* name;
                 int osd_id;
         } photostream_t;
+
+        /* typedef struct _status_t */
+        /* { */
+        /*         int network_connected; */
+        /*         int network_count_connections; */
+        /*         int network_count_errors; */
+        /*         int arduino_count_connections; */
+        /*         int arduino_count_errors; */
+        /*         char* data_on_disk; */
+        /*         time_t last_data_upload; */
+        /*         time_t last_photo_upload; */
+        /*         int count_photos_on_disk; */
+        /*         char** photos_on_disk; */
+        /*         int num_datastreams; */
+        /*         datastream_t* datastreams; */
+        /* } status_t; */
+
+        /* void status_init(status_t* status); */
+        /* void status_delete(status_t* status); */
 
         typedef struct _sensorbox_t sensorbox_t;
 
@@ -92,6 +114,13 @@ extern "C" {
 
         int sensorbox_lock(sensorbox_t* box);
         void sensorbox_unlock(sensorbox_t* box);
+
+        /* int sensorbox_get_status(sensorbox_t* box, status_t* status); */
+
+        const char* sensorbox_config_getstr(sensorbox_t* box, const char* expr);
+        double sensorbox_config_getnum(sensorbox_t* box, const char* expr);
+
+        void sensorbox_measure(sensorbox_t* box);
 
 #ifdef __cplusplus
 }

@@ -86,18 +86,10 @@
 #define CMD_START               0x11
 #define CMD_CHECKSUM            0x12
 #define CMD_OFFSET              0x13
+#define CMD_MEASURENOW          0x14
+#define CMD_MEASUREMENT0        0x15
+#define CMD_GETMEASUREMENT      0x16
 #define CMD_DEBUG               0xff
-
-#define SCMD_POWEROFF           '0'
-#define SCMD_SENSORS            'S'
-#define SCMD_STATE              'T'
-#define SCMD_FRAMES             'F'
-#define SCMD_READ               'R'
-#define SCMD_PUMP               'W'
-#define SCMD_PERIOD             'P'
-#define SCMD_START              'A'
-#define SCMD_CHECKSUM           'C'
-#define SCMD_DEBUG              'D'
 
 #define STATE_MEASURING         0
 #define STATE_RESETSTACK        1
@@ -112,14 +104,14 @@
 /*         float f; */
 /* } stack_entry_t; */
 
-typedef short stack_value_t; 
+typedef short sensor_value_t; 
 
 typedef struct _stack_t {
         int frames;
         int framesize;
         unsigned char checksum;
         unsigned long offset;
-        stack_value_t values[STACK_SIZE];
+        sensor_value_t values[STACK_SIZE];
 } stack_t;
 
 struct _arduino_t {
@@ -358,6 +350,32 @@ static int arduino_set_state_(arduino_t* arduino, int state)
         return err;
 }
 
+static int arduino_measure_(arduino_t* arduino)
+{
+        log_info("Arduino: Sending measure request"); 
+        int err;
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+                err = arduino_write(arduino, 0, CMD_MEASURENOW, 0);
+                if (err == 0)
+                        break;
+        }
+        return err;
+}
+
+static int arduino_measurement0_(arduino_t* arduino)
+{
+        log_info("Arduino: Sending measurement 0 request"); 
+        int err;
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+                err = arduino_write(arduino, 0, CMD_MEASUREMENT0, 0);
+                if (err == 0)
+                        break;
+        }
+        return err;
+}
+
 #if 0
 static int arduino_get_state_(arduino_t* arduino, int* state)
 {
@@ -527,17 +545,17 @@ static int arduino_copy_stack_(arduino_t* arduino,
 {
         unsigned char* ptr = (unsigned char*) &stack->values[0];
         int index = 0;
-        int len = stack->frames * stack->framesize * sizeof(stack_value_t);
+        int len = stack->frames * stack->framesize * sizeof(sensor_value_t);
         int err;
 
         if (arduino_start_transfer(arduino) != 0)
                 return -1;
 
         while (index <= len) {
-                err = arduino_read(arduino, CMD_READ, sizeof(stack_value_t), ptr + index);
+                err = arduino_read(arduino, CMD_READ, sizeof(sensor_value_t), ptr + index);
                 if (err != 0)
                         return -1;
-                index += sizeof(stack_value_t);
+                index += sizeof(sensor_value_t);
         }
 
         /* while (index <= len) { */
@@ -550,7 +568,7 @@ static int arduino_copy_stack_(arduino_t* arduino,
         {
                 unsigned char* ptr = (unsigned char*) &stack->values[0];
                 //int index = 0;
-                int len = stack->frames * stack->framesize * sizeof(stack_value_t);
+                int len = stack->frames * stack->framesize * sizeof(sensor_value_t);
 
                 printf("len=%d\n", len);
 
@@ -691,7 +709,7 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
                         continue;
 
                 unsigned char* ptr = (unsigned char*) &stack.values[0];
-                int len = stack.frames * stack.framesize * sizeof(stack_value_t);
+                int len = stack.frames * stack.framesize * sizeof(sensor_value_t);
                 unsigned char checksum = crc8(0, ptr, len);
                 
                 log_info("Arduino: Checksum Linux 0x%02x", checksum); 
@@ -725,6 +743,106 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
         if (err == 0) {
                 log_info("Arduino: Download successful"); 
                 err = arduino_set_state_(arduino, STATE_RESETSTACK);
+        } else {
+                log_info("Arduino: Download failed"); 
+                err = arduino_set_state_(arduino, STATE_MEASURING);
+                arduino_disconnect(arduino);
+        }
+
+        return datapoints;
+}
+
+datapoint_t* arduino_measure(arduino_t* arduino, int* num_points)
+{
+        int err = -1; 
+        unsigned char sensors; 
+        int datastreams[32];
+        int num_streams = 0;
+        datapoint_t* datapoints = NULL;
+        float factors[32];
+
+        *num_points = 0;
+
+        err = arduino_connect(arduino);
+        if (err != 0) 
+                goto error_recovery;
+
+        err = arduino_get_sensors_(arduino, &sensors);
+        if (err != 0)
+                goto error_recovery;
+
+        if (sensors & SENSOR_TRH) {
+                factors[num_streams] = 0.01f;
+                datastreams[num_streams++] = DATASTREAM_T;
+                factors[num_streams] = 0.01f;
+                datastreams[num_streams++] = DATASTREAM_RH;
+        }
+        if (sensors & SENSOR_TRHX) {
+                factors[num_streams] = 0.01f;
+                datastreams[num_streams++] = DATASTREAM_TX;
+                factors[num_streams] = 0.01f;
+                datastreams[num_streams++] = DATASTREAM_RHX;
+        }
+        if (sensors & SENSOR_LUM) {
+                factors[num_streams] = 1.0f;
+                datastreams[num_streams++] = DATASTREAM_LUM;
+        }
+        if (sensors & SENSOR_USBBAT) {
+                factors[num_streams] = 0.01f;
+                datastreams[num_streams++] = DATASTREAM_USBBAT;
+        }
+        if (sensors & SENSOR_SOIL) {
+                factors[num_streams] = 1.0f;
+                datastreams[num_streams++] = DATASTREAM_SOIL;
+        }
+
+        err = arduino_set_state_(arduino, STATE_SUSPEND);
+        if (err != 0) 
+                goto error_recovery;
+
+        err = arduino_measure_(arduino);
+        if (err != 0) 
+                goto error_recovery;
+
+        sleep(60); // Sleep for one minute.
+
+        stack_t stack;
+        stack.framesize = num_streams + 1;
+        stack.values[0] = 0;
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+
+                log_info("Arduino: Download attempt %d", attempt + 1); 
+
+                err = arduino_measurement0_(arduino);
+                if (err != 0) 
+                        goto error_recovery;
+
+                for (int i = 0; i < num_streams; i++) {
+                        unsigned long value;
+                        err = arduino_read_value(arduino, &value, 
+                                                 CMD_GETMEASUREMENT, 
+                                                 sizeof(sensor_value_t));
+                        
+                        if (err != 0)
+                                break;
+
+                        stack.values[i+1] = (sensor_value_t) value;
+                }
+                if (err == 0)
+                        break;
+        }
+        
+        if (err == 0)
+                datapoints = arduino_convert_stack_(arduino, &stack, 
+                                                    datastreams,
+                                                    factors,
+                                                    num_points);
+ error_recovery:
+
+        if (err == 0) {
+                log_info("Arduino: Download successful"); 
+                err = arduino_set_state_(arduino, STATE_MEASURING);
         } else {
                 log_info("Arduino: Download failed"); 
                 err = arduino_set_state_(arduino, STATE_MEASURING);

@@ -266,6 +266,14 @@ int main(int argc, char **argv)
         } else if (strcmp(command, "osd") == 0) {
                 sensorbox_create_osd_definitions(box);
 
+        /* } else if (strcmp(command, "status") == 0) { */
+        /*         status_t status; */
+        /*         sensorbox_get_status(box, &status); */
+
+        } else if (strcmp(command, "config-set") == 0) {
+                const char* s = sensorbox_config_getstr(box, "general.name");
+                printf("%s\n", s);
+
         } else {
                 usage(stderr, argc, argv);
         }

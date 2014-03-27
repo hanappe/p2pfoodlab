@@ -40,7 +40,7 @@ require_once "error.inc.php";
         <div class="pagemenu">
           <a class="pagemenu" href="index.php">Status</a> - 
           <a class="pagemenu" href="configuration.php">Configuration</a> - 
-          <a class="pagemenu" href="log.php">View log file</a> - 
+          <a class="pagemenu" href="data/">Browse data files</a> - 
           <a class="pagemenu" href="updates.php">Update software</a> - 
           <a class="pagemenu" href="index.php?op=poweroff">Power off</a> -
           <a class="pagemenu" href="index.php?op=logout">Logout</a> 

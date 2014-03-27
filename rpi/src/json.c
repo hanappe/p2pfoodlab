@@ -20,17 +20,24 @@
 
 #include "json.h"
 
-#if !defined(JSON_EMBEDDED)
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-#endif
 
 #define HASHTABLE_MIN_SIZE 7
 #define HASHTABLE_MAX_SIZE 13845163
 
 char* json_strdup(const char* s);
+
+#define base_type(_b)      (_b)->type
+#define base_get(_b,_type) ((_type*)(_b)->value.data)
+#define base_getnum(_b)    (_b)->value.number
+
+static base_t* _null = NULL;
+static base_t* _true = NULL;
+static base_t* _false = NULL;
+static base_t* _undefined = NULL;
 
 #define CHECK_MEMORY 0
 
@@ -46,17 +53,6 @@ char* json_strdup(const char* s);
 #define JSON_STRCMP(_s,_t)         strcmp(_s,_t)
 #define JSON_STRCPY(_dst,_src)     strcpy(_dst,_src)
 
-#elif defined(JSON_EMBEDDED)
-#define JSON_NEW(_type)            (_type*) json_alloc(1, sizeof(_type))
-#define JSON_NEW_ARRAY(_type, _n)  (_type*) json_alloc(_n, sizeof(_type))
-#define JSON_FREE(_p)              json_free((char*)_p)
-#define JSON_MEMCPY(_dst,_src,_n)  json_memcpy((char*)_dst,(char*)_src,_n)
-#define JSON_MEMSET(_ptr,_c,_n)    json_memset((char*)_ptr,_c,_n)
-#define JSON_MEMCMP(_s,_t,_n)      json_memcmp(_s,_t,_n)
-#define JSON_STRLEN(_s)            json_strlen((char*)_s)
-#define JSON_STRCMP(_s,_t)         json_strcmp((const unsigned char*)_s,(const unsigned char*)_t)
-#define JSON_STRCPY(_dst,_src)     json_strcpy(_dst,_src)
-
 #else
 #define JSON_NEW(_type)            (_type*) calloc(1, sizeof(_type))
 #define JSON_NEW_ARRAY(_type, _n)  (_type*) calloc(_n, sizeof(_type))
@@ -70,93 +66,6 @@ char* json_strdup(const char* s);
 
 #endif
 
-
-#if JSON_EMBEDDED
-#if !defined(NULL)
-#define NULL ((void*)0)
-#endif
-static char* json_memory = NULL;
-static int32 json_memory_size = 0;
-static int32 json_memory_used = 0;
-
-void json_init_memory(char* ptr, int32 size)
-{
-        json_memory = ptr;
-        json_memory_size = size;
-        json_memory_used = 0;
-}
-
-char* json_alloc(int32 count, int32 size) 
-{
-        size *= count;
-        if (size < json_memory_size - json_memory_used) 
-                return NULL;
-        char* p = json_memory + json_memory_used;
-        json_memory_used += size;
-        return p;
-}
-
-void json_free(char* p)
-{
-}
-
-void json_memcpy(char* dst, char* src, uint32 n)
-{
-        for (uint32 i = 0; i < n; i++) 
-                *dst++ = *src++;
-}
-
-void json_memset(char* p, char c, uint32 n)
-{
-        for (uint32 i = 0; i < n; i++) 
-                *p++ = c;
-}
-
-int32 json_memcmp(const char* s1, const char* s2, int32 n)
-{
-        int32 ret = 0;
-        int32 i = 0;
-        while (!(ret = *s1 - *s2) && (i < n)) 
-                ++s1, ++s2, ++i;
-
-        if (ret < 0)
-                ret = -1;
-        else if (ret > 0)
-                ret = 1 ;
-        
-        return ret;
-}
-
-int32 json_strlen(char* s)
-{
-        int32 len = 0;
-        while (*s++) 
-                len++;
-        return len;
-}
-
-int32 json_strcmp(const unsigned char* s1, const unsigned char* s2)
-{
-        int32 ret = 0;
-
-        while (!(ret = *s1 - *s2) && *s2) 
-                ++s1, ++s2;
-
-        if (ret < 0)
-                ret = -1;
-        else if (ret > 0)
-                ret = 1 ;
-        
-        return ret;
-}
-
-void json_strcpy(char* dst, const char* src)
-{
-        while (*src) 
-                *dst++ = *src++;
-}
-
-#endif
 
 #if CHECK_MEMORY
 static int32 memory_leak_callback(int32 op, void* ptr, int32 type, int32 counter, int32 size)
@@ -185,357 +94,79 @@ void __attribute__ ((destructor)) json_cleanup()
 
 /******************************************************************************/
 
-typedef struct _string_t {
-	uint32 refcount;
-	int32 length;
-	char* s;
-} string_t;
-
-static string_t* new_string(const char* s)
+base_t* base_new(int type, int len)
 {
-	string_t *string;
-
-        //printf("new string %s\n", s);
-
-	string = JSON_NEW(string_t);
-	if (string == NULL) {
-		return NULL;
-	}
-
-	string->refcount = 0;
-	string->length = JSON_STRLEN(s);
-	string->s = JSON_NEW_ARRAY(char, string->length+1);
-	if (string->s == NULL) {
-		JSON_FREE(string);
-		return NULL;
-	}
-	JSON_MEMCPY(string->s, s, string->length);
-	string->s[string->length] = 0;
-
-	return string;
-}
-
-static void delete_string(string_t* string)
-{
-	JSON_FREE(string->s);
-	JSON_FREE(string);
+        base_t* base = JSON_NEW(base_t);
+        if (base == NULL)
+                return NULL;
+        base->refcount = 1;
+        base->type = type;
+        if (len > 0) {
+                base->value.data = JSON_NEW_ARRAY(char, len);
+                if (base->value.data == NULL) {
+                        JSON_FREE(base);
+                        return NULL;
+                }
+        }
+        return base;
 }
 
 /******************************************************************************/
 
-typedef struct _array_t {
-	uint32 refcount;
-	int32 length;
-	int32 datalen;
-	json_object_t* data;
-} array_t;
-
-static array_t* new_array()
+json_object_t json_null()
 {
-	array_t *array;
-	
-	array = JSON_NEW(array_t);
-	if (array == NULL) {
-		return NULL;
-	}
+        if (_null == NULL) {
+                _null = base_new(k_json_null, 0);
+                _null->type = k_json_null;
+                if (_null == NULL) {
+                        fprintf(stderr, "Failed to allocate the null object\n");
+                        exit(1);
+                }
+        }
 
-	array->refcount = 0;
-	array->length = 0;
-	array->datalen = 0;
-	array->data = NULL;
-
-	return array;
+	return _null;
 }
 
-static void delete_array(array_t* array)
+json_object_t json_true()
 {
-        for (int32 i = 0; i < array->datalen; i++) 
-                json_unref(array->data[i]);
+        if (_true == NULL) {
+                _true = base_new(k_json_true, 0);
+                _true->type = k_json_true;
+                if (_true == NULL) {
+                        fprintf(stderr, "Failed to allocate the null object\n");
+                        exit(1);
+                }
+        }
 
-	if (array->data) {
-		JSON_FREE(array->data);
-	}
-	JSON_FREE(array);
+	return _true;
 }
 
-static int32 array_set(array_t* array, json_object_t object, int32 index)
+json_object_t json_false()
 {
-	if (index >= array->datalen) {
-		int32 newlen = 8;
-		while (newlen <= index) {
-			newlen *= 2;
-		} 
-		json_object_t* data = JSON_NEW_ARRAY(json_object_t, newlen);
-		if (data == NULL) {
-			return -1;
-		}
-		for (int32 i = 0; i < array->datalen; i++) {
-			data[i] = array->data[i];
-		}
-		for (int32 i = array->datalen; i < newlen; i++) {
-			data[i].type = k_json_null;
-		}
+        if (_false == NULL) {
+                _false = base_new(k_json_false, 0);
+                _false->type = k_json_false;
+                if (_false == NULL) {
+                        fprintf(stderr, "Failed to allocate the null object\n");
+                        exit(1);
+                }
+        }
 
-		if (array->data) {
-			JSON_FREE(array->data);
-		}
-		array->data = data;
-		array->datalen = newlen;
-	}
-
-	array->data[index] = object;
-        json_ref(array->data[index]);
-	if (index >= array->length) {
-		array->length = index+1;
-	}
-
-	return 0;
+	return _false;
 }
 
-static json_object_t array_get(array_t* array, int32 index)
+json_object_t json_undefined()
 {
-	if ((0 <= index) && (index < array->length)) {
-		return array->data[index];
-	}
-	return json_null();
-}
+        if (_undefined == NULL) {
+                _undefined = base_new(k_json_undefined, 0);
+                _undefined->type = k_json_undefined;
+                if (_undefined == NULL) {
+                        fprintf(stderr, "Failed to allocate the null object\n");
+                        exit(1);
+                }
+        }
 
-static int32 array_length(array_t* array)
-{
-	return array->length;
-}
-
-/******************************************************************************/
-
-typedef struct _json_hashnode_t json_hashnode_t;
-
-struct _json_hashnode_t {
-	char* key;
-	json_object_t value;
-	json_hashnode_t *next;
-};
-
-static json_hashnode_t* new_json_hashnode(const char* key, json_object_t* value);
-static void delete_json_hashnode(json_hashnode_t *hash_node);
-static void delete_json_hashnodes(json_hashnode_t *hash_node);
-uint32 json_strhash(const char* v);
-
-
-typedef struct _json_hashtable_t {
-	uint32 refcount;
-        int32 size;
-        int32 num_nodes;
-	json_hashnode_t **nodes;
-} json_hashtable_t;
-
-
-static json_hashtable_t* new_json_hashtable();
-static void delete_json_hashtable(json_hashtable_t *hashtable);
-static int32 json_hashtable_set(json_hashtable_t *hashtable, const char* key, json_object_t value);
-static json_object_t json_hashtable_get(json_hashtable_t *hashtable, const char* key);
-static int32 json_hashtable_unset(json_hashtable_t *hashtable, const char* key);
-static int32 json_hashtable_foreach(json_hashtable_t *hashtable, json_iterator_t func, void* data);
-static int32 json_hashtable_size(json_hashtable_t *hashtable);
-static void json_hashtable_resize(json_hashtable_t *hashtable);
-static json_hashnode_t** json_hashtable_lookup_node(json_hashtable_t *hashtable, const char* key);
-
-static json_hashtable_t* new_json_hashtable()
-{
-	json_hashtable_t *hashtable;
-	
-	hashtable = JSON_NEW(json_hashtable_t);
-	if (hashtable == NULL) {
-		return NULL;
-	}
-	hashtable->refcount = 0;
-	hashtable->num_nodes = 0;
-	hashtable->size = 0;
-	hashtable->nodes = NULL;
-	
-	return hashtable;
-}
-
-
-static void delete_json_hashtable(json_hashtable_t *hashtable)
-{
-	if (hashtable == NULL) {
-		return;
-	}
-
-	if (hashtable->nodes) {
-		for (int32 i = 0; i < hashtable->size; i++) {
-			delete_json_hashnodes(hashtable->nodes[i]);
-		}
-		JSON_FREE(hashtable->nodes);
-	}
-
-	JSON_FREE(hashtable);
-}
-
-static json_hashnode_t** json_hashtable_lookup_node(json_hashtable_t* hashtable, const char* key)
-{
-	json_hashnode_t **node;
-	
-	if (hashtable->nodes == NULL) {
-		hashtable->size = HASHTABLE_MIN_SIZE;
-		hashtable->nodes = JSON_NEW_ARRAY(json_hashnode_t*, hashtable->size);	
-		for (int32 i = 0; i < hashtable->size; i++) {
-			hashtable->nodes[i] = NULL;
-		}
-	}
-	
-	node = &hashtable->nodes[json_strhash(key) % hashtable->size];
-	
-	while (*node && (JSON_STRCMP((*node)->key, key) != 0)) {
-		node = &(*node)->next;
-	}
-	
-	return node;
-}
-
-
-static int32 json_hashtable_set(json_hashtable_t *hashtable, const char* key, json_object_t value)
-{
-  
-	if ((key == NULL) || (JSON_STRLEN(key) == 0)) {
-		return -1;
-	}
-
-	json_hashnode_t **node = json_hashtable_lookup_node(hashtable, key);
-
-	if (*node) {
-		json_object_t oldvalue = (*node)->value;
-		(*node)->value = value;
-		json_ref((*node)->value);
-		json_unref(oldvalue);
-
-	} else {
-		*node = new_json_hashnode(key, &value);
-		if (*node == NULL) {
-			return -1;
-		}
-		hashtable->num_nodes++;
-
-		if ((3 * hashtable->size <= hashtable->num_nodes)
-		    && (hashtable->size < HASHTABLE_MAX_SIZE)) {
-			json_hashtable_resize(hashtable);
-		} 
-	}
-
-        char buffer[256];
-        json_tostring(value, buffer, sizeof(buffer));
-        //printf("hash node %s - %s\n", key, buffer);
-
-	return 0;
-}
-
-static json_object_t json_hashtable_get(json_hashtable_t *hashtable, const char* key)
-{
-	json_hashnode_t *node;
-	node = *json_hashtable_lookup_node(hashtable, key);
-       	return (node)? node->value : json_null();
-}
-
-static int32 json_hashtable_unset(json_hashtable_t *hashtable, const char* key)
-{
-	json_hashnode_t **node, *dest;
-  
-	node = json_hashtable_lookup_node(hashtable, key);
-	if (*node) {
-		dest = *node;
-		(*node) = dest->next;
-		delete_json_hashnode(dest);
-		hashtable->num_nodes--;
-		return 0;
-	}
-	
-	return -1;
-}
-
-static int32 json_hashtable_foreach(json_hashtable_t *hashtable, json_iterator_t func, void* data)
-{
-	json_hashnode_t *node = NULL;
-	
-	for (int32 i = 0; i < hashtable->size; i++) {
-		for (node = hashtable->nodes[i]; node != NULL; node = node->next) {
-			int32 r = (*func)(node->key, &node->value, data);
-                        if (r != 0) return r;
-		}
-	}
-        return 0;
-}
-
-static int32 json_hashtable_size(json_hashtable_t *hashtable)
-{
-	return hashtable->num_nodes;
-}
-
-
-static void json_hashtable_resize(json_hashtable_t *hashtable)
-{
-	json_hashnode_t **new_nodes;
-	json_hashnode_t *node;
-	json_hashnode_t *next;
-	uint32 hash_val;
-	int32 new_size;
-	
-	new_size = 3 * hashtable->size + 1;
-	new_size = (new_size > HASHTABLE_MAX_SIZE)? HASHTABLE_MAX_SIZE : new_size;
-	
-	new_nodes = JSON_NEW_ARRAY(json_hashnode_t*, new_size);
-	
-	for (int32 i = 0; i < hashtable->size; i++) {
-		for (node = hashtable->nodes[i]; node; node = next) {
-			next = node->next;
-			hash_val = json_strhash(node->key) % new_size;      
-			node->next = new_nodes[hash_val];
-			new_nodes[hash_val] = node;
-		}
-	}
-	
-	JSON_FREE(hashtable->nodes);
-	hashtable->nodes = new_nodes;
-	hashtable->size = new_size;
-}
-
-/******************************************************************************/
-
-
-static json_hashnode_t* new_json_hashnode(const char* key, json_object_t* value)
-{
-	json_hashnode_t *hash_node = JSON_NEW(json_hashnode_t);
-	if (hash_node == NULL) {
-		return NULL;
-	}
-
-	hash_node->key = json_strdup(key);
-	if (hash_node->key == NULL) {
-		JSON_FREE(hash_node);
-		return NULL;
-	}
-	hash_node->value = *value;
-	json_ref(hash_node->value);
-	hash_node->next = NULL;
-	
-	return hash_node;
-}
-
-
-static void delete_json_hashnode(json_hashnode_t *hash_node)
-{
-	json_unref(hash_node->value);
-	JSON_FREE(hash_node->key);
-	JSON_FREE(hash_node);
-}
-
-
-static void delete_json_hashnodes(json_hashnode_t *hash_node)
-{
-	while (hash_node) {
-		json_hashnode_t *next = hash_node->next;
-		delete_json_hashnode(hash_node);
-		hash_node = next;
-	}  
+	return _undefined;
 }
 
 /******************************************************************************/
@@ -555,7 +186,6 @@ uint32 json_strhash(const char* key)
   return h;
 }
 
-
 char* json_strdup(const char* s)
 {
 	int32 len = JSON_STRLEN(s) + 1;
@@ -569,49 +199,516 @@ char* json_strdup(const char* s)
 
 /******************************************************************************/
 
-json_object_t json_object_create()
+json_object_t json_number_create(double value)
 {
-	json_object_t object;
-	json_hashtable_t* hashtable;
+	base_t *base;
+        base = base_new(k_json_object, 0);
+        if (base == NULL)
+                return json_null();
+	base->type = k_json_number;
+	base->value.number = value;
+	return base;
+}
 
-	object.type = k_json_object;
-	hashtable = new_json_hashtable();
+static void delete_number(base_t* base)
+{
+}
+
+real_t json_number_value(json_object_t obj)
+{
+	return obj->value.number;
+}
+
+/******************************************************************************/
+
+typedef struct _string_t {
+	int length;
+	char s[0];
+} string_t;
+
+json_object_t json_string_create(const char* s)
+{
+	base_t *base;
+	string_t *string;
+       	int len = strlen(s);
+
+        base = base_new(k_json_string, sizeof(string_t) + len + 1);
+        if (base == NULL)
+                return json_null();
+        base->type = k_json_string;
+
+	string = base_get(base, string_t);
+	string->length = len;
+	memcpy(string->s, s, string->length);
+	string->s[string->length] = 0;
+
+	return base;
+}
+
+static void delete_string(base_t* base)
+{
+	string_t *string = base_get(base, string_t);
+	JSON_FREE(string);
+}
+
+const char* json_string_value(json_object_t obj)
+{
+	base_t* base = (base_t*) obj;
+	if (base_type(base) != k_json_string)
+		return NULL;
+	string_t* str = base_get(base, string_t);
+	return str->s;
+}
+
+int32 json_string_length(json_object_t obj)
+{
+	base_t* base = (base_t*) obj;
+	if (base_type(base) != k_json_string)
+		return 0;
+	string_t* str = base_get(base, string_t);
+	return str->length;
+}
+
+int32 json_string_compare(json_object_t obj1, const char* s)
+{
+	if (base_type(obj1) != k_json_string)
+		return -1;
+	string_t* s1 = base_get(obj1, string_t);
+        return strcmp(s1->s, s);
+}
+
+int32 json_string_equals(json_object_t obj1, const char* s)
+{
+        return json_string_compare(obj1, s) == 0;
+}
+
+/******************************************************************************/
+
+typedef struct _array_t {
+	int length;
+	int datalen;
+	json_object_t data[0];
+} array_t;
+
+json_object_t json_array_create()
+{
+	base_t *base;
+	array_t *array;
+       	int len = 4;
+        int memlen = sizeof(array_t) + len * sizeof(json_object_t);
+
+        base = base_new(k_json_array, memlen);
+        if (base == NULL)
+                return json_null();
+        base->type = k_json_array;
+
+	array = base_get(base, array_t);
+
+	array->length = 0;
+	array->datalen = len;
+
+	return base;
+}
+
+static void delete_array(base_t* base)
+{
+	array_t *array = base_get(base, array_t);
+        int i;
+
+        for (i = 0; i < array->length; i++)
+                json_unref(array->data[i]);
+	JSON_FREE(array);
+}
+
+int32 json_array_length(json_object_t array)
+{
+	if (array->type != k_json_array)
+		return 0;
+	array_t* a = (array_t*) array->value.data;
+	return a->length;	
+}
+
+json_object_t json_array_get(json_object_t obj, int32 index)
+{
+	base_t* base = (base_t*) obj;
+	if (base_type(base) != k_json_array)
+		return json_null();
+	array_t *array = base_get(base, array_t);
+	if ((0 <= index) && (index < array->length)) {
+		return array->data[index];
+	}
+	return json_null();
+}
+
+real_t json_array_getnum(json_object_t obj, int32 index)
+{
+	base_t* base = (base_t*) obj;
+	if (base_type(base) != k_json_array)
+		return NAN;
+	array_t *array = base_get(base, array_t);
+	if ((0 <= index) && (index < array->length))
+		return json_number_value(array->data[index]);
+	return NAN;
+}
+
+int32 json_array_set(json_object_t obj, json_object_t value, int32 index)
+{
+	base_t* base = (base_t*) obj;
+	if (base_type(base) != k_json_array)
+		return 0;
+	array_t *array = base_get(base, array_t);
+        // LOCK
+	if (index >= array->datalen) {
+		int newlen = 8;
+		while (newlen <= index) {
+			newlen *= 2;
+		} 
+                
+                int memlen = sizeof(array_t) + newlen * sizeof(json_object_t);
+                array_t *newarray = JSON_NEW_ARRAY(array_t, memlen);
+		if (newarray == NULL) {
+                        // UNLOCK
+			return -1;
+		}
+		for (int i = 0; i < array->datalen; i++)
+			newarray->data[i] = array->data[i];
+
+		newarray->datalen = newlen;
+		newarray->length = array->length;
+
+                base->value.data = newarray;                
+
+                JSON_FREE(array);
+                array = newarray;
+	}
+
+        json_object_t old = array->data[index];
+	array->data[index] = value;  // FIXME: write barrier
+	if (index >= array->length) 
+		array->length = index + 1;
+	
+        // UNLOCK
+
+        json_ref(value);
+        if (old) json_unref(old);
+
+	return 0;
+}
+
+int32 json_array_push(json_object_t obj, json_object_t value)
+{
+	base_t* base = (base_t*) obj;
+	if (base_type(base) != k_json_array)
+		return 0;
+	array_t *array = base_get(base, array_t);
+	return json_array_set(obj, value, array->length);	
+}
+
+int32 json_array_setnum(json_object_t obj, real_t value, int32 index)
+{
+        json_object_t num = json_number_create(value);
+        json_array_set(obj, num, index);	
+        json_unref(num);
+        return 0;
+}
+
+int32 json_array_setstr(json_object_t obj, const char* value, int32 index)
+{
+        json_object_t s = json_string_create(value);
+        json_array_set(obj, s, index);	
+        json_unref(s);
+        return 0;
+}
+
+const char* json_array_getstr(json_object_t array, int32 index)
+{
+        json_object_t val = json_array_get(array, index);
+        if (val->type == k_json_string)
+                return json_string_value(val);
+        else
+                return NULL;
+}
+
+/******************************************************************************/
+
+typedef struct _hashnode_t hashnode_t;
+
+struct _hashnode_t {
+	char* key;
+	json_object_t value;
+	hashnode_t *next;
+};
+
+static hashnode_t* new_json_hashnode(const char* key, json_object_t* value);
+static void delete_json_hashnode(hashnode_t *hash_node);
+static void delete_json_hashnodes(hashnode_t *hash_node);
+uint32 json_strhash(const char* v);
+
+static hashnode_t* new_json_hashnode(const char* key, json_object_t* value)
+{
+	hashnode_t *hash_node = JSON_NEW(hashnode_t);
+	if (hash_node == NULL) {
+		return NULL;
+	}
+
+	hash_node->key = json_strdup(key);
+	if (hash_node->key == NULL) {
+		JSON_FREE(hash_node);
+		return NULL;
+	}
+	hash_node->value = *value;
+	json_ref(hash_node->value);
+	hash_node->next = NULL;
+	
+	return hash_node;
+}
+
+static void delete_json_hashnode(hashnode_t *hash_node)
+{
+	json_unref(hash_node->value);
+	JSON_FREE(hash_node->key);
+	JSON_FREE(hash_node);
+}
+
+static void delete_json_hashnodes(hashnode_t *hash_node)
+{
+	while (hash_node) {
+		hashnode_t *next = hash_node->next;
+		delete_json_hashnode(hash_node);
+		hash_node = next;
+	}  
+}
+
+/******************************************************************************/
+
+typedef struct _hashtable_t {
+	uint32 refcount;
+        int32 size;
+        int32 num_nodes;
+	hashnode_t **nodes;
+} hashtable_t;
+
+
+static hashtable_t* new_hashtable();
+static void delete_hashtable(hashtable_t *hashtable);
+static int32 hashtable_set(hashtable_t *hashtable, const char* key, json_object_t value);
+static json_object_t hashtable_get(hashtable_t *hashtable, const char* key);
+static int32 hashtable_unset(hashtable_t *hashtable, const char* key);
+static int32 hashtable_foreach(hashtable_t *hashtable, json_iterator_t func, void* data);
+static int32 hashtable_size(hashtable_t *hashtable);
+static void hashtable_resize(hashtable_t *hashtable);
+static hashnode_t** hashtable_lookup_node(hashtable_t *hashtable, const char* key);
+
+static hashtable_t* new_hashtable()
+{
+	hashtable_t *hashtable;
+	
+	hashtable = JSON_NEW(hashtable_t);
 	if (hashtable == NULL) {
-		object.type = k_json_null;
-		return object;
+		return NULL;
+	}
+	hashtable->refcount = 0;
+	hashtable->num_nodes = 0;
+	hashtable->size = 0;
+	hashtable->nodes = NULL;
+	
+	return hashtable;
+}
+
+static void delete_hashtable(hashtable_t *hashtable)
+{
+	if (hashtable == NULL) {
+		return;
+	}
+
+	if (hashtable->nodes) {
+		for (int32 i = 0; i < hashtable->size; i++) {
+			delete_json_hashnodes(hashtable->nodes[i]);
+		}
+		JSON_FREE(hashtable->nodes);
+	}
+
+	JSON_FREE(hashtable);
+}
+
+static hashnode_t** hashtable_lookup_node(hashtable_t* hashtable, const char* key)
+{
+	hashnode_t **node;
+	
+	if (hashtable->nodes == NULL) {
+		hashtable->size = HASHTABLE_MIN_SIZE;
+		hashtable->nodes = JSON_NEW_ARRAY(hashnode_t*, hashtable->size);	
+		for (int32 i = 0; i < hashtable->size; i++) {
+			hashtable->nodes[i] = NULL;
+		}
 	}
 	
-	object.value.data = hashtable;
-	json_ref(object);
-	return object;
+	node = &hashtable->nodes[json_strhash(key) % hashtable->size];
+	
+	while (*node && (JSON_STRCMP((*node)->key, key) != 0)) {
+		node = &(*node)->next;
+	}
+	
+	return node;
+}
+
+static int32 hashtable_set(hashtable_t *hashtable, const char* key, json_object_t value)
+{
+  
+	if ((key == NULL) || (JSON_STRLEN(key) == 0)) {
+		return -1;
+	}
+
+	hashnode_t **node = hashtable_lookup_node(hashtable, key);
+
+	if (*node) {
+		json_object_t oldvalue = (*node)->value;
+		(*node)->value = value;
+		json_ref((*node)->value);
+		json_unref(oldvalue);
+
+	} else {
+		*node = new_json_hashnode(key, &value);
+		if (*node == NULL) {
+			return -1;
+		}
+		hashtable->num_nodes++;
+
+		if ((3 * hashtable->size <= hashtable->num_nodes)
+		    && (hashtable->size < HASHTABLE_MAX_SIZE)) {
+			hashtable_resize(hashtable);
+		} 
+	}
+
+        char buffer[256];
+        json_tostring(value, buffer, sizeof(buffer));
+        //printf("hash node %s - %s\n", key, buffer);
+
+	return 0;
+}
+
+static json_object_t hashtable_get(hashtable_t *hashtable, const char* key)
+{
+	hashnode_t *node;
+	node = *hashtable_lookup_node(hashtable, key);
+       	return (node)? node->value : json_null();
+}
+
+static int32 hashtable_unset(hashtable_t *hashtable, const char* key)
+{
+	hashnode_t **node, *dest;
+  
+	node = hashtable_lookup_node(hashtable, key);
+	if (*node) {
+		dest = *node;
+		(*node) = dest->next;
+		delete_json_hashnode(dest);
+		hashtable->num_nodes--;
+		return 0;
+	}
+	
+	return -1;
+}
+
+static int32 hashtable_foreach(hashtable_t *hashtable, json_iterator_t func, void* data)
+{
+	hashnode_t *node = NULL;
+	
+	for (int32 i = 0; i < hashtable->size; i++) {
+		for (node = hashtable->nodes[i]; node != NULL; node = node->next) {
+			int32 r = (*func)(node->key, node->value, data);
+                        if (r != 0) return r;
+		}
+	}
+        return 0;
+}
+
+static int32 hashtable_size(hashtable_t *hashtable)
+{
+	return hashtable->num_nodes;
+}
+
+
+static void hashtable_resize(hashtable_t *hashtable)
+{
+	hashnode_t **new_nodes;
+	hashnode_t *node;
+	hashnode_t *next;
+	uint32 hash_val;
+	int32 new_size;
+	
+	new_size = 3 * hashtable->size + 1;
+	new_size = (new_size > HASHTABLE_MAX_SIZE)? HASHTABLE_MAX_SIZE : new_size;
+	
+	new_nodes = JSON_NEW_ARRAY(hashnode_t*, new_size);
+	
+	for (int32 i = 0; i < hashtable->size; i++) {
+		for (node = hashtable->nodes[i]; node; node = next) {
+			next = node->next;
+			hash_val = json_strhash(node->key) % new_size;      
+			node->next = new_nodes[hash_val];
+			new_nodes[hash_val] = node;
+		}
+	}
+	
+	JSON_FREE(hashtable->nodes);
+	hashtable->nodes = new_nodes;
+	hashtable->size = new_size;
+}
+
+/******************************************************************************/
+
+json_object_t json_object_create()
+{
+	base_t *base;
+	hashtable_t* hashtable;
+
+        base = base_new(k_json_object, 0);
+        if (base == NULL)
+                return json_null();
+	base->type = k_json_object;
+	hashtable = new_hashtable();
+	if (hashtable == NULL) {
+                JSON_FREE(base);
+                return json_null();
+	}
+	
+	base->value.data = hashtable;
+	return base;
+}
+
+static void delete_object(base_t* base)
+{
+	hashtable_t *hashtable = base_get(base, hashtable_t);
+        delete_hashtable(hashtable);
 }
 
 int32 json_object_set(json_object_t object, const char* key, json_object_t value)
 {
-	if (object.type != k_json_object) {
+	if (object->type != k_json_object) {
 		return -1;
 	}
-	json_hashtable_t* hashtable = (json_hashtable_t*) object.value.data;
-	return json_hashtable_set(hashtable, key, value);
+	hashtable_t *hashtable = base_get(object, hashtable_t);
+	return hashtable_set(hashtable, key, value);
 }
 
 json_object_t json_object_get(json_object_t object, const char* key)
 {
-	if (object.type != k_json_object) {
+	if (object->type != k_json_object) {
 		return json_null();
 	}
-	json_hashtable_t* hashtable = (json_hashtable_t*) object.value.data;
-	return json_hashtable_get(hashtable, key);
+	hashtable_t *hashtable = base_get(object, hashtable_t);
+	return hashtable_get(hashtable, key);
 }
 
 double json_object_getnum(json_object_t object, const char* key)
 {
-	if (object.type != k_json_object) {
+	if (object->type != k_json_object) {
 		return NAN;
 	}
-	json_hashtable_t* hashtable = (json_hashtable_t*) object.value.data;
-	json_object_t val = json_hashtable_get(hashtable, key);
-        if (val.type == k_json_number) {
+	hashtable_t *hashtable = base_get(object, hashtable_t);
+	json_object_t val = hashtable_get(hashtable, key);
+        if (val->type == k_json_number) {
                 return json_number_value(val);
         } else {
                 return NAN;
@@ -620,12 +717,11 @@ double json_object_getnum(json_object_t object, const char* key)
 
 const char* json_object_getstr(json_object_t object, const char* key)
 {
-	if (object.type != k_json_object) {
+	if (object->type != k_json_object)
 		return NULL;
-	}
-	json_hashtable_t* hashtable = (json_hashtable_t*) object.value.data;
-	json_object_t val = json_hashtable_get(hashtable, key);
-        if (val.type == k_json_string) {
+	hashtable_t *hashtable = base_get(object, hashtable_t);
+	json_object_t val = hashtable_get(hashtable, key);
+        if (val->type == k_json_string) {
                 return json_string_value(val);
         } else {
                 return NULL;
@@ -634,11 +730,10 @@ const char* json_object_getstr(json_object_t object, const char* key)
 
 int32 json_object_unset(json_object_t object, const char* key)
 {
-	if (object.type != k_json_object) {
+	if (object->type != k_json_object)
 		return -1;
-	}
-	json_hashtable_t* hashtable = (json_hashtable_t*) object.value.data;
-	return json_hashtable_unset(hashtable, key);
+	hashtable_t *hashtable = base_get(object, hashtable_t);
+	return hashtable_unset(hashtable, key);
 }
 
 
@@ -654,232 +749,196 @@ int32 json_object_setstr(json_object_t object, const char* key, const char* valu
 
 int32 json_object_foreach(json_object_t object, json_iterator_t func, void* data)
 {
-	if (object.type != k_json_object) {
+	if (object->type != k_json_object)
 		return -1;
-	}
-	json_hashtable_t* hashtable = (json_hashtable_t*) object.value.data;
-	return json_hashtable_foreach(hashtable, func, data);
+	hashtable_t *hashtable = base_get(object, hashtable_t);
+	return hashtable_foreach(hashtable, func, data);
 }
 
 int32 json_object_length(json_object_t object)
 {
-	if (object.type != k_json_object) {
+	if (object->type != k_json_object)
 		return 0;
-	}
-	return json_hashtable_size((json_hashtable_t*) object.value.data);
+	return hashtable_size(base_get(object, hashtable_t));
 }
 
 /******************************************************************************/
 
-json_object_t json_number_create(double value)
+typedef struct _variable_t {
+        json_object_t name;
+} variable_t;
+
+json_object_t variable_create(const char* s)
 {
-	json_object_t number;
-	number.type = k_json_number;
-	number.value.number = value;
-	json_ref(number);
-	return number;
+	base_t *base;
+	variable_t *variable;
+
+        base = base_new(k_json_variable, sizeof(variable_t));
+        if (base == NULL)
+                return json_null();
+
+	variable = base_get(base, variable_t);
+        variable->name = json_string_create(s);
+
+	return base;
 }
 
-float64 json_number_value(json_object_t obj)
+void delete_variable(base_t* base)
 {
-	return obj.value.number;
+	variable_t* variable = base_get(base, variable_t);
+	json_unref(variable->name);
+	JSON_FREE(variable);
 }
 
-/******************************************************************************/
-
-json_object_t json_string_create(const char* s)
+const char* variable_name(json_object_t obj)
 {
-	json_object_t string;
-	string.type = k_json_string;
-	string.value.data = new_string(s);
-	if (string.value.data == NULL) {
-		string.type = k_json_null;
-	}
-	json_ref(string);
-	return string;
-}
-
-const char* json_string_value(json_object_t string)
-{
-	if (string.type != k_json_string) {
+	base_t* base = (base_t*) obj;
+	if (base_type(base) != k_json_variable)
 		return NULL;
-	}
-	string_t* str = (string_t*) string.value.data;
-	return str->s;
+	variable_t* variable = base_get(base, variable_t);
+        return json_string_value(variable->name);
 }
 
-int32 json_string_length(json_object_t string)
+json_object_t variable_string_name(json_object_t obj)
 {
-	if (string.type != k_json_string) {
-		return 0;
-	}
-	string_t* str = (string_t*) string.value.data;
-	return str->length;
-}
-
-int32 json_string_equals(json_object_t string, const char* s)
-{
-	if (string.type != k_json_string) {
-		return 0;
-	}
-	string_t* str = (string_t*) string.value.data;
-	return (JSON_STRCMP(str->s, s) == 0);
+	base_t* base = (base_t*) obj;
+	if (base_type(base) != k_json_variable)
+		return NULL;
+	variable_t* variable = base_get(base, variable_t);
+        return variable->name;
 }
 
 /******************************************************************************/
 
-void json_refcount(json_object_t *object, int32 val)
+typedef struct _accessor_t {
+	json_object_t context;
+	json_object_t variable;
+} accessor_t;
+
+json_object_t accessor_create(json_object_t context, json_object_t variable)
 {
-        switch (object->type) {
-                
-        case k_json_object: {
-                json_hashtable_t* hashtable = (json_hashtable_t*) object->value.data;
-                //printf("delete object\n");
-                hashtable->refcount += val;
-                if (hashtable->refcount <= 0) {
-                        delete_json_hashtable(hashtable);
-                        object->value.data = NULL;
-                        object->type = k_json_null; }} 
-                break;
-        case k_json_string: {
-                string_t* string = (string_t*) object->value.data;
-                //printf("delete string %s\n", ((string_t*)object->value.data)->s);
-                string->refcount += val;
-                if (string->refcount <= 0) {
-                        delete_string(string);
-                        object->value.data = NULL;
-                        object->type = k_json_null; }}
-                break;
-                
-        case k_json_array: {
-                array_t* array = (array_t*) object->value.data;
-                array->refcount += val;
-                if (array->refcount <= 0) {
-                        delete_array(array);
-                        object->value.data = NULL;
-                        object->type = k_json_null; }}
-                break;
-        default:
-                break;
-        }
+	base_t *base;
+	accessor_t *accessor;
+
+        base = base_new(k_json_accessor, sizeof(accessor_t));
+        if (base == NULL)
+                return json_null();
+
+	accessor = base_get(base, accessor_t);
+        accessor->context = context; 
+        accessor->variable = variable;
+        json_ref(accessor->context);
+        json_ref(accessor->variable);
+
+	return base;
 }
 
-/******************************************************************************/
-
-json_object_t json_null()
+void delete_accessor(base_t* base)
 {
-	json_object_t object;
-	object.type = k_json_null;
-	json_ref(object);
-	return object;
+	accessor_t* accessor = base_get(base, accessor_t);
+        json_unref(accessor->context);
+        json_unref(accessor->variable);
+        JSON_FREE(accessor);
 }
 
-json_object_t json_true()
+json_object_t accessor_context(json_object_t obj)
 {
-	json_object_t object;
-	object.type = k_json_boolean;
-	object.value.number = 1.0;
-	json_ref(object);
-	return object;
-}
-
-json_object_t json_false()
-{
-	json_object_t object;
-	object.type = k_json_boolean;
-	object.value.number = 0.0;
-	json_ref(object);
-	return object;
-}
-
-/******************************************************************************/
-
-json_object_t json_array_create()
-{
-	json_object_t object;
-	array_t* array;
-	object.type = k_json_array;
-	array = new_array();
-	if (array == NULL) {
+	base_t* base = (base_t*) obj;
+	if (base_type(base) != k_json_accessor)
 		return json_null();
-	}
-	
-	object.value.data = array;
-	json_ref(object);
-	return object;
+	accessor_t* accessor = base_get(base, accessor_t);
+        return accessor->context;
 }
 
-int32 json_array_length(json_object_t array)
+json_object_t accessor_variable(json_object_t obj)
 {
-	if (array.type != k_json_array) {
-		return 0;
-	}
-	array_t* a = (array_t*) array.value.data;
-	return array_length(a);	
-}
-
-json_object_t json_array_get(json_object_t array, int32 index)
-{
-	if (array.type != k_json_array) {
+	base_t* base = (base_t*) obj;
+	if (base_type(base) != k_json_accessor)
 		return json_null();
+	accessor_t* accessor = base_get(base, accessor_t);
+        return accessor->variable;
+}
+
+/******************************************************************************/
+
+typedef struct _array_element_t {
+	json_object_t accessor;
+	json_object_t index;
+} array_element_t;
+
+json_object_t array_element_create(json_object_t accessor, json_object_t index)
+{
+	base_t *base;
+	array_element_t *array_element;
+
+        base = base_new(k_json_array_element, sizeof(array_element_t));
+        if (base == NULL)
+                return json_null();
+
+	array_element = base_get(base, array_element_t);
+        array_element->accessor = accessor;
+        array_element->index = index;
+        json_ref(array_element->accessor);
+        json_ref(array_element->index);
+
+	return base;
+}
+
+void delete_array_element(base_t* base)
+{
+	array_element_t* array_element = base_get(base, array_element_t);
+        json_unref(array_element->accessor);
+        json_unref(array_element->index);
+        JSON_FREE(array_element);
+}
+
+json_object_t array_element_accessor(json_object_t obj)
+{
+	base_t* base = (base_t*) obj;
+	if (base_type(base) != k_json_array_element)
+		return json_null();
+	array_element_t* array_element = base_get(base, array_element_t);
+        return array_element->accessor;
+}
+
+json_object_t array_element_index(json_object_t obj)
+{
+	base_t* base = (base_t*) obj;
+	if (base_type(base) != k_json_array_element)
+		return json_null();
+	array_element_t* array_element = base_get(base, array_element_t);
+        return array_element->index;
+}
+
+/******************************************************************************/
+
+static void _delete(base_t *base)
+{
+        if (base == NULL)
+                return;
+
+	switch (base->type) {
+	case k_json_number: delete_number(base); break;
+	case k_json_string: delete_string(base); break;
+	case k_json_array: delete_array(base); break;
+	case k_json_object: delete_object(base); break;
+	case k_json_variable: delete_variable(base); break;
+        case k_json_accessor: delete_accessor(base); break;
+        case k_json_array_element: delete_array_element(base); break;
+	default: break;
 	}
-	array_t* a = (array_t*) array.value.data;
-	return array_get(a, index);	
+
+        JSON_FREE(base);
 }
 
-int32 json_array_set(json_object_t array, json_object_t value, int32 index)
+void json_refcount(json_object_t obj, int32 val)
 {
-	if (array.type != k_json_array) {
-		return 0;
-	}
-	array_t* a = (array_t*) array.value.data;
-	return array_set(a, value, index);	
-}
-
-int32 json_array_push(json_object_t array, json_object_t value)
-{
-	if (array.type != k_json_array) {
-		return 0;
-	}
-	array_t* a = (array_t*) array.value.data;
-	int32 index = a->length;
-	return array_set(a, value, index);	
-}
-
-int32 json_array_setnum(json_object_t array, double value, int32 index)
-{
-	return json_array_set(array, json_number_create(value), index);
-}
-
-int32 json_array_setstr(json_object_t array, char* value, int32 index)
-{
-	return json_array_set(array, json_string_create(value), index);
-}
-
-float64 json_array_getnum(json_object_t array, int32 index)
-{
-        json_object_t val = json_array_get(array, index);
-        if (val.type == k_json_number) {
-                return json_number_value(val);
-        } else {
-                return 0.0;
+	if ((obj == NULL) || (obj->type < 100)) {
+                return;
         }
-}
-
-const char* json_array_getstr(json_object_t array, int32 index)
-{
-        json_object_t val = json_array_get(array, index);
-        if (val.type == k_json_string) {
-                return json_string_value(val);
-        } else {
-                return NULL;
-        }
-}
-
-int32 json_array_gettype(json_object_t array, int32 index)
-{
-        json_object_t val = json_array_get(array, index);
-        return val.type;
+        obj->refcount += val;
+        if (obj->refcount <= 0)
+                _delete(obj);
 }
 
 /******************************************************************************/
@@ -921,12 +980,6 @@ int32 json_tostring(json_object_t object, char* buffer, int32 buflen)
         return r;
 }
 
-/* typedef struct _json_filebuf_t { */
-/*         FILE* fp; */
-/*         int32 linelen; */
-/* } json_strbuf_t; */
-
-#if !defined(JSON_EMBEDDED)
 static int32 json_file_writer(void* userdata, const char* s, int32 len)
 {
         if (len == 0) return 0;
@@ -953,7 +1006,6 @@ int32 json_tofile(json_object_t object, int32 flags, const char* path)
 
         return r;
 }
-#endif
 
 int32 json_serialise(json_object_t object, 
                      int32 flags, 
@@ -983,16 +1035,14 @@ int32 json_serialise_text(json_serialise_t* serialise,
 {
 	int32 r;
 
-	switch (object.type) {
+	switch (object->type) {
 
 	case k_json_number: {
 		char buf[128];
-#if !defined(JSON_EMBEDDED)
-		if (floor(object.value.number) == object.value.number) 
-			snprintf(buf, 128, "%g", object.value.number);
+		if (floor(object->value.number) == object->value.number) 
+			snprintf(buf, 128, "%g", object->value.number);
 		else 
-#endif
-			snprintf(buf, 128, "%e", object.value.number);
+			snprintf(buf, 128, "%e", object->value.number);
 		
 		buf[127] = 0;
 		r = json_print(fun, userdata, buf);
@@ -1000,7 +1050,7 @@ int32 json_serialise_text(json_serialise_t* serialise,
 	} break;
 		
 	case k_json_string: {
-		string_t* string = (string_t*) object.value.data;
+		string_t* string = (string_t*) object->value.data;
 		r = json_print(fun, userdata, "\"");
 		if (r != 0) return r;
 		r = json_print(fun, userdata, string->s);
@@ -1010,7 +1060,7 @@ int32 json_serialise_text(json_serialise_t* serialise,
 	} break;
 
 	case k_json_boolean: {
-		if (object.value.number) {
+		if (object->value.number) {
 			r = json_print(fun, userdata, "true");
 		} else {
 			r = json_print(fun, userdata, "false");
@@ -1026,7 +1076,7 @@ int32 json_serialise_text(json_serialise_t* serialise,
 	case k_json_array: {
 		r = json_print(fun, userdata, "[");
 		if (r != 0) return r;
-		array_t* array = (array_t*) object.value.data;
+		array_t* array = (array_t*) object->value.data;
 		for (int32 i = 0; i < array->length; i++) {
 			r = json_serialise_text(serialise, array->data[i], fun, userdata);
 			if (r != 0) return r;
@@ -1051,8 +1101,8 @@ int32 json_serialise_text(json_serialise_t* serialise,
                 }
 		if (r != 0) return r;
 
-		json_hashtable_t* hashtable = (json_hashtable_t*) object.value.data;
-		json_hashnode_t *node = NULL;
+		hashtable_t* hashtable = (hashtable_t*) object->value.data;
+		hashnode_t *node = NULL;
 		int32 count = 0;
 		for (int32 i = 0; i < hashtable->size; i++) {
 			for (node = hashtable->nodes[i]; node != NULL; node = node->next) {
@@ -1093,6 +1143,8 @@ int32 json_serialise_text(json_serialise_t* serialise,
 
 	return 0;
 }
+
+/******************************************************************************/
 
 typedef enum {
 	k_end_of_string = -5,
@@ -1260,7 +1312,7 @@ void json_parser_reset_buffer(json_parser_t* parser)
 // parse_value + object_start -> object_1  & top_value = new object()
 // object_1    + string       -> object_2
 // object_2    + colon        -> object_3  & top_state = parse_value & parse
-// object_3    + (value)      -> object_4  & object.set(key,top_value)
+// object_3    + (value)      -> object_4  & object->set(key,top_value)
 // object_4    + object_end   -> (top_state)
 // object_4    + comma        -> object_1
 // 
@@ -2015,3 +2067,404 @@ json_object_t json_load(const char* filename, int* err, char* errmsg, int len)
 
         return obj;
 }
+
+/******************************************************************************/
+
+enum {
+        k_tokenizer_continue,
+        k_tokenizer_newtoken,
+        k_tokenizer_error,
+        k_tokenizer_endofstring
+};
+
+typedef enum {
+	k_tokenizer_start = 0,
+	k_tokenizer_number,
+	k_tokenizer_variable
+} tokenizer_state_t;
+
+typedef enum {
+	k_token_dot,
+	k_token_number,
+	k_token_variable,
+	k_token_bracketopen,
+	k_token_bracketclose,
+	k_token_end
+} token_t;
+
+typedef struct _tokenizer_t {
+        char* s;
+        int index;
+	char buffer[256];
+	int buflen;
+	int bufindex;
+	int state;
+} tokenizer_t;
+
+void tokenizer_reset(tokenizer_t* tokenizer);
+
+tokenizer_t* new_tokenizer(const char* s)
+{
+        tokenizer_t* tokenizer = JSON_NEW(tokenizer_t);
+        if (tokenizer == NULL)
+                return NULL;
+
+	memset(tokenizer, 0, sizeof(tokenizer_t));
+        tokenizer->s = json_strdup(s);
+        tokenizer->state = k_tokenizer_start;
+        tokenizer->index = 0;
+	tokenizer->bufindex = 0;
+	tokenizer->buflen = sizeof(tokenizer->buffer);
+        tokenizer_reset(tokenizer);
+
+        return tokenizer;
+}
+
+void delete_tokenizer(tokenizer_t* tokenizer)
+{
+        JSON_FREE(tokenizer);
+}
+
+static int tokenizer_append(tokenizer_t* tokenizer, char c)
+{
+	if (tokenizer->bufindex >= tokenizer->buflen - 1) {
+                return k_tokenizer_error;
+        }
+	tokenizer->buffer[tokenizer->bufindex++] = (char) (c & 0xff);
+	return k_tokenizer_continue;
+}
+
+void tokenizer_reset(tokenizer_t* tokenizer)
+{
+	tokenizer->state = k_tokenizer_start;
+	tokenizer->bufindex = 0;
+}
+
+static int tokenizer_getc(tokenizer_t* tokenizer)
+{
+        return tokenizer->s[tokenizer->index++];
+}
+
+static void tokenizer_ungetc(tokenizer_t* tokenizer, int c)
+{
+        tokenizer->index--;
+}
+
+static void tokenizer_reset_buffer(tokenizer_t* tokenizer)
+{ 
+	tokenizer->bufindex = 0;
+}
+
+char* tokenizer_get_data(tokenizer_t* tokenizer)
+{
+	tokenizer->buffer[tokenizer->bufindex] = 0;
+        return tokenizer->buffer;
+}
+
+static int tokenizer_feed_number(tokenizer_t* tokenizer, int *token)
+{
+        int r;
+        int c = tokenizer_getc(tokenizer);
+        if (c == -1) {
+                r = k_token_end;
+                return k_tokenizer_endofstring;
+        }
+
+        if (('0' <= c) && (c <= '9')) { 
+		r = tokenizer_append(tokenizer, c);
+        } else {
+                r = tokenizer_append(tokenizer, 0);
+                tokenizer_ungetc(tokenizer, c);
+                r = k_tokenizer_newtoken;
+                *token = k_token_number;
+        }	
+
+	return r;
+}
+
+static inline int tokenizer_whitespace(int c)
+{
+	return ((c == ' ') || (c == '\r') || (c == '\n') || (c == '\t'));
+}
+
+static int tokenizer_feed_variable(tokenizer_t* tokenizer, 
+                                   int* token)
+{
+        int c = tokenizer_getc(tokenizer);
+        if (c == -1)  {
+                return k_tokenizer_endofstring;
+        }
+        if ((('a' <= c) && (c <= 'z')) 
+            || (('A' <= c) && (c <= 'Z')) 
+            || (('0' <= c) && (c <= '9')) 
+            || (c == '_')) {
+                int r = tokenizer_append(tokenizer, c);
+                if (r != k_tokenizer_continue) {
+                        return r;
+                }
+                return k_tokenizer_continue;
+
+        } else {
+                tokenizer_ungetc(tokenizer, c);
+                *token = k_token_variable;
+                return k_tokenizer_newtoken;
+        }
+	return k_tokenizer_error;
+}
+
+static int tokenizer_start(tokenizer_t* tokenizer, int* token)
+{
+	int r = k_tokenizer_continue;
+
+        int c = tokenizer_getc(tokenizer);
+        if (c == -1)
+                return k_tokenizer_endofstring;
+        
+	if (tokenizer_whitespace(c))
+		return k_tokenizer_continue;
+
+	switch (c) {
+	case '[': 
+		*token = k_token_bracketopen;
+		r = k_tokenizer_newtoken;
+		break;
+
+	case ']': 
+		*token = k_token_bracketclose;
+		r = k_tokenizer_newtoken;
+		break;
+
+	case '.': 
+		*token = k_token_dot;
+		r = k_tokenizer_newtoken;
+		break;
+				
+	case '0': case '1': case '2': case '3': case '4': 
+        case '5': case '6': case '7': case '8': case '9': 
+		tokenizer->state = k_tokenizer_number;
+                tokenizer_ungetc(tokenizer, c);
+                r = tokenizer_feed_number(tokenizer, token);
+		break;
+
+	case '\0':
+		r = k_tokenizer_endofstring;
+		break;
+
+	default: 
+                if ((('a' <= c) && (c <= 'z'))
+                    || (('A' <= c) && (c <= 'Z'))
+                    || (c == '_')) {
+                        tokenizer->state = k_tokenizer_variable;
+                        tokenizer_ungetc(tokenizer, c);
+                        r = tokenizer_feed_variable(tokenizer, token);
+                } else {
+                        r = k_tokenizer_error;
+                }
+                break;
+	}
+
+	return r;
+}
+
+int tokenizer_advance(tokenizer_t* tokenizer, int* token)
+{
+        int r = k_tokenizer_error;
+
+	switch (tokenizer->state) {
+	case k_tokenizer_start: 
+                tokenizer_reset_buffer(tokenizer);
+		r = tokenizer_start(tokenizer, token);
+                break;
+
+	case k_tokenizer_number:
+		r = tokenizer_feed_number(tokenizer, token);
+                break;
+
+	case k_tokenizer_variable: 
+		r = tokenizer_feed_variable(tokenizer, token);
+                break;
+	}
+        if (r == k_tokenizer_newtoken)
+		tokenizer->state = k_tokenizer_start;
+
+	return r;
+}
+
+int tokenizer_get(tokenizer_t* tokenizer, int* token)
+{
+        while (1) {
+                int ret = tokenizer_advance(tokenizer, token);
+                if (ret == k_tokenizer_continue) 
+                        continue;
+                return ret;
+        }
+}
+
+/******************************************************************************/
+
+// expression: accessor
+//           | array_element
+
+// accessor:   variable                       # "foo"
+//           | expression DOT variable        # "foo.bar", "foo.bar[1].x"
+
+// array_element: "[" number "]"              # "foo.bar[1]"
+//              | expression "[" number "]"   # "foo.bar[1]"
+
+/*
+
+0 [var,bracketopen]     --var----------> 1 [dot,end]              + object_get
+                        --bracketopen--> 2 [number]
+1 [dot,end]             --dot----------> 4 [var]
+                        --end----------> 6 [DONE]
+2 [number]              --number-------> 5 [bracketclose]
+3 [dot,bracketopen,end] --dot----------> 4 [var]
+                        --bracketopen--> 2 [number]
+                        --end----------> 6 [DONE]
+4 [var]                 --var----------> 3 [dot,bracketopen,end] + object_get
+5 [bracketclose]        --bracketclose-> 3 [dot,bracketopen,end] + array_get
+6 [DONE]
+
+*/
+
+typedef enum _evaluator_state_t {
+        evaluator_state_0,
+        evaluator_state_1,
+        evaluator_state_2,
+        evaluator_state_3,
+        evaluator_state_4,
+        evaluator_state_5,
+        evaluator_state_6
+} evaluator_state_t;
+
+typedef struct _evaluator_t {
+        tokenizer_t* tokenizer;
+        evaluator_state_t state;
+} evaluator_t;
+
+void evaluator_reset(evaluator_t* evaluator);
+
+evaluator_t* new_evaluator(const char* s)
+{
+        evaluator_t* evaluator = JSON_NEW(evaluator_t);
+        if (evaluator == NULL)
+                return NULL;
+
+	memset(evaluator, 0, sizeof(evaluator_t));
+        evaluator->tokenizer = new_tokenizer(s);
+        evaluator->state = evaluator_state_0;
+        return evaluator;
+}
+
+void delete_evaluator(evaluator_t* evaluator)
+{
+        delete_tokenizer(evaluator->tokenizer);
+        JSON_FREE(evaluator);
+}
+
+json_object_t evaluator_do(evaluator_t* evaluator, json_object_t x)
+{
+        int token;
+
+        while (1) {
+
+                if (json_isnull(x))
+                        return x;
+
+                int r = tokenizer_get(evaluator->tokenizer, &token);
+                if (r == k_tokenizer_error) 
+                        return json_null();
+
+                if (r == k_tokenizer_endofstring) { 
+                        switch (evaluator->state) {
+                        case evaluator_state_1:
+                        case evaluator_state_3:
+                                return x;
+                        default:
+                                return json_null();
+                        }
+                }
+
+                switch (evaluator->state) {
+                case evaluator_state_0:
+                        if (token == k_token_variable) {
+                                x = json_object_get(x, tokenizer_get_data(evaluator->tokenizer));
+                                evaluator->state = evaluator_state_1;
+                        } else if (token == k_token_bracketopen) {
+                                evaluator->state = evaluator_state_2;
+                        } else {
+                                return json_null();
+                        }
+                        break;
+
+                case evaluator_state_1:
+                        if (token == k_token_dot) {
+                                evaluator->state = evaluator_state_4;
+                        } else {
+                                return json_null();
+                        }
+                        break;
+
+                case evaluator_state_2:
+                        if (token == k_token_number) {
+                                int index = atoi(tokenizer_get_data(evaluator->tokenizer));
+                                x = json_array_get(x, index);
+                                evaluator->state = evaluator_state_5;
+                        } else {
+                                return json_null();
+                        }
+                        break;
+
+                case evaluator_state_3:
+                        if (token == k_token_dot) {
+                                evaluator->state = evaluator_state_4;
+                        } else if (token == k_token_bracketopen) {
+                                evaluator->state = evaluator_state_2;
+                        } else {
+                                return json_null();
+                        }
+                        break;
+
+                case evaluator_state_4:
+                        if (token == k_token_variable) {
+                                x = json_object_get(x, tokenizer_get_data(evaluator->tokenizer));
+                                evaluator->state = evaluator_state_1;
+                        } else {
+                                return json_null();
+                        }
+                        break;
+
+                case evaluator_state_5:
+                        if (token == k_token_bracketclose) {
+                                evaluator->state = evaluator_state_3;
+                        } else {
+                                return json_null();
+                        }
+                        break;
+
+                case evaluator_state_6:
+                        break;
+                }
+        }
+}
+
+json_object_t json_get(json_object_t obj, const char* expression)
+{
+        evaluator_t* e = new_evaluator(expression);
+        json_object_t r = evaluator_do(e, obj);
+        delete_evaluator(e);
+        return r;
+}
+
+const char* json_getstr(json_object_t obj, const char* expression)
+{
+        json_object_t s = json_get(obj, expression);
+        return json_string_value(s);
+}
+
+double json_getnum(json_object_t obj, const char* expression)
+{
+        json_object_t v = json_get(obj, expression);
+        return json_number_value(v);
+}
+

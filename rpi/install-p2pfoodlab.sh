@@ -77,6 +77,12 @@ install --directory --owner=$uid --group=www-data --mode=0775 $dest/etc
 install --directory --owner=$uid --group=www-data --mode=0775 $dest/etc/opensensordata
 install --directory --owner=$uid --group=$gid --mode=0700 $home/.ssh
 
+install --directory --owner=$uid --group=www-data --mode=0755 $dest/web/data
+ln -s $dest/datapoints.csv $dest/web/data/datapoints.csv
+ln -s $dest/log.txt $dest/web/data/log.txt
+ln -s $dest/backup $dest/web/data/backup
+ln -s $dest/photostream $dest/web/data/photostream
+
 touch $dest/log.txt
 chown pi.www-data $dest/log.txt
 chmod 0664 $dest/log.txt

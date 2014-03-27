@@ -97,6 +97,8 @@ int arduino_get_poweroff(arduino_t* arduino, int* minutes);
 
 datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points);
 
+datapoint_t* arduino_measure(arduino_t* arduino, int* num_points);
+
 #ifdef __cplusplus
 }
 #endif

@@ -30,12 +30,11 @@ typedef unsigned char uint8;
 typedef short int16;
 typedef long int32;
 typedef unsigned long uint32;
-typedef float float32;
 
 #if defined(JSON_EMBEDDED)
-typedef float float64;
+typedef float real_t;
 #else
-typedef double float64;
+typedef double real_t;
 #endif
 
 
@@ -47,32 +46,46 @@ extern "C" {
 
 enum {
 	k_json_null = 0,
-	k_json_object = 1,
-	k_json_array = 2,
-	k_json_string = 3,
-	k_json_number = 4,
-	k_json_boolean = 5,
+	k_json_true = 1,
+	k_json_false = 2,
+	k_json_undefined = 3,
+
+	k_json_object = 100,
+	k_json_array = 101,
+	k_json_string = 102,
+	k_json_number = 103,
+	k_json_boolean = 104,
+
+	k_json_variable = 200,
+	k_json_accessor = 201,
+        k_json_array_element = 202,
 };
 
-typedef struct _json_object_t {
-	uint8 type;
+/* typedef struct _json_object_t { */
+/* 	uint8 type; */
+/* 	union { */
+/* 		void* data; */
+/* 		float64 number; */
+/* 	} value;	 */
+/* } json_object_t; */
+
+typedef struct _base_t {
+	unsigned short refcount;	
+	unsigned short type;
 	union {
 		void* data;
-		float64 number;
+		real_t number;
 	} value;	
-} json_object_t;
+} base_t;
 
+typedef base_t* json_object_t;
 
-#define json_ref(_obj)   json_refcount(&(_obj), 1)
-#define json_unref(_obj) json_refcount(&(_obj), -1)
-void json_refcount(json_object_t *object, int32 val);
-
-#if JSON_EMBEDDED
-void json_init_memory(char* ptr, int32 size);
-#endif
+#define json_ref(_obj)   json_refcount(_obj, 1)
+#define json_unref(_obj) json_refcount(_obj, -1)
+void json_refcount(json_object_t object, int32 val);
 
 /* Return zero to continue, non-zero to stop the iteration. */
-typedef int32 (*json_iterator_t)(const char* key, json_object_t* value, void* data);
+typedef int32 (*json_iterator_t)(const char* key, json_object_t value, void* data);
 
 /* Return zero if all went well, and non-zero when an error
    occured. The error code will be returned by json_serialise(). */
@@ -80,11 +93,16 @@ typedef int32 (*json_writer_t)(void* userdata, const char* s, int32 len);
 
 //
 
-#define json_type(__o) __o.type
+#define json_type(__o) ((base_t*)__o)->type
 
 //
 
 json_object_t json_load(const char* filename, int* err, char* errmsg, int len);
+
+json_object_t json_get(json_object_t obj, const char* expression);
+const char* json_getstr(json_object_t obj, const char* expression);
+double json_getnum(json_object_t obj, const char* expression);
+
 
 // object
 
@@ -102,7 +120,7 @@ const char* json_object_getstr(json_object_t object, const char* key);
 int32 json_object_setnum(json_object_t object, const char* key, double value);
 int32 json_object_setstr(json_object_t object, const char* key, const char* value);
 
-#define json_isobject(__obj) (__obj.type == k_json_object)
+#define json_isobject(__obj) (__obj->type == k_json_object)
 
 // serialisation
 
@@ -144,25 +162,30 @@ json_object_t json_parser_eval(json_parser_t* parser, const char* buffer);
 
 json_object_t json_parser_result(json_parser_t* parser);
 
-
-
 // null
 
 json_object_t json_null();
+#define json_isnull(__obj) (__obj->type == k_json_null)
 
-#define json_isnull(__obj) (__obj.type == k_json_null)
+// undefined
+
+json_object_t json_undefined();
+#define json_isundefined(__obj) (__obj->type == k_json_undefined)
 
 // boolean
 
 json_object_t json_true();
 json_object_t json_false();
 
+#define json_istrue(__obj) (__obj->type == k_json_true)
+#define json_isfalse(__obj) (__obj->type == k_json_false)
+
 // number
 
 json_object_t json_number_create(double value);
-float64 json_number_value(json_object_t);
+real_t json_number_value(json_object_t);
 
-#define json_isnumber(__obj) (__obj.type == k_json_number)
+#define json_isnumber(__obj) (__obj->type == k_json_number)
 
 // string
 
@@ -171,7 +194,7 @@ const char* json_string_value(json_object_t string);
 int32 json_string_length(json_object_t string);
 int32 json_string_equals(json_object_t string, const char* s);
 
-#define json_isstring(__obj) (__obj.type == k_json_string)
+#define json_isstring(__obj) (__obj->type == k_json_string)
 
 // array
 
@@ -183,13 +206,13 @@ int32 json_array_push(json_object_t array, json_object_t value);
 
 int32 json_array_gettype(json_object_t object, int32 index);
 
-float64 json_array_getnum(json_object_t object, int32 index);
+real_t json_array_getnum(json_object_t object, int32 index);
 const char* json_array_getstr(json_object_t object, int32 index);
 
 int32 json_array_setnum(json_object_t object, double value, int32 index);
-int32 json_array_setstr(json_object_t object, char* value, int32 index);
+int32 json_array_setstr(json_object_t object, const char* value, int32 index);
 
-#define json_isarray(__obj) (__obj.type == k_json_array)
+#define json_isarray(__obj) (__obj->type == k_json_array)
 
 #ifdef __cplusplus
 }

@@ -1208,3 +1208,145 @@ void sensorbox_unlock(sensorbox_t* box)
         close(box->lock);
         box->lock = -1;
 }
+
+/* void status_init(status_t* status) */
+/* { */
+/*         memset(status, 0, sizeof(status_t)); */
+/* } */
+
+/* void status_delete(status_t* status) */
+/* { */
+/*         if (status == NULL) */
+/*                 return; */
+/*         if (status->data_on_disk) */
+/*                 free(status->data_on_disk); */
+/*         if (status->datastreams) */
+/*                 free(status->datastreams); */
+/*         if (status->photos_on_disk) { */
+/*                 for (int i = 0; i < status->count_photos_on_disk; i++) */
+/*                         if (status->photos_on_disk[i] != NULL) */
+/*                                 free(status->photos_on_disk[i]); */
+/*         } */
+/*         free(status); */
+/* } */
+
+/* static void sensorbox_status_load_data(sensorbox_t* box, status_t* status) */
+/* { */
+/*         struct stat buf; */
+/*         char* filename = sensorbox_path(box, "datapoints.csv"); */
+
+/*         if (stat(filename, &buf) == -1) */
+/*                 return; */
+/*         if ((buf.st_mode & S_IFMT) != S_IFREG) */
+/*                 return; */
+/*         if (buf.st_size == 0) */
+/*                 return; */
+
+/*         FILE* fp = fopen(filename, "r"); */
+/*         if (fp == NULL) */
+/*                 return; */
+
+/*         status->data_on_disk = malloc(buf.st_size + 1); */
+/*         if (status->data_on_disk == NULL) */
+/*                 return; */
+
+/*         int n = fread(status->data_on_disk, 1, buf.st_size, fp); */
+/*         status->data_on_disk[n] = 0; */
+
+/*         //if (ferror(fp)) ...  */
+
+/*         fclose(fp); */
+/* } */
+
+/* static void sensorbox_status_load_photos(sensorbox_t* box, status_t* status) */
+/* { */
+/*         DIR *dir; */
+/*         struct dirent *entry; */
+/*         struct stat buf; */
+/*         char filename[512]; */
+
+/*         char* dirname = sensorbox_path(box, "photostream"); */
+        
+/*         dir = opendir(dirname); */
+/*         if (dir == NULL) */
+/*                 return; */
+
+/*         status->count_photos_on_disk = 0; */
+/*         while ((entry = readdir(dir)) != NULL) { */
+/*                 snprintf(filename, 511, "%s/%s", dirname, entry->d_name); */
+/*                 filename[511] = 0; */
+        
+/*                 if ((stat(filename, &buf) == -1) */
+/*                     || ((buf.st_mode & S_IFMT) != S_IFREG) */
+/*                     || (buf.st_size == 0)) */
+/*                         continue; */
+
+/*                 status->count_photos_on_disk++; */
+/*         } */
+
+/*         rewinddir(dir); */
+
+/*         status->photos_on_disk = malloc(status->count_photos_on_disk * sizeof(char*)); */
+/*         if (status->photos_on_disk == NULL) { */
+/*                 status->photos_on_disk = 0; */
+/*                 return; */
+/*         } */
+
+/*         int i = 0; */
+/*         while ((entry = readdir(dir)) != NULL) { */
+/*                 snprintf(filename, 511, "%s/%s", dirname, entry->d_name); */
+/*                 filename[511] = 0; */
+        
+/*                 if ((stat(filename, &buf) == -1) */
+/*                     || ((buf.st_mode & S_IFMT) != S_IFREG) */
+/*                     || (buf.st_size == 0)) */
+/*                         continue; */
+
+/*                 status->photos_on_disk[i++] = strdup(filename); */
+/*         } */
+        
+/*         closedir(dir); */
+/* } */
+
+/* int sensorbox_get_status(sensorbox_t* box, status_t* status) */
+/* { */
+/*         status_init(status); */
+
+/*         status->network_connected = network_connected(); */
+
+/*         sensorbox_status_load_data(box, status); */
+/*         sensorbox_status_load_photos(box, status); */
+
+/*         //sensorbox_status_load_datastreams(box, status); */
+
+/*         return 0; */
+/* } */
+
+const char* sensorbox_config_getstr(sensorbox_t* box, const char* expr)
+{
+        return json_getstr(box->config, expr);
+}
+
+double sensorbox_config_getnum(sensorbox_t* box, const char* expr)
+{
+        return json_getnum(box->config, expr);
+}
+
+void sensorbox_measure(sensorbox_t* box)
+{
+        int num_points;
+        datapoint_t* datapoints = arduino_measure(box->arduino, &num_points);
+
+        for (int i = 0; i < num_points; i++) {
+                if (box->datastreams[datapoints[i].datastream].osd_id == -1)
+                        continue;
+                
+                printf("%s,%f\n", 
+                        box->datastreams[datapoints[i].datastream].name, 
+                        datapoints[i].value);
+        } 
+
+        if (datapoints)
+                free(datapoints);
+}
+
