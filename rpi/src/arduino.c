@@ -809,6 +809,7 @@ datapoint_t* arduino_measure(arduino_t* arduino, int* num_points)
         stack_t stack;
         stack.framesize = num_streams + 1;
         stack.values[0] = 0;
+        stack.frames = 1;
 
         for (int attempt = 0; attempt < 5; attempt++) {
 
