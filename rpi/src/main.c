@@ -62,9 +62,9 @@ static void usage(FILE* fp, int argc, char** argv)
                  "  update             Parse the config, create the OpenSensorData definitions if needed,\n"
                  "                     update sensors and/or camera if necessary,\n"
                  "                     upload data and photos [default]\n"
-                 "  sensors            Store the latest sensor values\n"
-                 "  camera             Grab a photo\n"
+                 "  store-data         Store the latest sensor values\n"
                  "  upload-data        Upload the datapoints\n"
+                 "  camera             Grab a photo\n"
                  "  upload-photos      Upload the photos on the disk\n"
                  "  get-time           Get the current time on the arduino\n"
                  "  set-time           Set the time on the arduino\n"
@@ -72,6 +72,7 @@ static void usage(FILE* fp, int argc, char** argv)
                  "  ifup               Bring the network inerface up\n"
                  "  ifdown             Bring the network inerface down\n"
                  "  osd                Create the OpenSensorData definitions\n"
+                 "  measure            Measure and print sensor values\n"
                  "",
                  argv[0]);
 }
@@ -240,7 +241,7 @@ int main(int argc, char **argv)
                 if (sensorbox_get_time(box, &t) == 0)
                         sensorbox_update_camera(box, t);
 
-        } else if (strcmp(command, "sensors") == 0) {
+        } else if (strcmp(command, "store-data") == 0) {
                 sensorbox_store_sensor_data(box, _output_file);
 
         } else if (strcmp(command, "update-clock") == 0) {
@@ -265,6 +266,9 @@ int main(int argc, char **argv)
 
         } else if (strcmp(command, "osd") == 0) {
                 sensorbox_create_osd_definitions(box);
+
+        } else if (strcmp(command, "measure") == 0) {
+                sensorbox_measure(box);
 
         /* } else if (strcmp(command, "status") == 0) { */
         /*         status_t status; */
