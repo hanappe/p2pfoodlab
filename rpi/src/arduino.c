@@ -796,15 +796,15 @@ datapoint_t* arduino_measure(arduino_t* arduino, int* num_points)
                 datastreams[num_streams++] = DATASTREAM_SOIL;
         }
 
-        err = arduino_set_state_(arduino, STATE_SUSPEND);
-        if (err != 0) 
-                goto error_recovery;
-
         err = arduino_measure_(arduino);
         if (err != 0) 
                 goto error_recovery;
 
-        sleep(60); // Sleep for one minute.
+        sleep(10); // Sleep for ten seconds.
+
+        err = arduino_set_state_(arduino, STATE_SUSPEND);
+        if (err != 0) 
+                goto error_recovery;
 
         stack_t stack;
         stack.framesize = num_streams + 1;
