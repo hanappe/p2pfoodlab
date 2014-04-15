@@ -1016,7 +1016,33 @@ static int camera_init(camera_t* camera)
 #endif
         }
 
-        camera->state = CAMERA_INIT;
+        struct v4l2_queryctrl queryctrl;
+        struct v4l2_control control;
+
+        memset(&queryctrl, 0, sizeof (queryctrl));
+        queryctrl.id = V4L2_CID_BRIGHTNESS;
+
+        if (-1 == ioctl(camera->fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+                if (errno != EINVAL) {
+                        perror("VIDIOC_QUERYCTRL");
+                        return -1;
+                } else {
+                        printf ("V4L2_CID_BRIGHTNESS is not supported\n");
+                }
+        } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+                printf ("V4L2_CID_BRIGHTNESS is not supported\n");
+        } else {
+                memset(&control, 0, sizeof (control));
+                control.id = V4L2_CID_BRIGHTNESS;
+                control.value = queryctrl.default_value;
+
+                if (-1 == ioctl(camera->fd, VIDIOC_S_CTRL, &control)) {
+                        perror("VIDIOC_S_CTRL");
+                        return -1;
+                }
+        }
+ 
+       camera->state = CAMERA_INIT;
 
         return 0;
 }

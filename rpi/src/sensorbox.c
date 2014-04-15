@@ -88,10 +88,11 @@ sensorbox_t* new_sensorbox(const char* dir)
                 return NULL;
         }
 
-        if (sensorbox_init_arduino(box) != 0) {
-                delete_sensorbox(box);
-                return NULL;
-        }
+        sensorbox_init_arduino(box);
+        /* if (sensorbox_init_arduino(box) != 0) { */
+        /*         delete_sensorbox(box); */
+        /*         return NULL; */
+        /* } */
 
         if (sensorbox_init_camera(box) != 0) {
                 delete_sensorbox(box);
@@ -120,6 +121,8 @@ int delete_sensorbox(sensorbox_t* box)
                 delete_opensensordata(box->osd);
         if (box->camera)
                 delete_camera(box->camera);
+        if (box->arduino)
+                delete_arduino(box->arduino);
         eventlist_delete_all(box->events);
         free(box);
         return 0;
@@ -482,44 +485,50 @@ static int sensorbox_init_arduino(sensorbox_t* box)
         json_object_t sensors = json_object_get(box->config, "sensors");
         if (!json_isobject(sensors)) {
                 log_err("Sensorbox: Sensors settings are not a JSON object, as expected"); 
-                return -1;
+                goto error_recovery;
         }
+
         json_object_t upload = json_object_get(sensors, "upload");
         if (!json_isstring(upload)) {
                 log_err("Sensorbox: Sensors upload setting is not a JSON string, as expected"); 
-                return -1;
+                goto error_recovery;
         }
 
         if (json_string_equals(upload, "fixed")) {
                 json_object_t fixed = json_object_get(sensors, "fixed");
                 if (!json_isarray(fixed)) {
                         log_err("Sensorbox: Sensors fixed settings are not a JSON array, as expected"); 
-                        return -1;
+                        goto error_recovery;
                 }
                 if (sensorbox_add_fixed_events(box, fixed, UPDATE_SENSORS) != 0)
-                        return -1;
+                        goto error_recovery;
 
         } else if (json_string_equals(upload, "periodical")) {
                 json_object_t period = json_object_get(sensors, "period");
                 if (!json_isstring(period)) {
                         log_err("Sensorbox: Sensors period setting is not a JSON string, as expected"); 
-                        return -1;
+                        goto error_recovery;
                 }
                 int value = atoi(json_string_value(period));
                 if (value <= 0) {
                         log_err("Sensorbox: Invalid sensors period setting: %d", value); 
-                        return -1;
+                        goto error_recovery;
                 }
                 if (sensorbox_add_periodic_events(box, value, UPDATE_SENSORS) != 0)
-                        return -1;
+                        goto error_recovery;
 
         } else {
                 log_err("Sensorbox: Invalid sensors update setting: '%s'", 
                         json_string_value(upload)); 
-                return -1;
+                goto error_recovery;
         }        
 
         return 0;
+
+ error_recovery:
+        delete_arduino(box->arduino);
+        box->arduino = NULL;
+        return -1;
 }
 
 static void sensorbox_handle_event(sensorbox_t* box, event_t* e, time_t t)
@@ -602,6 +611,11 @@ int sensorbox_check_sensors(sensorbox_t* box)
         unsigned char sensors_a;
         unsigned char period_a;
         int err;
+
+        if (box->arduino == NULL) {
+                log_warn("Sensorbox: Failed to initialise Arduino"); 
+                return -1;
+        }
         
         err = arduino_get_sensors(box->arduino, &sensors_a);
         if (err != 0) 
@@ -773,6 +787,11 @@ int sensorbox_store_sensor_data(sensorbox_t* box,
         unsigned char period_a;
         int err;
 
+        if (box->arduino == NULL) {
+                log_warn("Sensorbox: Failed to initialise Arduino"); 
+                return -1;
+        }
+
         err = arduino_get_sensors(box->arduino, &sensors_a);
         if (err != 0) 
                 return err;
@@ -840,6 +859,11 @@ void sensorbox_handle_events(sensorbox_t* box)
         int err;
         time_t t;
         struct tm tm;
+
+        if (box->arduino == NULL) {
+                log_warn("Sensorbox: Failed to initialise Arduino"); 
+                return;
+        }
 
         err = arduino_get_time(box->arduino, &t);
         if (err != 0)
@@ -1015,6 +1039,11 @@ int sensorbox_powersaving_enabled(sensorbox_t* box)
 
 static void sensorbox_poweroff(sensorbox_t* box, int minutes)
 {
+        if (box->arduino == NULL) {
+                log_warn("Sensorbox: Failed to initialise Arduino"); 
+                return;
+        }
+
         int err = arduino_set_poweroff(box->arduino, minutes);
         if (err != 0) 
                 return;
@@ -1035,6 +1064,11 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
         int err;
         time_t t;
         struct tm tm;
+
+        if (box->arduino == NULL) {
+                log_warn("Sensorbox: Failed to initialise Arduino"); 
+                return;
+        }
 
         //t = time(NULL);
         err = arduino_get_time(box->arduino, &t);
@@ -1097,11 +1131,19 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
 
 int sensorbox_get_time(sensorbox_t* box, time_t* m) 
 {
-        return arduino_get_time(box->arduino, m);
+        if (arduino_get_time(box->arduino, m) != 0) {
+                log_warn("Sensorbox: Using local system time"); 
+                time(m);
+        }
+        return 0;
 }
 
 int sensorbox_set_time(sensorbox_t* box, time_t m) 
 {
+        if (box->arduino == NULL) {
+                log_warn("Sensorbox: Failed to initialise Arduino"); 
+                return -1;
+        }
         return arduino_set_time(box->arduino, m);
 }
 
@@ -1334,6 +1376,11 @@ double sensorbox_config_getnum(sensorbox_t* box, const char* expr)
 
 void sensorbox_measure(sensorbox_t* box)
 {
+        if (box->arduino == NULL) {
+                log_warn("Sensorbox: Failed to initialise Arduino"); 
+                return;
+        }
+
         int num_points;
         datapoint_t* datapoints = arduino_measure(box->arduino, &num_points);
 

@@ -121,6 +121,9 @@ struct _arduino_t {
         //        int serial;
 };
 
+static int arduino_connect(arduino_t* arduino);
+static int arduino_disconnect(arduino_t* arduino);
+
 arduino_t* new_arduino(int bus, int address)
 {
         arduino_t* arduino = (arduino_t*) malloc(sizeof(arduino_t));
@@ -146,6 +149,7 @@ int delete_arduino(arduino_t* arduino)
         /* if (arduino->serial != -1) {  */
         /*         serialport_close(arduino->serial); */
         /* } */
+        arduino_disconnect(arduino);
         free(arduino);
         return 0;
 }
