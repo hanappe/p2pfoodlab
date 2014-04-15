@@ -811,6 +811,9 @@ datapoint_t* arduino_measure(arduino_t* arduino, int* num_points)
         stack.values[0] = 0;
         stack.frames = 1;
 
+        unsigned char* ptr = (unsigned char*) &stack.values[1];
+        int index = 0;
+
         for (int attempt = 0; attempt < 5; attempt++) {
 
                 log_info("Arduino: Download attempt %d", attempt + 1); 
@@ -820,17 +823,10 @@ datapoint_t* arduino_measure(arduino_t* arduino, int* num_points)
                         goto error_recovery;
 
                 for (int i = 0; i < num_streams; i++) {
-                        unsigned long value;
-                        err = arduino_read_value(arduino, &value, 
-                                                 CMD_GETMEASUREMENT, 
-                                                 sizeof(sensor_value_t));
-
-                        log_info("Arduino: value %d: 0x%02x", i, value); 
-                        
+                        err = arduino_read(arduino, CMD_GETMEASUREMENT, sizeof(sensor_value_t), ptr + index);                        
                         if (err != 0)
                                 break;
-
-                        stack.values[i+1] = (sensor_value_t) value;
+                        index += sizeof(sensor_value_t);
                 }
                 if (err == 0)
                         break;
