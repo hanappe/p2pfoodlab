@@ -882,6 +882,35 @@ static int camera_open(camera_t* camera)
         return 0;
 }
 
+static int camera_setctrl(camera_t* camera, int id, int value)
+{
+        struct v4l2_queryctrl queryctrl;
+        struct v4l2_control control;
+
+        memset(&queryctrl, 0, sizeof(queryctrl));
+        queryctrl.id = id;
+
+        if (-1 == ioctl(camera->fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+                if (errno != EINVAL) {
+                        log_err("Camera: VIDIOC_QUERYCTRL: error %d, %s", errno, strerror(errno));
+                        return -1;
+                } else {
+                        log_warn("Camera: control %d is not supported", id);
+                }
+        } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+                log_warn("Camera: Control %d is not supported", id);
+        } else {
+                memset(&control, 0, sizeof (control));
+                control.id = id;
+                control.value = value;
+                if (-1 == ioctl(camera->fd, VIDIOC_S_CTRL, &control)) {
+                        log_err("Camera: VIDIOC_S_CTRL: error %d, %s", errno, strerror(errno));
+                        return -1;
+                }
+        }
+        return 0;
+}
+
 static int camera_init(camera_t* camera)
 {
         struct v4l2_capability cap;
@@ -1016,6 +1045,13 @@ static int camera_init(camera_t* camera)
 #endif
         }
 
+        camera_setctrl(camera, V4L2_CID_CONTRAST, 127);
+        camera_setctrl(camera, V4L2_CID_BRIGHTNESS, 127);
+        camera_setctrl(camera, V4L2_CID_HUE, 127);
+        camera_setctrl(camera, V4L2_CID_GAMMA, 127);
+
+
+        /*
         struct v4l2_queryctrl queryctrl;
         struct v4l2_control control;
 
@@ -1089,6 +1125,7 @@ static int camera_init(camera_t* camera)
                         return -1;
                 }
         }
+        */
  
        camera->state = CAMERA_INIT;
 
