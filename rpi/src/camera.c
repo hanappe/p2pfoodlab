@@ -1024,20 +1024,44 @@ static int camera_init(camera_t* camera)
 
         if (-1 == ioctl(camera->fd, VIDIOC_QUERYCTRL, &queryctrl)) {
                 if (errno != EINVAL) {
-                        perror("VIDIOC_QUERYCTRL");
+                        log_err("Camera: VIDIOC_QUERYCTRL: error %d, %s", errno, strerror(errno));
                         return -1;
                 } else {
-                        printf ("V4L2_CID_BRIGHTNESS is not supported\n");
+                        log_warn("Camera: V4L2_CID_BRIGHTNESS is not supported\n");
                 }
         } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
-                printf ("V4L2_CID_BRIGHTNESS is not supported\n");
+                log_warn("Camera: V4L2_CID_BRIGHTNESS is not supported\n");
         } else {
                 memset(&control, 0, sizeof (control));
                 control.id = V4L2_CID_BRIGHTNESS;
                 control.value = queryctrl.default_value;
 
                 if (-1 == ioctl(camera->fd, VIDIOC_S_CTRL, &control)) {
-                        perror("VIDIOC_S_CTRL");
+                        log_err("Camera: VIDIOC_S_CTRL: error %d, %s", errno, strerror(errno));
+                        return -1;
+                }
+        }
+
+
+        memset(&queryctrl, 0, sizeof (queryctrl));
+        queryctrl.id = V4L2_CID_AUTO_WHITE_BALANCE;
+
+        if (-1 == ioctl(camera->fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+                if (errno != EINVAL) {
+                        log_err("Camera: VIDIOC_QUERYCTRL: error %d, %s", errno, strerror(errno));
+                        return -1;
+                } else {
+                        log_warn("Camera: V4L2_CID_AUTO_WHITE_BALANCE is not supported\n");
+                }
+        } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+                log_warn("Camera: V4L2_CID_AUTO_WHITE_BALANCE is not supported\n");
+        } else {
+                memset(&control, 0, sizeof (control));
+                control.id = V4L2_CID_AUTO_WHITE_BALANCE;
+                control.value = 1;
+
+                if (-1 == ioctl(camera->fd, VIDIOC_S_CTRL, &control)) {
+                        log_err("Camera: VIDIOC_S_CTRL: error %d, %s", errno, strerror(errno));
                         return -1;
                 }
         }
