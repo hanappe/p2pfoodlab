@@ -824,6 +824,8 @@ datapoint_t* arduino_measure(arduino_t* arduino, int* num_points)
                         err = arduino_read_value(arduino, &value, 
                                                  CMD_GETMEASUREMENT, 
                                                  sizeof(sensor_value_t));
+
+                        log_info("Arduino: value %d: 0x%02x", i, value); 
                         
                         if (err != 0)
                                 break;
