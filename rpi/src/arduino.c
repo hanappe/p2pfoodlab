@@ -800,7 +800,7 @@ datapoint_t* arduino_measure(arduino_t* arduino, int* num_points)
         if (err != 0) 
                 goto error_recovery;
 
-        sleep(10); // Sleep for ten seconds.
+        sleep(30); // Sleep for 30 seconds (20s for arduino loop period + 10s for measurements).
 
         err = arduino_set_state_(arduino, STATE_SUSPEND);
         if (err != 0) 
