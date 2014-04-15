@@ -1065,6 +1065,30 @@ static int camera_init(camera_t* camera)
                         return -1;
                 }
         }
+
+
+        memset(&queryctrl, 0, sizeof (queryctrl));
+        queryctrl.id = V4L2_CID_AUTOGAIN;
+
+        if (-1 == ioctl(camera->fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+                if (errno != EINVAL) {
+                        log_err("Camera: VIDIOC_QUERYCTRL: error %d, %s", errno, strerror(errno));
+                        return -1;
+                } else {
+                        log_warn("Camera: V4L2_CID_AUTOGAIN is not supported\n");
+                }
+        } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+                log_warn("Camera: V4L2_CID_AUTOGAIN is not supported\n");
+        } else {
+                memset(&control, 0, sizeof (control));
+                control.id = V4L2_CID_AUTOGAIN;
+                control.value = 1;
+
+                if (-1 == ioctl(camera->fd, VIDIOC_S_CTRL, &control)) {
+                        log_err("Camera: VIDIOC_S_CTRL: error %d, %s", errno, strerror(errno));
+                        return -1;
+                }
+        }
  
        camera->state = CAMERA_INIT;
 
