@@ -1048,7 +1048,7 @@ static int camera_init(camera_t* camera)
         camera_setctrl(camera, V4L2_CID_CONTRAST, 127);
         camera_setctrl(camera, V4L2_CID_BRIGHTNESS, 127);
         camera_setctrl(camera, V4L2_CID_HUE, 127);
-        camera_setctrl(camera, V4L2_CID_GAMMA, 127);
+        /* camera_setctrl(camera, V4L2_CID_GAMMA, 127); */
         /* camera_setctrl(camera, V4L2_CID_RED_BALANCE, 127); */
         /* camera_setctrl(camera, V4L2_CID_BLUE_BALANCE, 127); */
         /* camera_setctrl(camera, V4L2_CID_EXPOSURE, 127); */
