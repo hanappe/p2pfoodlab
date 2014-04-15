@@ -1397,3 +1397,13 @@ void sensorbox_measure(sensorbox_t* box)
                 free(datapoints);
 }
 
+void sensorbox_reset_stack(sensorbox_t* box)
+{
+        if (box->arduino == NULL) {
+                log_warn("Sensorbox: Failed to initialise Arduino"); 
+                return;
+        }
+        arduino_reset_stack(box->arduino);        
+}
+
+

@@ -1034,3 +1034,21 @@ int arduino_get_time(arduino_t* arduino, time_t *time)
         //return arduino_disconnect(arduino);
         return 0;
 }
+
+void arduino_reset_stack(arduino_t* arduino)
+{
+        int err;
+
+        err = arduino_connect(arduino);
+        if (err != 0) 
+                return;
+
+        err = arduino_set_state_(arduino, STATE_RESETSTACK);
+        if (err != 0) {
+                arduino_disconnect(arduino);
+                return;
+        }                
+
+        //return arduino_disconnect(arduino);
+}
+

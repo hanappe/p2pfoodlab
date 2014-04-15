@@ -277,6 +277,9 @@ int main(int argc, char **argv)
         /*         status_t status; */
         /*         sensorbox_get_status(box, &status); */
 
+        } else if (strcmp(command, "reset-stack") == 0) {
+                sensorbox_reset_stack(box);
+
         } else if (strcmp(command, "config-set") == 0) {
                 const char* s = sensorbox_config_getstr(box, "general.name");
                 printf("%s\n", s);
