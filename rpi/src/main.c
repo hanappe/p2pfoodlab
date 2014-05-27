@@ -280,9 +280,14 @@ int main(int argc, char **argv)
         } else if (strcmp(command, "reset-stack") == 0) {
                 sensorbox_reset_stack(box);
 
-        } else if (strcmp(command, "config-set") == 0) {
-                const char* s = sensorbox_config_getstr(box, "general.name");
-                printf("%s\n", s);
+        } else if (strcmp(command, "config-get") == 0) {
+                if (optind < argc) {
+                        const char* key = argv[optind++];
+                        const char* value = sensorbox_config_getstr(box, key);
+                        if (value != NULL)
+                                printf("%s\n", value);
+                        else printf("\n");
+                }
 
         } else if (strcmp(command, "generate-system-files") == 0) {
                 sensorbox_generate_system_files(box);                

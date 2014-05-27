@@ -143,7 +143,6 @@ static int sensorbox_load_config(sensorbox_t* box)
                 log_err("Sensorbox: Failed to load the config file"); 
                 return -1;
         } 
-        config_check_boot_file(box->config, "/boot/p2pfoodlab.json");
         return 0;
 }
 
@@ -1711,6 +1710,11 @@ static int sensorbox_install_authorized_keys(sensorbox_t* box)
 
 void sensorbox_generate_system_files(sensorbox_t* box)
 {
+        if (access("/boot/p2pfoodlab.json", F_OK) == 0) {
+                config_check_boot_file(box->config, "/boot/p2pfoodlab.json");
+                rename("/boot/p2pfoodlab.json", "/boot/p2pfoodlab-backup.json");
+        }
+
         if (sensorbox_generate_hostname(box) == 0)
                 sensorbox_install_hostname(box);
 
@@ -1724,8 +1728,7 @@ void sensorbox_generate_system_files(sensorbox_t* box)
                 sensorbox_install_wvdial_config(box);
 
         if (sensorbox_generate_authorized_keys(box) != 0) 
-                sensorbox_install_authorized_keys(box);
-        
+                sensorbox_install_authorized_keys(box);        
 }
 
 void sensorbox_update_network(sensorbox_t* box, const char* iface)
