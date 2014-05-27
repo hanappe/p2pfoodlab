@@ -1574,6 +1574,26 @@ static int sensorbox_generate_authorized_keys(sensorbox_t* box)
         return 0;
 }
 
+static int sensorbox_generate_hostname(sensorbox_t* box)
+{
+        char filename[512];
+
+        snprintf(filename, 511, "%s/etc/hostname", box->home_dir);
+        filename[511] = 0;
+
+        FILE* fp = fopen(filename, "w");
+        if (fp == NULL) {
+                log_err("Failed to open temp dhcpd config file: %s", filename);
+                return -1;
+        }
+
+        fprintf(fp, "%s", json_getstr(box->config, "general.name"));
+
+        fclose(fp);
+        
+        return 0;
+}
+
 static int sensorbox_mkdir(const char *path)
 {
         struct stat st;
@@ -1615,14 +1635,12 @@ static int sensorbox_install_file(sensorbox_t* box,
         snprintf(backup_file, 511, "%s/backup/%s-%lu", box->home_dir, filename, time(NULL));
         backup_file[511] = 0;
 
-        int r = access(path, W_OK);
-        if (r != 0) {
+        if ((access(path, F_OK) == 0) && (access(path, W_OK) != 0)) {
                 log_err("Write access denied to file: %s", path);
                 return -1;
         }
 
-        r = access(backup_file, W_OK);
-        if (r != 0) {
+        if ((access(backup_file, F_OK) == 0) && (access(backup_file, W_OK) != 0)) {
                 log_err("Write access denied to file: %s", backup_file);
                 return -1;
         }
@@ -1638,6 +1656,11 @@ static int sensorbox_install_file(sensorbox_t* box,
         }
 
         return 0;
+}
+
+static int sensorbox_install_hostname(sensorbox_t* box)
+{
+        return sensorbox_install_file(box, "/etc/hostname", "hostname");
 }
 
 static int sensorbox_install_network_interfaces(sensorbox_t* box)
@@ -1662,6 +1685,9 @@ static int sensorbox_install_authorized_keys(sensorbox_t* box)
 
 void sensorbox_generate_system_files(sensorbox_t* box)
 {
+        if (sensorbox_generate_hostname(box) == 0)
+                sensorbox_install_hostname(box);
+
         if (sensorbox_generate_network_interfaces(box) == 0) 
                 sensorbox_install_network_interfaces(box);
 
