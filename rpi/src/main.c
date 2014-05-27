@@ -183,6 +183,9 @@ int main(int argc, char **argv)
                 sensorbox_test_run(box);
 
         if (strcmp(command, "update") == 0) {
+
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 
                 /* Check whether the time needs to be set. */
                 time_t t;
@@ -228,35 +231,53 @@ int main(int argc, char **argv)
                 //clock_update(box);
 
         } else if (strcmp(command, "upload-data") == 0) {
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 sensorbox_upload_data(box);
 
         } else if (strcmp(command, "upload-photos") == 0) {
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 sensorbox_upload_photos(box);
 
         } else if (strcmp(command, "list-events") == 0) {
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 sensorbox_print_events(box);
 
         } else if (strcmp(command, "grab-image") == 0) {
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 sensorbox_grab_image(box, _output_file);
 
         } else if (strcmp(command, "camera") == 0) {
                 time_t t;
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 if (sensorbox_get_time(box, &t) == 0)
                         sensorbox_update_camera(box, t);
 
         } else if (strcmp(command, "store-data") == 0) {
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 sensorbox_store_sensor_data(box, _output_file);
 
         } else if (strcmp(command, "update-clock") == 0) {
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 clock_update(box);
 
         } else if (strcmp(command, "set-time") == 0) {
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 //clock_set(box);
                 time_t m = time(NULL);
                 sensorbox_set_time(box, m); 
 
         } else if (strcmp(command, "get-time") == 0) {
                 time_t m;
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 int err = sensorbox_get_time(box, &m); 
                 if (!err) 
                         printf("%lu\n", (unsigned long) m);
@@ -268,9 +289,13 @@ int main(int argc, char **argv)
                 sensorbox_bring_network_down(box);
 
         } else if (strcmp(command, "osd") == 0) {
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 sensorbox_create_osd_definitions(box);
 
         } else if (strcmp(command, "measure") == 0) {
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 sensorbox_measure(box);
 
         /* } else if (strcmp(command, "status") == 0) { */
@@ -278,6 +303,8 @@ int main(int argc, char **argv)
         /*         sensorbox_get_status(box, &status); */
 
         } else if (strcmp(command, "reset-stack") == 0) {
+                if (sensorbox_init(box) != 0)
+                        goto error_recovery;
                 sensorbox_reset_stack(box);
 
         } else if (strcmp(command, "config-get") == 0) {
@@ -296,8 +323,13 @@ int main(int argc, char **argv)
                 usage(stderr, argc, argv);
         }
 
+
         sensorbox_unlock(box);
         delete_sensorbox(box);
-
         exit(0);
+
+ error_recovery:
+        sensorbox_unlock(box);
+        delete_sensorbox(box);
+        exit(1);
 }

@@ -79,6 +79,8 @@ extern "C" {
         typedef struct _sensorbox_t sensorbox_t;
 
         sensorbox_t* new_sensorbox(const char* dir);
+        int sensorbox_init(sensorbox_t* box);
+
         int delete_sensorbox(sensorbox_t* sensorbox);
 
         const char* sensorbox_getdir(sensorbox_t* box);

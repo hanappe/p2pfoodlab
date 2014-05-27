@@ -114,6 +114,32 @@ sensorbox_t* new_sensorbox(const char* dir)
         return box;
 }
 
+int sensorbox_init(sensorbox_t* box)
+{
+        sensorbox_init_arduino(box);
+        /* if (sensorbox_init_arduino(box) != 0) { */
+        /*         delete_sensorbox(box); */
+        /*         return NULL; */
+        /* } */
+
+        if (sensorbox_init_camera(box) != 0) {
+                delete_sensorbox(box);
+                return -1;
+        }
+
+        if (sensorbox_init_osd(box) != 0) {
+                delete_sensorbox(box);
+                return -1;
+        }
+
+        if (sensorbox_load_sensors(box) != 0) {
+                delete_sensorbox(box);
+                return -1;
+        }
+
+        return 0;
+}
+
 int delete_sensorbox(sensorbox_t* box)
 {
         json_unref(box->config);
@@ -1711,9 +1737,11 @@ static int sensorbox_install_authorized_keys(sensorbox_t* box)
 void sensorbox_generate_system_files(sensorbox_t* box)
 {
         if (access("/boot/p2pfoodlab.json", F_OK) == 0) {
+                log_info("Merging /boot/p2pfoodlab.json");
                 config_check_boot_file(box->config, "/boot/p2pfoodlab.json");
                 if (rename("/boot/p2pfoodlab.json", "/boot/p2pfoodlab-backup.json") != 0)
                         log_warn("Failed to copy /boot/p2pfoodlab.json to backup file");
+                else log_info("/boot/p2pfoodlab.json renamed to /boot/p2pfoodlab-backup.json");
         }
 
         if (sensorbox_generate_hostname(box) == 0)
