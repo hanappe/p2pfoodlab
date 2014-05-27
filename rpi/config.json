@@ -10,7 +10,7 @@
   "general": {
       "name":"test_test",
       "email":"yourname@example.com",
-      "timezone":"0",
+      "timezone":"1",
       "latitude":"0.000000",
       "longitude":"0.000000"
   },
@@ -20,7 +20,7 @@
       "password":""
   },
   "wired":{
-      "inet":"static",
+      "inet":"dhcp",
       "static":{
           "address":"192.168.3.14",
           "netmask":"255.255.255.0",

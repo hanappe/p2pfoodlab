@@ -5,6 +5,7 @@
 # Required-Stop:     
 # Should-Start:      
 # Should-Stop:       
+# X-Start-Before:    avahi-daemon    
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 6
 # Short-Description: Start the P2P Food Lab update daemon
@@ -28,6 +29,16 @@ do_stop_daemon() {
 }
 
 do_start() {
+    name_before=$(cat /etc/hostname)
+
+    log_message "[p2pfoodlab] Info: Updating P2P Food Lab configuration files" 
+    /var/p2pfoodlab/bin/sensorbox generate-system-files
+
+    name_after=$(cat /etc/hostname)
+    if [ "x$name_before" != "x$name_after" ]; then
+        hostname $name_after
+    fi
+
     do_start_daemon
 }
 

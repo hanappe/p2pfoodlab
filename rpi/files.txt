@@ -59,7 +59,6 @@ etc=(boot/cmdline.txt
      etc/ssh/sshd_config
      etc/default/isc-dhcp-server
      etc/modules
-     etc/init.d/p2pfoodlab
-     etc/init.d/arduino-hwclock)
+     etc/init.d/p2pfoodlab)
 
 
