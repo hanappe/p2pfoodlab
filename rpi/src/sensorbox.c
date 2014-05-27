@@ -1714,6 +1714,7 @@ static int sensorbox_install_authorized_keys(sensorbox_t* box)
 
 void sensorbox_generate_system_files(sensorbox_t* box)
 {
+        log_info("Updating system files");
         if (access("/boot/p2pfoodlab.json", F_OK) == 0) {
                 log_info("Merging /boot/p2pfoodlab.json");
                 config_check_boot_file(box->config, "/boot/p2pfoodlab.json");
