@@ -143,6 +143,7 @@ static int sensorbox_load_config(sensorbox_t* box)
                 log_err("Sensorbox: Failed to load the config file"); 
                 return -1;
         } 
+        config_check_boot_file(box->config, "/boot/p2pfoodlab.json");
         return 0;
 }
 
@@ -1380,19 +1381,23 @@ void sensorbox_measure(sensorbox_t* box)
                 log_warn("Sensorbox: Failed to initialise Arduino"); 
                 return;
         }
-
+        
         int num_points;
         datapoint_t* datapoints = arduino_measure(box->arduino, &num_points);
 
+        printf("number of datapoints : %d\n", num_points);
+                
         for (int i = 0; i < num_points; i++) {
                 if (box->datastreams[datapoints[i].datastream].osd_id == -1)
-                        continue;
-                
-                printf("%s,%f\n", 
-                        box->datastreams[datapoints[i].datastream].name, 
-                        datapoints[i].value);
+                        printf("(%d),%f\n", 
+                               datapoints[i].datastream, 
+                               datapoints[i].value);
+                else
+                        printf("%s,%f\n", 
+                               box->datastreams[datapoints[i].datastream].name, 
+                               datapoints[i].value);
         } 
-
+        
         if (datapoints)
                 free(datapoints);
 }
@@ -1406,4 +1411,293 @@ void sensorbox_reset_stack(sensorbox_t* box)
         arduino_reset_stack(box->arduino);        
 }
 
+static int sensorbox_generate_network_interfaces(sensorbox_t* box)
+{
+        char filename[512];
+
+        snprintf(filename, 511, "%s/etc/interfaces", box->home_dir);
+        filename[511] = 0;
+        
+        FILE* fp = fopen(filename, "w");
+        if (fp == NULL) {
+                log_err("Failed to open temp network interfaces file: %s", filename);
+                return -1;
+        }
+
+        fprintf(fp, 
+                "auto lo\n"
+                "iface lo inet loopback\n\n");
+
+        if (json_streq(box->config, "wired.inet", "dhcp")) {
+                fprintf(fp, 
+                        "auto eth0\n"
+                        "allow-hotplug eth0\n"
+                        "iface eth0 inet dhcp\n\n");
+
+        } else if (json_streq(box->config, "wired.inet", "static")) {
+                fprintf(fp, 
+                        "auto eth0\n"
+                        "allow-hotplug eth0\n"
+                        "iface eth0 inet static\n"
+                        "        address %s\n" 
+                        "        netmask %s\n\n",
+                        json_getstr(box->config, "wired.static.address"),
+                        json_getstr(box->config, "wired.static.netmask"));
+        }
+
+        if (json_streq(box->config, "wifi.enable", "yes")) {
+                fprintf(fp, 
+                        "auto wlan0\n"
+                        "allow-hotplug wlan0\n"
+                        "iface wlan0 inet dhcp\n"
+                        "      wpa-ssid \"%s\"\n"
+                        "      wpa-psk \"%s\"\n\n",
+                        json_getstr(box->config, "wifi.ssid"),
+                        json_getstr(box->config, "wifi.password"));
+        }
+
+        if (json_streq(box->config, "gsm.enable", "yes")) {
+                fprintf(fp, 
+                        "iface ppp0 inet wvdial\n"
+                        "      provider gsmmodem\n\n");
+        }
+
+        fclose(fp);
+
+        return 0;
+}
+
+static int sensorbox_generate_dhcpd_config(sensorbox_t* box)
+{
+        char filename[512];
+
+        snprintf(filename, 511, "%s/etc/dhcpd.conf", box->home_dir);
+        filename[511] = 0;
+        
+        FILE* fp = fopen(filename, "w");
+        if (fp == NULL) {
+                log_err("Failed to open temp dhcpd config file: %s", filename);
+                return -1;
+        }
+
+        if (json_streq(box->config, "wired.dhcpserver.enable", "yes")) {
+                fprintf(fp,
+                        "ddns-update-style none;\n"
+                        "option domain-name \"p2pfoodlab.lan\";\n"
+                        "option domain-name-servers %s\n"
+                        "default-lease-time 3600;\n"
+                        "max-lease-time 7200;\n"
+                        "authoritative;\n"
+                        "log-facility local7;\n"
+                        "\n"
+                        "subnet %s netmask %s {\n"
+                        "  range %s %s\n"
+                        "  option routers %s\n"
+                        "}\n\n",
+                        json_getstr(box->config, "wired.static.gateway"),
+                        json_getstr(box->config, "wired.dhcpserver.subnet"),
+                        json_getstr(box->config, "wired.static.netmask"),
+                        json_getstr(box->config, "wired.dhcpserver.from"),
+                        json_getstr(box->config, "wired.dhcpserver.to"),
+                        json_getstr(box->config, "wired.static.gateway"));
+        }
+        fclose(fp);
+        
+        return 0;
+}
+
+static int sensorbox_generate_wvdial_config(sensorbox_t* box)
+{
+        char filename[512];
+
+        snprintf(filename, 511, "%s/etc/wvdial.conf", box->home_dir);
+        filename[511] = 0;
+        
+        FILE* fp = fopen(filename, "w");
+        if (fp == NULL) {
+                log_err("Failed to open temp dhcpd config file: %s", filename);
+                return -1;
+        }
+
+        if (json_streq(box->config, "gsm.enable", "yes")) {
+                fprintf(fp,
+                        "[Dialer gsmmodem]\n"
+                        "Modem = /dev/ttyUSB0\n"
+                        "Modem Type = Analog Modem\n"
+                        "ISDN = 0\n"
+                        "Baud = %s\n"
+                        "Username = %s\n"
+                        "Password = %s\n"
+                        "Init1 = ATZ\n"
+                        "Init2 = AT&F E1 V1 X1 &D2 &C1 S0=0\n"
+                        "Dial Attempts = 1\n"
+                        "Phone = %s\n"
+                        "Stupid Mode = 1\n"
+                        "Init3 = AT+CGDCONT=1,\"IP\",\"%s\"\n",
+                        json_getstr(box->config, "gsm.baud"),
+                        json_getstr(box->config, "gsm.username"),
+                        json_getstr(box->config, "gsm.password"),
+                        json_getstr(box->config, "gsm.phone"),
+                        json_getstr(box->config, "gsm.apn"));
+                
+                if (!json_streq(box->config, "gsm.pin", ""))
+                        fprintf(fp, "Init4 = AT+CPIN=%s\n", json_getstr(box->config, "gsm.pin"));
+                
+                fprintf(fp, "\n");
+        }
+
+        fclose(fp);
+        
+        return 0;
+}
+
+static int sensorbox_generate_authorized_keys(sensorbox_t* box)
+{
+        char filename[512];
+
+        snprintf(filename, 511, "%s/etc/authorized_keys", box->home_dir);
+        filename[511] = 0;
+
+        FILE* fp = fopen(filename, "w");
+        if (fp == NULL) {
+                log_err("Failed to open temp dhcpd config file: %s", filename);
+                return -1;
+        }
+
+        fprintf(fp, "%s\n%s\n%s\n",
+                json_getstr(box->config, "ssh.key1"),
+                json_getstr(box->config, "ssh.key2"),
+                json_getstr(box->config, "ssh.key3"));
+
+        fclose(fp);
+        
+        return 0;
+}
+
+static int sensorbox_mkdir(const char *path)
+{
+        struct stat st;
+        
+        if (stat(path, &st) != 0) {
+                if (mkdir(path, 0777) != 0) {
+                        log_err("Failed to create directory %s", path);
+                        return -1;
+                }
+        } else if (!S_ISDIR(st.st_mode)) {
+                log_err("Path exists but is not a directory: %s", path);
+                return -1;
+        }
+        
+        return 0;
+}
+
+static int sensorbox_mkdir_backup(sensorbox_t* box)
+{
+        char path[512];
+        snprintf(path, 511, "%s/backup", box->home_dir);
+        path[511] = 0;
+        return sensorbox_mkdir(path);
+}
+
+static int sensorbox_install_file(sensorbox_t* box,
+                                  const char* path,
+                                  const char* filename)
+{
+        char new_file[512];
+        char backup_file[512];
+
+        if (sensorbox_mkdir_backup(box) != 0)
+                return -1;
+
+        snprintf(new_file, 511, "%s/etc/%s", box->home_dir, filename);
+        new_file[511] = 0;
+
+        snprintf(backup_file, 511, "%s/backup/%s-%lu", box->home_dir, filename, time(NULL));
+        backup_file[511] = 0;
+
+        int r = access(path, W_OK);
+        if (r != 0) {
+                log_err("Write access denied to file: %s", path);
+                return -1;
+        }
+
+        r = access(backup_file, W_OK);
+        if (r != 0) {
+                log_err("Write access denied to file: %s", backup_file);
+                return -1;
+        }
+        
+        if (rename(path, backup_file) != 0) {
+                log_err("Failed to create backup file: %s", backup_file);
+                return -1;
+        }
+        
+        if (rename(new_file, path) != 0) {
+                log_err("Failed to install new system file: %s -> %s", new_file, path);
+                return -1;
+        }
+
+        return 0;
+}
+
+static int sensorbox_install_network_interfaces(sensorbox_t* box)
+{
+        return sensorbox_install_file(box, "/etc/network/interfaces", "interfaces");
+}
+
+static int sensorbox_install_dhcpd_config(sensorbox_t* box)
+{
+        return sensorbox_install_file(box, "/etc/dhcp/dhcpd.conf", "dhcpd.conf");
+}
+
+static int sensorbox_install_wvdial_config(sensorbox_t* box)
+{
+        return sensorbox_install_file(box, "/etc/wvdial.conf", "wvdial.conf");
+}
+
+static int sensorbox_install_authorized_keys(sensorbox_t* box)
+{
+        return sensorbox_install_file(box, "/home/pi/.ssh/authorized_keys", "authorized_keys");
+}
+
+void sensorbox_generate_system_files(sensorbox_t* box)
+{
+        if (sensorbox_generate_network_interfaces(box) == 0) 
+                sensorbox_install_network_interfaces(box);
+
+        if (sensorbox_generate_dhcpd_config(box) != 0) 
+                sensorbox_install_dhcpd_config(box);
+
+        if (sensorbox_generate_wvdial_config(box) != 0) 
+                sensorbox_install_wvdial_config(box);
+
+        if (sensorbox_generate_authorized_keys(box) != 0) 
+                sensorbox_install_authorized_keys(box);
+        
+}
+
+void sensorbox_update_network(sensorbox_t* box, const char* iface)
+{
+        if (sensorbox_generate_network_interfaces(box) != 0) 
+                return;
+
+        if (sensorbox_install_network_interfaces(box) != 0)
+                return;
+
+        if (strcmp(iface, "eth0") == 0)
+                network_stop_dhcpd();
+
+        network_ifdown(iface);
+        network_ifup(iface);
+
+        if ((strcmp(iface, "eth0") == 0)
+            && json_streq(box->config, "wired.dhcpserver.enable", "yes"))
+                network_start_dhcpd();
+}
+
+void sensorbox_update_ssh(sensorbox_t* box)
+{
+        if (sensorbox_generate_authorized_keys(box) != 0) 
+                sensorbox_install_authorized_keys(box);
+}
 

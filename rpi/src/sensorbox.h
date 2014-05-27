@@ -121,6 +121,9 @@ extern "C" {
         double sensorbox_config_getnum(sensorbox_t* box, const char* expr);
 
         void sensorbox_measure(sensorbox_t* box);
+        void sensorbox_reset_stack(sensorbox_t* box);
+
+        void sensorbox_generate_system_files(sensorbox_t* box);                
 
 #ifdef __cplusplus
 }

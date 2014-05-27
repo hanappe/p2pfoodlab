@@ -146,7 +146,7 @@ int network_ifaddr(const char* name, char *addr, int len)
 int network_ifchange(const char* name, const char* cmd)
 {
         log_info("Network: Running %s %s", cmd, name);
-        char* const argv[] = { "/usr/bin/sudo", cmd, (char*) name, NULL};
+        char* const argv[] = { "/usr/bin/sudo", (char*) cmd, (char*) name, NULL};
         return system_run(argv);
 }
 
@@ -214,4 +214,24 @@ int network_gogo(const char* iface)
 int network_byebye(const char* iface)
 {
         return network_ifdown(iface);
+}
+
+int network_start_dhcpd()
+{
+        log_info("Sensorbox: Stopping DHCP daemon");
+        char* const argv[] = { "/usr/bin/sudo", "/usr/sbin/service", "isc-dhcp-server", "start", NULL};
+        int ret = system_run(argv);
+        if (ret != 0) 
+                log_warn("Sensorbox: 'service isc-dhcp-server start' failed (%d)", ret);
+        return ret;
+}
+
+int network_stop_dhcpd()
+{
+        log_info("Sensorbox: Stopping DHCP daemon");
+        char* const argv[] = { "/usr/bin/sudo", "/usr/sbin/service", "isc-dhcp-server", "stop", NULL};
+        int ret = system_run(argv);
+        if (ret != 0) 
+                log_warn("Sensorbox: 'service isc-dhcp-server stop' failed (%d)", ret);
+        return ret;
 }

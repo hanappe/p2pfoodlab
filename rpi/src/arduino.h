@@ -99,6 +99,8 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points);
 
 datapoint_t* arduino_measure(arduino_t* arduino, int* num_points);
 
+void arduino_reset_stack(arduino_t* arduino);
+
 #ifdef __cplusplus
 }
 #endif

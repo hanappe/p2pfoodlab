@@ -101,6 +101,7 @@ json_object_t json_load(const char* filename, int* err, char* errmsg, int len);
 
 json_object_t json_get(json_object_t obj, const char* expression);
 const char* json_getstr(json_object_t obj, const char* expression);
+int json_streq(json_object_t obj, const char* expression, const char* value);
 double json_getnum(json_object_t obj, const char* expression);
 
 

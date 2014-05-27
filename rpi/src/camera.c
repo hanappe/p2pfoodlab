@@ -95,6 +95,10 @@ enum {
 typedef struct _camera_t {
         io_method io;
         int fd;
+        int debug;
+        /* struct video_capability vid_cap; */
+        /* struct video_picture vid_pic; */
+        /* struct video_window vid_win; */
         char* device_name;
         unsigned int width;
         unsigned int height;
@@ -137,6 +141,12 @@ static int camera_mmapinit(camera_t* camera);
 static int camera_userptrinit(camera_t* camera_t, unsigned int buffer_size);
 #endif
 
+
+/* static void print_palette(int p); */
+/* static void camera_cap(camera_t* camera); */
+/* static void camera_get_pic_info(camera_t* camera); */
+/* static void camera_get_win_info(camera_t* camera); */
+
 camera_t* new_camera(const char* dev, 
                      io_method io,
                      unsigned int width, 
@@ -152,6 +162,7 @@ camera_t* new_camera(const char* dev,
         
         camera->io = io;
         camera->fd = -1;
+        camera->debug = 1;
         camera->device_name = strdup(dev);
         camera->width = width;
         camera->height = height;
@@ -882,6 +893,7 @@ static int camera_open(camera_t* camera)
         return 0;
 }
 
+/*
 static int camera_setctrl(camera_t* camera, int id, int value)
 {
         struct v4l2_queryctrl queryctrl;
@@ -910,6 +922,7 @@ static int camera_setctrl(camera_t* camera, int id, int value)
         }
         return 0;
 }
+*/
 
 static int camera_init(camera_t* camera)
 {
@@ -1045,9 +1058,13 @@ static int camera_init(camera_t* camera)
 #endif
         }
 
-        camera_setctrl(camera, V4L2_CID_CONTRAST, 127);
-        camera_setctrl(camera, V4L2_CID_BRIGHTNESS, 127);
-        camera_setctrl(camera, V4L2_CID_HUE, 127);
+        /* camera_cap(camera); */
+        /* camera_get_pic_info(camera); */
+        /* camera_get_win_info(camera); */
+
+        //camera_setctrl(camera, V4L2_CID_CONTRAST, 127);
+        //camera_setctrl(camera, V4L2_CID_BRIGHTNESS, 127);
+        //camera_setctrl(camera, V4L2_CID_HUE, 127);
         /* camera_setctrl(camera, V4L2_CID_GAMMA, 127); */
         /* camera_setctrl(camera, V4L2_CID_RED_BALANCE, 127); */
         /* camera_setctrl(camera, V4L2_CID_BLUE_BALANCE, 127); */
@@ -1143,3 +1160,186 @@ static int camera_close(camera_t* camera)
         camera->fd = -1;
         return close(oldfd);
 }
+
+/*
+static void print_palette(int p)
+{
+        switch (p) {
+        case VIDEO_PALETTE_HI240:
+                printf("High 240 cube (BT848)\n");
+                break;
+
+        case VIDEO_PALETTE_RGB565:
+                printf("565 16 bit RGB\n");
+                break;
+
+        case VIDEO_PALETTE_RGB24:
+                printf("24bit RGB\n");
+                break;
+
+        case VIDEO_PALETTE_RGB32:
+                printf("32bit RGB\n");
+                break;
+
+        case VIDEO_PALETTE_RGB555:
+                printf("555 15bit RGB\n");
+                break;
+
+        case VIDEO_PALETTE_YUV422:
+                printf("YUV422 capture");
+                break;
+
+        case VIDEO_PALETTE_YUYV:
+                printf("YUYV\n");
+                break;
+
+        case VIDEO_PALETTE_UYVY:
+                printf("UYVY\n");
+                break;
+
+        case VIDEO_PALETTE_YUV420:
+                printf("YUV420\n");
+                break;
+
+        case VIDEO_PALETTE_YUV411:
+                printf("YUV411 capture\n");
+                break;
+
+        case VIDEO_PALETTE_RAW:
+                printf("RAW capture (BT848)\n");
+                break;
+
+        case VIDEO_PALETTE_YUV422P:
+                printf("YUV 4:2:2 Planar");
+                break;
+
+        case VIDEO_PALETTE_YUV411P:
+                printf("YUV 4:1:1 Planar\n");
+                break;
+
+        case VIDEO_PALETTE_YUV420P:
+                printf("YUV 4:2:0 Planar\n");
+                break;
+
+        case VIDEO_PALETTE_YUV410P:
+                printf("YUV 4:1:0 Planar\n");
+                break;
+        }
+}
+
+static void camera_cap(camera_t* camera)
+{
+        char *msg;
+        if (ioctl(camera->fd, VIDIOCGCAP, &camera->vid_cap) == -1) {
+                if (camera->debug == TRUE) {
+                        fprintf(stderr, "VIDIOCGCAP  --  could not get camera capabilities, exiting.....\n");
+                }
+                msg = g_strdup_printf(_("Could not connect to video device (%s).\nPlease check connection."), camera->video_dev);
+                error_dialog(msg);
+                g_free(msg);
+                exit(0);
+        }
+        if (camera->x > 0 && camera->y > 0) {
+                if(camera->vid_cap.maxwidth < camera->x) {
+                        camera->x = camera->vid_cap.maxwidth;
+                }
+                if(camera->vid_cap.minwidth > camera->x) {
+                        camera->x = camera->vid_cap.minwidth;
+                }
+                if(camera->vid_cap.maxheight < camera->y) {
+                        camera->y = camera->vid_cap.maxheight;
+                }
+                if(camera->vid_cap.minheight > camera->y) {
+                        camera->y = camera->vid_cap.minheight;
+                }
+        } else {
+                switch (camera->size) {
+                case PICMAX:
+                        camera->x = camera->vid_cap.maxwidth;
+                        camera->y = camera->vid_cap.maxheight;
+                        break;
+
+                case PICMIN:
+                        camera->x = camera->vid_cap.minwidth;
+                        camera->y = camera->vid_cap.minheight;
+                        break;
+
+                case PICHALF:
+                        camera->x = camera->vid_cap.maxwidth / 2;
+                        camera->y = camera->vid_cap.maxheight / 2;
+                        break;
+
+                default:
+                        camera->x = camera->vid_cap.maxwidth / 2;
+                        camera->y = camera->vid_cap.maxheight / 2;
+                        break;
+                }
+        }
+        if ((camera->vid_cap.type & VID_TYPE_CAPTURE) != 1) {
+                camera->read = TRUE;
+        }
+
+        if (camera->debug == TRUE) {
+                printf("\nVIDIOCGCAP\n");
+                printf("device name = %s\n", camera->vid_cap.name);
+                printf("device type = %d\n", camera->vid_cap.type);
+                if(camera->read == FALSE){
+                        printf("can use mmap()\n");
+                }
+                printf("# of channels = %d\n", camera->vid_cap.channels);
+                printf("# of audio devices = %d\n", camera->vid_cap.audios);
+                printf("max width = %d\n", camera->vid_cap.maxwidth);
+                printf("max height = %d\n", camera->vid_cap.maxheight);
+                printf("min width = %d\n", camera->vid_cap.minwidth);
+                printf("min height = %d\n", camera->vid_cap.minheight);
+        }
+}
+
+static void camera_get_pic_info(camera_t* camera)
+{
+        char *msg;
+	
+        if (ioctl(camera->fd, VIDIOCGPICT, &camera->vid_pic) == -1) {
+                msg = g_strdup_printf(_("Could not connect to video device (%s).\nPlease check connection."), camera->video_dev);
+                error_dialog(msg);
+                if (camera->debug == TRUE) {
+                        fprintf(stderr, "VIDIOCGPICT  --  could not get picture info, exiting....\n");
+                }
+                g_free(msg);
+                exit(0);
+        }
+	
+        if (camera->debug == TRUE) {
+                printf("\nVIDIOCGPICT:\n");
+                printf("bright = %d\n", camera->vid_pic.brightness);
+                printf("hue = %d\n", camera->vid_pic.hue);
+                printf("colour = %d\n", camera->vid_pic.colour);
+                printf("contrast = %d\n", camera->vid_pic.contrast);
+                printf("whiteness = %d\n", camera->vid_pic.whiteness);
+                printf("colour depth = %d\n", camera->vid_pic.depth);
+                print_palette(camera->vid_pic.palette);
+        }
+}
+
+static void camera_get_win_info(camera_t* camera)
+{
+        gchar *msg;
+        if (ioctl(camera->fd, VIDIOCGWIN, &camera->vid_win) == -1) {
+                msg = g_strdup_printf(_("Could not connect to video device (%s).\nPlease check connection."), camera->video_dev);
+                error_dialog(msg);
+                if(camera->debug == TRUE) {
+                        fprintf(stderr, "VIDIOCGWIN  --  could not get window info, exiting....\n");
+                }
+                exit(0);
+        }
+        if (camera->debug == TRUE) {
+                printf("\nVIDIOCGWIN\n");
+                printf("x = %d\n", camera->vid_win.x);
+                printf("y = %d\n", camera->vid_win.y);
+                printf("width = %d\n", camera->vid_win.width);
+                printf("height = %d\n", camera->vid_win.height);
+                printf("chromakey = %d\n", camera->vid_win.chromakey);
+                printf("flags = %d\n", camera->vid_win.flags);
+        }
+}
+*/

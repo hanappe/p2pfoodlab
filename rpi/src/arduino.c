@@ -114,6 +114,28 @@ typedef struct _stack_t {
         sensor_value_t values[STACK_SIZE];
 } stack_t;
 
+static void stack_print(stack_t* stack)
+{
+        printf("--\n"); 
+        printf("T0  %lu\n", stack->offset); 
+        printf("Fr  %d\n", stack->frames); 
+        printf("FSz %d\n", stack->framesize); 
+        printf("ChS %02x\n", stack->checksum); 
+
+        unsigned short index = 0;
+
+        for (unsigned short frame = 0; frame < stack->frames; frame++) {
+                printf("\tF\t%d\n", frame); 
+                printf("\tT\t%d\t%04x\n", stack->values[index], stack->values[index]); 
+                index++;
+
+                for (unsigned short val = 1; val < stack->framesize; val++) {
+                        printf("\t%d\t%d\t%04x\n", val, stack->values[index], stack->values[index]); 
+                        index++;
+                }
+        }
+}
+
 struct _arduino_t {
         int bus;
         int address;
@@ -717,16 +739,7 @@ datapoint_t* arduino_read_data(arduino_t* arduino, int* num_points)
                 unsigned char checksum = crc8(0, ptr, len);
                 
                 log_info("Arduino: Checksum Linux 0x%02x", checksum); 
-
-                //
-                /* for (int i = 0; i < len; i++) { */
-                /*         fprintf(stderr, "%02x", ptr[i]); */
-                /*         if ((i % 4) == 3) */
-                /*                 fprintf(stderr, "\n"); */
-                /*         else  */
-                /*                 fprintf(stderr, " "); */
-                /* } */
-                //
+                stack_print(&stack);
 
                 if (checksum != stack.checksum)
                         err = -1;

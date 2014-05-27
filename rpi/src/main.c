@@ -284,6 +284,9 @@ int main(int argc, char **argv)
                 const char* s = sensorbox_config_getstr(box, "general.name");
                 printf("%s\n", s);
 
+        } else if (strcmp(command, "generate-system-files") == 0) {
+                sensorbox_generate_system_files(box);                
+
         } else {
                 usage(stderr, argc, argv);
         }

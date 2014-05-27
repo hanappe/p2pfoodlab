@@ -2468,3 +2468,10 @@ double json_getnum(json_object_t obj, const char* expression)
         return json_number_value(v);
 }
 
+int json_streq(json_object_t obj, const char* expression, const char* value)
+{
+        const char* v = json_getstr(obj, expression);
+        return ((v != NULL) && (strcmp(v, value) == 0));
+}
+
+

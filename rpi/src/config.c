@@ -22,6 +22,9 @@
 #define _BSD_SOURCE
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "config.h"
 #include "log_message.h"
 #include "arduino.h"
@@ -237,6 +240,91 @@ const char* config_get_sensorbox_name(json_object_t config)
         }
         const char* name = json_object_getstr(general_obj, "name");
         return (name == NULL)? "sensorbox" : name;
+}
+
+typedef struct _config_copy_stack_t {
+        int top;
+        json_object_t stack[32];
+} config_copy_stack_t;
+
+static void config_copy(json_object_t src, json_object_t dest);
+ 
+static int32 config_copy_iterator(const char* key, json_object_t value, config_copy_stack_t* copy_stack)
+{
+        json_object_t dest = copy_stack->stack[copy_stack->top];
+
+        if (json_isobject(value)) {
+                json_object_t v = json_object_get(dest, key);
+                if (!json_isobject(v)) {
+                        v = json_object_create();
+                        json_object_set(dest, key, v);
+                        json_unref(v);
+                }
+
+                if (copy_stack->top >= 32)
+                        return -1;
+
+                copy_stack->stack[++copy_stack->top] = v;
+                config_copy(value, v);
+                copy_stack->top--;
+
+        } else if (json_isarray(value)) {
+                json_object_t v = json_object_get(dest, key);
+                if (json_isarray(v)) {
+                        v = json_array_create();
+                        json_object_set(dest, key, v);
+                        json_unref(v);
+                }
+                
+                int length = json_array_length(value);
+                for (int i = 0; i < length; i++) {
+                        json_object_t e = json_array_get(value, i);
+                        if (json_isnumber(e) || json_isstring(e))
+                                json_array_set(v, e, i);
+                }
+
+        } else { 
+                json_object_set(dest, key, value);
+        }
+
+        return 0;
+}
+
+static void config_copy(json_object_t src, json_object_t dest)
+{
+        config_copy_stack_t config_copy_stack;
+        
+        config_copy_stack.top = 0;
+        config_copy_stack.stack[0] = dest;
+        json_object_foreach(src, (json_iterator_t) config_copy_iterator, &config_copy_stack);
+}
+
+void config_check_boot_file(json_object_t config, const char* bootfile)
+{
+        struct stat attrib_bootfile;
+        struct stat attrib_curfile;
+        int err;
+        char buffer[512];
+        json_object_t newconfig;
+
+        if (stat(bootfile, &attrib_bootfile) != 0)
+                return;
+
+        if (stat(_file, &attrib_curfile) != 0)
+                return;
+
+        if (attrib_bootfile.st_mtime < attrib_curfile.st_mtime)
+                return;
+        
+        newconfig = json_load(bootfile, &err, buffer, 512);
+        if (err != 0) {
+                log_err("%s", buffer); 
+                return;
+        } 
+
+        config_copy(newconfig, config);
+
+        config_save(config);
 }
 
 
