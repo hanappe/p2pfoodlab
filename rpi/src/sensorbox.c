@@ -1712,7 +1712,8 @@ void sensorbox_generate_system_files(sensorbox_t* box)
 {
         if (access("/boot/p2pfoodlab.json", F_OK) == 0) {
                 config_check_boot_file(box->config, "/boot/p2pfoodlab.json");
-                rename("/boot/p2pfoodlab.json", "/boot/p2pfoodlab-backup.json");
+                if (rename("/boot/p2pfoodlab.json", "/boot/p2pfoodlab-backup.json") != 0)
+                        log_warn("Failed to copy /boot/p2pfoodlab.json to backup file");
         }
 
         if (sensorbox_generate_hostname(box) == 0)
