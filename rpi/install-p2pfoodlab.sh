@@ -27,7 +27,7 @@ if [ "$first_time" == "yes" ]; then
     # Install required packages. Also remove package ifplugd because
     # it is doing a bad job on the Raspberry Pi in combination with
     # the DHCP server isc-dhcp-server.
-    apt-get install apache2 php5 libapache2-mod-php5 gcc libjpeg8-dev i2c-tools libi2c-dev isc-dhcp-server git libcurl4-openssl-dev bc wvdial ssh
+    apt-get install apache2 php5 libapache2-mod-php5 gcc libjpeg8-dev i2c-tools libi2c-dev isc-dhcp-server git libcurl4-openssl-dev bc wvdial ssh libcurl-dev libv4l-dev
 else
     apt-get --yes upgrade
 fi
@@ -135,7 +135,7 @@ fi
 echo --------------------------------------------------------
 echo STEP 7: Generating SSH keys
 
-ssh-keygen -t rsa -N ""
+sudo -u pi ssh-keygen -t rsa -N "" -f /home/pi/.ssh/id_rsa
 
 echo --------------------------------------------------------
 echo Done!
