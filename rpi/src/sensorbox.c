@@ -1576,6 +1576,32 @@ static int sensorbox_generate_authorized_keys(sensorbox_t* box)
 
 static int sensorbox_generate_hostname(sensorbox_t* box)
 {
+        const char* name = json_getstr(box->config, "general.name");
+        if (name == NULL) {
+                log_err("Could not find value of 'general.name' setting!");
+                return -1;
+        }
+
+        int len = strlen(name);
+        if (len < 1) {
+                log_err("Value of 'general.name' is too short: %s", name);
+                return -1;
+        }
+        if (len > 63) {
+                log_err("Value of 'general.name' is too long: %s", name);
+                return -1;
+        }
+        for (int i = 0; i < len; i++) {
+                char c = name[i];
+                if (((c < 'a') || (c > 'z'))
+                    && ((c < 'A') || (c > 'Z'))
+                    && ((c < '0') || (c > '9'))
+                    && (c != '-')) {
+                        log_err("Invalid value of 'general.name': %s", name);
+                        return -1;
+                }
+        }
+
         char filename[512];
 
         snprintf(filename, 511, "%s/etc/hostname", box->home_dir);
@@ -1587,7 +1613,7 @@ static int sensorbox_generate_hostname(sensorbox_t* box)
                 return -1;
         }
 
-        fprintf(fp, "%s", json_getstr(box->config, "general.name"));
+        fprintf(fp, "%s\n", name);
 
         fclose(fp);
         
