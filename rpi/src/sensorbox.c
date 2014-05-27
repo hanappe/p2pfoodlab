@@ -1252,6 +1252,7 @@ void sensorbox_unlock(sensorbox_t* box)
                 return;
         flock(box->lock, LOCK_UN);
         close(box->lock);
+        unlink("/tmp/sensorbox.lock");
         box->lock = -1;
 }
 
