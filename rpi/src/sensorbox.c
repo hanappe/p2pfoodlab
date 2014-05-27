@@ -82,34 +82,12 @@ sensorbox_t* new_sensorbox(const char* dir)
         memset(box, 0, sizeof(sensorbox_t));
 
         box->home_dir = strdup(dir);
+        box->lock = -1;
 
         if (sensorbox_load_config(box) != 0) {
                 delete_sensorbox(box);
                 return NULL;
         }
-
-        sensorbox_init_arduino(box);
-        /* if (sensorbox_init_arduino(box) != 0) { */
-        /*         delete_sensorbox(box); */
-        /*         return NULL; */
-        /* } */
-
-        if (sensorbox_init_camera(box) != 0) {
-                delete_sensorbox(box);
-                return NULL;
-        }
-
-        if (sensorbox_init_osd(box) != 0) {
-                delete_sensorbox(box);
-                return NULL;
-        }
-
-        if (sensorbox_load_sensors(box) != 0) {
-                delete_sensorbox(box);
-                return NULL;
-        }
-
-        box->lock = -1;
 
         return box;
 }
