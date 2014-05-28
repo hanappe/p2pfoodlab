@@ -118,14 +118,14 @@ static void stack_print(stack_t* stack)
 {
         log_debug("--STACK--"); 
         log_debug("T0  %lu", stack->offset); 
-        log_debug("Fr  %d", stack->frames); 
+        log_debug("#F  %d", stack->frames); 
         log_debug("FSz %d", stack->framesize); 
-        log_debug("ChS %02x", stack->checksum); 
+        log_debug("Sum %02x", stack->checksum); 
 
         unsigned short index = 0;
 
         for (unsigned short frame = 0; frame < stack->frames; frame++) {
-                log_debug("\tF\t%d", frame); 
+                log_debug("\t%d----\t----\t----", frame); 
                 log_debug("\tT\t%d\t%04x", stack->values[index], stack->values[index]); 
                 index++;
 
