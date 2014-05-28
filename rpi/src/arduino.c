@@ -116,24 +116,25 @@ typedef struct _stack_t {
 
 static void stack_print(stack_t* stack)
 {
-        printf("--\n"); 
-        printf("T0  %lu\n", stack->offset); 
-        printf("Fr  %d\n", stack->frames); 
-        printf("FSz %d\n", stack->framesize); 
-        printf("ChS %02x\n", stack->checksum); 
+        log_debug("--STACK--\n"); 
+        log_debug("T0  %lu\n", stack->offset); 
+        log_debug("Fr  %d\n", stack->frames); 
+        log_debug("FSz %d\n", stack->framesize); 
+        log_debug("ChS %02x\n", stack->checksum); 
 
         unsigned short index = 0;
 
         for (unsigned short frame = 0; frame < stack->frames; frame++) {
-                printf("\tF\t%d\n", frame); 
-                printf("\tT\t%d\t%04x\n", stack->values[index], stack->values[index]); 
+                log_debug("\tF\t%d\n", frame); 
+                log_debug("\tT\t%d\t%04x\n", stack->values[index], stack->values[index]); 
                 index++;
 
                 for (unsigned short val = 1; val < stack->framesize; val++) {
-                        printf("\t%d\t%d\t%04x\n", val, stack->values[index], stack->values[index]); 
+                        log_debug("\t%d\t%d\t%04x\n", val, stack->values[index], stack->values[index]); 
                         index++;
                 }
         }
+        log_debug("---------\n"); 
 }
 
 struct _arduino_t {
