@@ -116,25 +116,25 @@ typedef struct _stack_t {
 
 static void stack_print(stack_t* stack)
 {
-        log_debug("--STACK--\n"); 
-        log_debug("T0  %lu\n", stack->offset); 
-        log_debug("Fr  %d\n", stack->frames); 
-        log_debug("FSz %d\n", stack->framesize); 
-        log_debug("ChS %02x\n", stack->checksum); 
+        log_debug("--STACK--"); 
+        log_debug("T0  %lu", stack->offset); 
+        log_debug("Fr  %d", stack->frames); 
+        log_debug("FSz %d", stack->framesize); 
+        log_debug("ChS %02x", stack->checksum); 
 
         unsigned short index = 0;
 
         for (unsigned short frame = 0; frame < stack->frames; frame++) {
-                log_debug("\tF\t%d\n", frame); 
-                log_debug("\tT\t%d\t%04x\n", stack->values[index], stack->values[index]); 
+                log_debug("\tF\t%d", frame); 
+                log_debug("\tT\t%d\t%04x", stack->values[index], stack->values[index]); 
                 index++;
 
                 for (unsigned short val = 1; val < stack->framesize; val++) {
-                        log_debug("\t%d\t%d\t%04x\n", val, stack->values[index], stack->values[index]); 
+                        log_debug("\t%d\t%d\t%04x", val, stack->values[index], stack->values[index]); 
                         index++;
                 }
         }
-        log_debug("---------\n"); 
+        log_debug("---------"); 
 }
 
 struct _arduino_t {
@@ -592,6 +592,7 @@ static int arduino_copy_stack_(arduino_t* arduino,
         /*         index += 4; */
         /* } */
 
+        /*
         {
                 unsigned char* ptr = (unsigned char*) &stack->values[0];
                 //int index = 0;
@@ -609,6 +610,7 @@ static int arduino_copy_stack_(arduino_t* arduino,
                 if (((len - 1) % 4) != 3)
                         printf("\n");
         }
+        */
 
         return 0;
 }
