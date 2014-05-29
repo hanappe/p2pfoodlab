@@ -551,7 +551,7 @@ static int arduino_start_transfer(arduino_t* arduino)
 // CRC-8 - based on the CRC8 formulas by Dallas/Maxim
 // code released under the therms of the GNU GPL 3.0 license
 // http://www.leonardomiliani.com/2013/un-semplice-crc8-per-arduino/?lang=en
-static unsigned char crc8(unsigned char crc, const unsigned char *data, unsigned char len) 
+static unsigned char crc8(unsigned char crc, const unsigned char *data, int len) 
 {
         while (len--) {
                 unsigned char extract = *data++;
