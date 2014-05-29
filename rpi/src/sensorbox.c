@@ -71,6 +71,7 @@ static int sensorbox_init_arduino(sensorbox_t* box);
 static int sensorbox_init_camera(sensorbox_t* box);
 static void sensorbox_handle_event(sensorbox_t* box, event_t* e, time_t t);
 static void sensorbox_poweroff(sensorbox_t* box, int minutes);
+static int sensorbox_upload_status(sensorbox_t* box);
 
 sensorbox_t* new_sensorbox(const char* dir)
 {
@@ -951,6 +952,10 @@ void sensorbox_upload_data(sensorbox_t* box)
         if (rename(filename, backupfile) == -1) {
                 log_err("Sensorbox: Failed to copy datapoints to %s", backupfile); 
         }        
+
+        // FIXME: DEBUG!!!
+        sensorbox_upload_status(sensorbox_t* box);
+
 }
 
 void sensorbox_upload_photos(sensorbox_t* box)
@@ -1763,5 +1768,23 @@ void sensorbox_update_ssh(sensorbox_t* box)
 {
         if (sensorbox_generate_authorized_keys(box) != 0) 
                 sensorbox_install_authorized_keys(box);
+}
+
+static int sensorbox_upload_status(sensorbox_t* box)
+{
+        char remote_name[512];
+        snprintf(remote_name, 512, 
+                 "sensorbox@p2pfoodlab.net:log-%s-%s.txt",
+                 json_getstr(box->config, "general.name"),
+                 json_getstr(box->config, "opensensordata.key"));
+        
+        char* const argv[] = { "/usr/sbin/rsync", 
+                               "-oStrictHostKeyChecking=no",
+                               "-oUserKnownHostsFile=/dev/null",
+                               "/var/p2pfoodlab/log.txt", 
+                               remote_name, 
+                               NULL };
+
+        return system_run(argv);        
 }
 
