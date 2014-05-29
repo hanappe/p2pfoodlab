@@ -954,6 +954,7 @@ void sensorbox_upload_data(sensorbox_t* box)
         }        
 
         // FIXME: DEBUG!!!
+        log_info("Sensorbox: Uploading log file");
         sensorbox_upload_status(box);
 }
 
