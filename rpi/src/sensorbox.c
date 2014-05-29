@@ -954,8 +954,7 @@ void sensorbox_upload_data(sensorbox_t* box)
         }        
 
         // FIXME: DEBUG!!!
-        sensorbox_upload_status(sensorbox_t* box);
-
+        sensorbox_upload_status(box);
 }
 
 void sensorbox_upload_photos(sensorbox_t* box)
