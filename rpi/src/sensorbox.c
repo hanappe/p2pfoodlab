@@ -1778,7 +1778,7 @@ static int sensorbox_upload_status(sensorbox_t* box)
                  json_getstr(box->config, "general.name"),
                  json_getstr(box->config, "opensensordata.key"));
         
-        char* const argv[] = { "/usr/sbin/rsync", 
+        char* const argv[] = { "/usr/bin/rsync", 
                                "-oStrictHostKeyChecking=no",
                                "-oUserKnownHostsFile=/dev/null",
                                "/var/p2pfoodlab/log.txt", 
