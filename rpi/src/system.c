@@ -234,5 +234,5 @@ int system_getserial(char *buffer, int len)
         }
         fclose(f);
 
-        return 0;
+        return ret;
 }
