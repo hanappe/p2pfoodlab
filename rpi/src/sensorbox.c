@@ -875,7 +875,7 @@ void sensorbox_handle_events(sensorbox_t* box)
                 return;
         //t = time(NULL);
         localtime_r(&t, &tm);
-        log_debug("Current time: %02d:%02d.", tm.tm_hour, tm.tm_min);
+        log_debug("Current time (arduino): %02d:%02d.", tm.tm_hour, tm.tm_min);
         int cur_minute = tm.tm_hour * 60 + tm.tm_min;
 
         event_t* e = eventlist_get_next(box->events, cur_minute);
@@ -1188,12 +1188,27 @@ int sensorbox_uptime(sensorbox_t* box)
 
 int sensorbox_run_ntp(sensorbox_t* box)
 {
+        struct tm tm;
+        struct timeval tv;
+
+        gettimeofday(&tv, NULL);
+        localtime_r(&tv.tv_sec, &tm);
+        log_debug("Time before NTP (raspberry): %02d:%02d.", tm.tm_hour, tm.tm_min);
+
         // Use the opportunity to update the clock
         log_info("Network: Running NTPD");
         char* const argv[] = { "/usr/bin/sudo", 
                                "/usr/sbin/ntpd", 
                                "-q", "-g", NULL};
-        return system_run(argv);
+        int ret = system_run(argv);
+
+        log_debug("NTP returned %d", ret);
+
+        gettimeofday(&tv, NULL);
+        localtime_r(&tv.tv_sec, &tm);
+        log_debug("Time after NTP (raspberry): %02d:%02d.", tm.tm_hour, tm.tm_min);
+
+        return ret;
 }
 
 int sensorbox_bring_network_up(sensorbox_t* box)

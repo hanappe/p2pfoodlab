@@ -215,3 +215,24 @@ int system_run(char* const argv[])
 
         return ret;
 }
+
+int system_getserial(char *buffer, int len)
+{
+        FILE *f = fopen("/proc/cpuinfo", "r");
+        if (f == NULL)
+                return -1;
+   
+        char line[256];
+        int ret = -1;
+        while (fgets(line, 256, f)) {
+                if (strncmp(line, "Serial", 6) == 0) {
+                        strncpy(buffer, strchr(line, ':') + 2, len);
+                        buffer[len-1] = 0;
+                        ret = 0;
+                        break;
+                }
+        }
+        fclose(f);
+
+        return 0;
+}
