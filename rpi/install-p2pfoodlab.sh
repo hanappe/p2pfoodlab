@@ -27,7 +27,7 @@ if [ "$first_time" == "yes" ]; then
     # Install required packages. Also remove package ifplugd because
     # it is doing a bad job on the Raspberry Pi in combination with
     # the DHCP server isc-dhcp-server.
-    apt-get install apache2 php5 libapache2-mod-php5 gcc libjpeg8-dev i2c-tools libi2c-dev isc-dhcp-server git libcurl4-openssl-dev bc wvdial ssh libcurl-dev libv4l-dev emacs23-nox avahi-daemon
+    apt-get install apache2 php5 libapache2-mod-php5 gcc libjpeg8-dev i2c-tools libi2c-dev isc-dhcp-server git libcurl4-openssl-dev bc wvdial ssh libcurl-dev libv4l-dev emacs23-nox avahi-daemon ntp
 else
     apt-get --yes upgrade
 fi
@@ -117,7 +117,7 @@ update-rc.d p2pfoodlab start 99 2 3 4 5 . stop 99 0 6 .
 #update-rc.d arduino-hwclock start 10 S . stop 10 0 1 6 .
 
 echo P2P Food Lab init scripts:
-sudo update-rc.d p2pfoodlab-init start 01 S .
+update-rc.d p2pfoodlab-init start 01 S .
 
 service p2pfoodlab restart
 
@@ -129,16 +129,22 @@ if [ "$first_time" == "yes" ]; then
 fi
 
 # Enable the DHCP server on eth0
-if [ "$first_time" == "yes" ]; then
-    echo DHCP server:
-    update-rc.d isc-dhcp-server enable
-    service isc-dhcp-server restart
-fi
+#if [ "$first_time" == "yes" ]; then
+#    echo DHCP server:
+#    update-rc.d isc-dhcp-server enable
+#    service isc-dhcp-server restart
+#fi
 
 # Enable the Avahi service
 if [ "$first_time" == "yes" ]; then
-    sudo update-rc.d avahi-daemon defaults
+    update-rc.d avahi-daemon defaults
     service avahi-daemon restart
+fi
+
+# Disable the NTP service. NTP will be run explicitely by the sensorbox program.
+if [ "$first_time" == "yes" ]; then
+    service ntp stop
+    update-rc.d -f ntp remove 
 fi
 
 echo --------------------------------------------------------
