@@ -24,6 +24,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include <sys/time.h>
+#include <string.h>
 #include "log_message.h"
 
 static int _log_level = LOG_DEBUG;
