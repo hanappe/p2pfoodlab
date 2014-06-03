@@ -1680,38 +1680,31 @@ static int sensorbox_install_file(sensorbox_t* box,
                                   const char* filename)
 {
         char new_file[512];
-        char backup_file[512];
+        struct stat buf;
 
-        if (sensorbox_mkdir_backup(box) != 0)
-                return -1;
+        if (stat(path, &buf) == 0) {
+                if (sensorbox_mkdir_backup(box) != 0)
+                        return -1;
+
+                char backup_file[512];
+                snprintf(backup_file, 511, "%s/backup/%s-%lu", box->home_dir, filename, time(NULL));
+                backup_file[511] = 0;
+
+                log_info("Backing up %s to %s", path, backup_file);
+                                
+                if (rename(path, backup_file) != 0) {
+                        log_err("Failed to create backup file: %s: %s", backup_file, strerror(errno));
+                        return -1;
+                }
+        }
 
         snprintf(new_file, 511, "%s/etc/%s", box->home_dir, filename);
         new_file[511] = 0;
 
-        snprintf(backup_file, 511, "%s/backup/%s-%lu", box->home_dir, filename, time(NULL));
-        backup_file[511] = 0;
-
-        log_info("Copying %s to %s", path, backup_file);
-
-        if ((access(path, F_OK) == 0) && (access(path, W_OK) != 0)) {
-                log_err("Write access denied to file: %s", path);
-                return -1;
-        }
-
-        if ((access(backup_file, F_OK) == 0) && (access(backup_file, W_OK) != 0)) {
-                log_err("Write access denied to file: %s", backup_file);
-                return -1;
-        }
-        
-        if (rename(path, backup_file) != 0) {
-                log_err("Failed to create backup file: %s", backup_file);
-                return -1;
-        }
-
         log_info("Copying %s to %s", new_file, path);
         
         if (rename(new_file, path) != 0) {
-                log_err("Failed to install new system file: %s -> %s", new_file, path);
+                log_err("Failed to install new system file: %s -> %s: %s", new_file, path, strerror(errno));
                 return -1;
         }
 
