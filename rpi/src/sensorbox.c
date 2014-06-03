@@ -870,7 +870,7 @@ void sensorbox_handle_events(sensorbox_t* box)
                 return;
         }
 
-        err = sensorbox_get_time(box->arduino);
+        err = sensorbox_get_time(box, &t);
         if (err != 0)
                 return;
         //t = time(NULL);
