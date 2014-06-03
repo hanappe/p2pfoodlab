@@ -870,7 +870,7 @@ void sensorbox_handle_events(sensorbox_t* box)
                 return;
         }
 
-        err = arduino_get_time(box->arduino, &t);
+        err = sensorbox_get_time(box->arduino);
         if (err != 0)
                 return;
         //t = time(NULL);
@@ -1141,6 +1141,7 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
 int sensorbox_get_time(sensorbox_t* box, time_t* m) 
 {
         if (arduino_get_time(box->arduino, m) != 0) {
+                log_warn("Failed to get Arduino's current time.");
                 log_warn("Sensorbox: Using local system time"); 
                 time(m);
         }

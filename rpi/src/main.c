@@ -191,7 +191,7 @@ int main(int argc, char **argv)
                 time_t t;
                 int r = sensorbox_get_time(box, &t);
                 if (r != 0) {
-                        log_warn("Failed to get Arduino's current time.");
+                        log_warn("Failed to get the current time.");
                 } else if (t < 1395332000L) {
                         /* The time on the Arduino has not been
                            set. Run NTP and pass the correct date to
