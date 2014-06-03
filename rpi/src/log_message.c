@@ -85,7 +85,16 @@ static void log_(int level, const char* s)
         case LOG_ERROR: type = "Error"; break;
         }
 
-        fprintf(_log_file, "[%s] %s: %s\n", time, type, s);
+        // remove newlines & co.
+        char buffer[512];
+        strncpy(buffer, s, 511);
+        buffer[511] = 0;        
+        for (int i = 0; buffer[i] != 0; i++) {
+                if ((buffer[i] == '\n') || (buffer[i] == '\r'))
+                        buffer[i] = ' ';
+        } 
+
+        fprintf(_log_file, "[%s] %s: %s\n", time, type, buffer);
         fflush(_log_file);
 }
 
