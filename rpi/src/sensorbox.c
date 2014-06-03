@@ -1604,22 +1604,21 @@ static int sensorbox_generate_authorized_keys(sensorbox_t* box)
         return 0;
 }
 
-static int sensorbox_generate_hostname(sensorbox_t* box)
+static int sensorbox_is_name_valid(sensorbox_t* box, const char* name)
 {
-        const char* name = json_getstr(box->config, "general.name");
         if (name == NULL) {
                 log_err("Could not find value of 'general.name' setting!");
-                return -1;
+                return 0;
         }
 
         int len = strlen(name);
         if (len < 1) {
                 log_err("Value of 'general.name' is too short: %s", name);
-                return -1;
+                return 0;
         }
         if (len > 63) {
                 log_err("Value of 'general.name' is too long: %s", name);
-                return -1;
+                return 0;
         }
         for (int i = 0; i < len; i++) {
                 char c = name[i];
@@ -1628,9 +1627,17 @@ static int sensorbox_generate_hostname(sensorbox_t* box)
                     && ((c < '0') || (c > '9'))
                     && (c != '-')) {
                         log_err("Invalid value of 'general.name': %s", name);
-                        return -1;
+                        return 0;
                 }
         }
+        return 1;
+}
+
+static int sensorbox_generate_hostname(sensorbox_t* box)
+{
+        const char* name = json_getstr(box->config, "general.name");
+        if (!sensorbox_is_name_valid(box, name))
+                return -1;
 
         char filename[512];
 
@@ -1639,11 +1646,42 @@ static int sensorbox_generate_hostname(sensorbox_t* box)
 
         FILE* fp = fopen(filename, "w");
         if (fp == NULL) {
-                log_err("Failed to open temp dhcpd config file: %s", filename);
+                log_err("Failed to open temp hostname file: %s", filename);
                 return -1;
         }
 
         fprintf(fp, "%s\n", name);
+
+        fclose(fp);
+        
+        return 0;
+}
+
+static int sensorbox_generate_hosts(sensorbox_t* box)
+{
+        const char* name = json_getstr(box->config, "general.name");
+        if (!sensorbox_is_name_valid(box, name))
+                return -1;
+
+        char filename[512];
+
+        snprintf(filename, 511, "%s/etc/hosts", box->home_dir);
+        filename[511] = 0;
+
+        FILE* fp = fopen(filename, "w");
+        if (fp == NULL) {
+                log_err("Failed to open temp hosts file: %s", filename);
+                return -1;
+        }
+
+        fprintf(fp, 
+                "127.0.0.1\tlocalhost %s\n"
+                "::1\t\tlocalhost ip6-localhost ip6-loopback\n"
+                "fe00::0\t\tip6-localnet\n"
+                "ff00::0\t\tip6-mcastprefix\n"
+                "ff02::1\t\tip6-allnodes\n"
+                "ff02::2\t\tip6-allrouters\n", 
+                name);
 
         fclose(fp);
         
@@ -1717,6 +1755,11 @@ static int sensorbox_install_hostname(sensorbox_t* box)
         return sensorbox_install_file(box, "/etc/hostname", "hostname");
 }
 
+static int sensorbox_install_hosts(sensorbox_t* box)
+{
+        return sensorbox_install_file(box, "/etc/hosts", "hosts");
+}
+
 static int sensorbox_install_network_interfaces(sensorbox_t* box)
 {
         return sensorbox_install_file(box, "/etc/network/interfaces", "interfaces");
@@ -1750,6 +1793,9 @@ void sensorbox_generate_system_files(sensorbox_t* box)
 
         if (sensorbox_generate_hostname(box) == 0)
                 sensorbox_install_hostname(box);
+
+        if (sensorbox_generate_hosts(box) == 0) 
+                sensorbox_install_hosts(box);        
 
         if (sensorbox_generate_network_interfaces(box) == 0) 
                 sensorbox_install_network_interfaces(box);
