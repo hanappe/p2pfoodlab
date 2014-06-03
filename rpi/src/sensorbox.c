@@ -875,7 +875,7 @@ void sensorbox_handle_events(sensorbox_t* box)
                 return;
         //t = time(NULL);
         localtime_r(&t, &tm);
-        log_debug("Current time (arduino): %02d:%02d.", tm.tm_hour, tm.tm_min);
+        log_debug("Current time: %02d:%02d.", tm.tm_hour, tm.tm_min);
         int cur_minute = tm.tm_hour * 60 + tm.tm_min;
 
         event_t* e = eventlist_get_next(box->events, cur_minute);
