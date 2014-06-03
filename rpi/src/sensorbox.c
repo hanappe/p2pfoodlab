@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
+#include <errno.h>
 #include "json.h"
 #include "log_message.h"
 #include "config.h"
