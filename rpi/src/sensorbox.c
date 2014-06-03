@@ -1671,6 +1671,7 @@ static int sensorbox_mkdir_backup(sensorbox_t* box)
         char path[512];
         snprintf(path, 511, "%s/backup", box->home_dir);
         path[511] = 0;
+        log_info("Create backup directory %s", path);
         return sensorbox_mkdir(path);
 }
 
@@ -1690,6 +1691,8 @@ static int sensorbox_install_file(sensorbox_t* box,
         snprintf(backup_file, 511, "%s/backup/%s-%lu", box->home_dir, filename, time(NULL));
         backup_file[511] = 0;
 
+        log_info("Copying %s to %s", path, backup_file);
+
         if ((access(path, F_OK) == 0) && (access(path, W_OK) != 0)) {
                 log_err("Write access denied to file: %s", path);
                 return -1;
@@ -1704,6 +1707,8 @@ static int sensorbox_install_file(sensorbox_t* box,
                 log_err("Failed to create backup file: %s", backup_file);
                 return -1;
         }
+
+        log_info("Copying %s to %s", new_file, path);
         
         if (rename(new_file, path) != 0) {
                 log_err("Failed to install new system file: %s -> %s", new_file, path);
@@ -1755,13 +1760,13 @@ void sensorbox_generate_system_files(sensorbox_t* box)
         if (sensorbox_generate_network_interfaces(box) == 0) 
                 sensorbox_install_network_interfaces(box);
 
-        if (sensorbox_generate_dhcpd_config(box) != 0) 
+        if (sensorbox_generate_dhcpd_config(box) == 0) 
                 sensorbox_install_dhcpd_config(box);
 
-        if (sensorbox_generate_wvdial_config(box) != 0) 
+        if (sensorbox_generate_wvdial_config(box) == 0) 
                 sensorbox_install_wvdial_config(box);
 
-        if (sensorbox_generate_authorized_keys(box) != 0) 
+        if (sensorbox_generate_authorized_keys(box) == 0) 
                 sensorbox_install_authorized_keys(box);        
 }
 
