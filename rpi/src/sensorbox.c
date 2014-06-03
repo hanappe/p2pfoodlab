@@ -1219,8 +1219,7 @@ int sensorbox_bring_network_up_and_run_ntp(sensorbox_t* box)
         
         if (r == 0) {
                 // Use the opportunity to update the clock
-                r = sensorbox_run_ntp(box);
-                if (r == 0)
+                if (sensorbox_run_ntp(box) == 0)
                         sensorbox_set_time(box, time(NULL)); 
         }
 
