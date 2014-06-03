@@ -47,7 +47,7 @@ void event_log(event_t* e)
 
 void event_print(event_t* e, FILE* fp)
 {
-        fprintf(fp, "Event: %02d:%02d %s", 
+        fprintf(fp, "Event: %02d:%02d %s\n", 
                 e->minute / 60, 
                 e->minute % 60, 
                 (e->type == UPDATE_SENSORS)? "sensors" : "camera");

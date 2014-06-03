@@ -193,9 +193,10 @@ int network_gogo(const char* iface)
                 for (int j = 0; j < 5; j++) {
                         char addr[1024];
                         ret = network_ifaddr(iface, addr, 1024);
-                        if (ret == 0) 
+                        if (ret == 0) {
+                                log_info("Network: %s's address is %s", iface, addr);
                                 break;
-                        else
+                        } else
                                 sleep(10);
                 }
 
