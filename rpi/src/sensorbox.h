@@ -127,6 +127,7 @@ extern "C" {
         void sensorbox_reset_stack(sensorbox_t* box);
 
         void sensorbox_generate_system_files(sensorbox_t* box);                
+        int sensorbox_upload_status(sensorbox_t* box);
 
 #ifdef __cplusplus
 }

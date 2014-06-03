@@ -71,7 +71,6 @@ static int sensorbox_init_arduino(sensorbox_t* box);
 static int sensorbox_init_camera(sensorbox_t* box);
 static void sensorbox_handle_event(sensorbox_t* box, event_t* e, time_t t);
 static void sensorbox_poweroff(sensorbox_t* box, int minutes);
-static int sensorbox_upload_status(sensorbox_t* box);
 
 sensorbox_t* new_sensorbox(const char* dir)
 {
@@ -1791,7 +1790,7 @@ void sensorbox_update_ssh(sensorbox_t* box)
                 sensorbox_install_authorized_keys(box);
 }
 
-static int sensorbox_upload_status(sensorbox_t* box)
+int sensorbox_upload_status(sensorbox_t* box)
 {
         char remote_name[512];
         snprintf(remote_name, 512, 

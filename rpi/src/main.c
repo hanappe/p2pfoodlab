@@ -316,6 +316,9 @@ int main(int argc, char **argv)
         } else if (strcmp(command, "generate-system-files") == 0) {
                 sensorbox_generate_system_files(box);                
 
+        } else if (strcmp(command, "upload-status") == 0) {
+                sensorbox_upload_status(box);
+
         } else {
                 usage(stderr, argc, argv);
         }
