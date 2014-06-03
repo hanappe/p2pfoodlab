@@ -197,10 +197,7 @@ int main(int argc, char **argv)
                            set. Run NTP and pass the correct date to
                            Arduino. */
                         log_warn("Arduino's time is not set.");
-                        r = sensorbox_run_ntp(box);
-                        if (r != 0)
-                                log_warn("NTP failed?!");
-                        sensorbox_set_time(box, time(NULL)); 
+                        sensorbox_bring_network_up_and_run_ntp(box);
                 }
 
                 /* Check whether the definitions of the datastream are

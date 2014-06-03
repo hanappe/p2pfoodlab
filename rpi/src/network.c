@@ -46,6 +46,9 @@ static void _close(int sock)
         close(sock);
 }
 
+/*
+  Returns: 1: connected; 0: not connected; -1: error 
+ */
 int network_connected()
 {
         int _socket = -1;
@@ -173,7 +176,7 @@ int network_ifdown(const char* name)
 
 int network_gogo(const char* iface)
 {
-        if (network_connected()) {
+        if (network_connected() == 1) {
                 log_info("Network: Connected");
                 return 0;
         }
@@ -204,9 +207,8 @@ int network_gogo(const char* iface)
 
                 log_info("Network: interface %s up, but failed to establish a network connection", iface);
 
-                if (network_ifdown(iface) != 0) {
+                if (network_ifdown(iface) != 0)
                         log_info("Network: ifdown %s failed", iface);
-                }
         }
         return -1;
 }

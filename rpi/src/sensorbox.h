@@ -111,6 +111,7 @@ extern "C" {
         int sensorbox_run_ntp(sensorbox_t* box);
 
         int sensorbox_bring_network_up(sensorbox_t* box);
+        int sensorbox_bring_network_up_and_run_ntp(sensorbox_t* box);
         int sensorbox_bring_network_down(sensorbox_t* box);
         void sensorbox_bring_network_down_maybe(sensorbox_t* box);
 

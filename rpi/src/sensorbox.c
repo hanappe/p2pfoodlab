@@ -1211,18 +1211,24 @@ int sensorbox_run_ntp(sensorbox_t* box)
         return ret;
 }
 
-int sensorbox_bring_network_up(sensorbox_t* box)
+int sensorbox_bring_network_up_and_run_ntp(sensorbox_t* box)
 {
         const char* iface = config_get_network_interface(box->config);
         int r = network_gogo(iface);
         
         if (r == 0) {
                 // Use the opportunity to update the clock
-                if (sensorbox_run_ntp(box) == 0)
+                r = sensorbox_run_ntp(box);
+                if (r == 0)
                         sensorbox_set_time(box, time(NULL)); 
         }
 
         return r;
+}
+
+int sensorbox_bring_network_up(sensorbox_t* box)
+{
+        return sensorbox_bring_network_up_and_run_ntp(box);
 }
 
 int sensorbox_bring_network_down(sensorbox_t* box)
@@ -1794,7 +1800,7 @@ static int sensorbox_upload_status(sensorbox_t* box)
                  json_getstr(box->config, "opensensordata.key"));
         
         char* const argv[] = { "/usr/bin/rsync", "-q",
-                               "-e", "'ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q'",
+                               "-e", "'/usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q'",
                                "/var/p2pfoodlab/log.txt", 
                                remote_name, 
                                NULL };
