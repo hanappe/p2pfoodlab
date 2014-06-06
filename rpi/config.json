@@ -1,8 +1,4 @@
 {
-  "version": {
-      "string": "VERSION_STRING",
-      "date": "VERSION_DATE"
-  },
   "login": {
       "pwsalt":"g2jDI7088+kl",
       "pwhash":"dd9dc0780de4c0ff4bad8789f821e16b"
@@ -14,24 +10,28 @@
       "latitude":"0.000000",
       "longitude":"0.000000"
   },
-  "wifi":{
-      "enable":"no",
-      "ssid":"",
-      "password":""
-  },
   "wired":{
+      "enable":"yes",
       "inet":"dhcp",
       "static":{
           "address":"192.168.3.14",
           "netmask":"255.255.255.0",
           "gateway":"192.168.3.1"
-      },
-      "dhcpserver":{
-          "enable":"yes",
-          "from":"192.168.3.100",
-          "to":"192.168.3.200",
-          "subnet":"192.168.3.0"
       }
+  },
+  "wifi":{
+      "enable":"no",
+      "ssid":"",
+      "password":""
+  },
+  "gsm":{
+      "enable":"no",
+      "pin":"",
+      "apn":"orange.fr",
+      "username":"orange",
+      "password":"orange",
+      "phone":"*99#",
+      "baud":"115200"
   },
   "opensensordata":{
       "server":"http:\/\/opensensordata.net",
@@ -71,14 +71,5 @@
       "key1":"",
       "key2":"",
       "key3":""
-  },
-  "gsm":{
-      "enable":"no",
-      "pin":"",
-      "apn":"orange.fr",
-      "username":"orange",
-      "password":"orange",
-      "phone":"*99#",
-      "baud":"115200"
   }
 }

@@ -21,13 +21,12 @@ echo STEP 1: Updating and installing software packages
 apt-get update
 
 if [ "$first_time" == "yes" ]; then
-    # Clean up unused packages to save space.
+    # Install required packages. Also remove package ifplugd because
+    # we will handle the network interfaces in P2P Food Lab's sensobox
+    # program. Clean up unused packages to save space.
     apt-get purge --auto-remove scratch debian-reference-en dillo idle3 python3-tk idle python-pygame python-tk lightdm gnome-themes-standard gnome-icon-theme raspberrypi-artwork gvfs-backends gvfs-fuse desktop-base lxpolkit netsurf-gtk zenity xdg-utils mupdf gtk2-engines alsa-utils lxde lxtask menu-xdg gksu midori xserver-xorg xinit xserver-xorg-video-fbdev libraspberrypi-dev libraspberrypi-doc dbus-x11 libx11-6 libx11-data libx11-xcb1 x11-common x11-utils lxde-icon-theme gconf-service gconf2-common ifplugd
 
-    # Install required packages. Also remove package ifplugd because
-    # it is doing a bad job on the Raspberry Pi in combination with
-    # the DHCP server isc-dhcp-server.
-    apt-get install apache2 php5 libapache2-mod-php5 gcc libjpeg8-dev i2c-tools libi2c-dev isc-dhcp-server git libcurl4-openssl-dev bc wvdial ssh libcurl-dev libv4l-dev emacs23-nox avahi-daemon ntp
+    apt-get install apache2 php5 libapache2-mod-php5 gcc libjpeg8-dev i2c-tools libi2c-dev git libcurl4-openssl-dev bc wvdial ssh libcurl-dev libv4l-dev emacs23-nox avahi-daemon ntp
 else
     apt-get --yes upgrade
 fi

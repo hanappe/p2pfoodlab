@@ -54,11 +54,10 @@ web=(web/bg.jpg
 etc=(boot/cmdline.txt
      etc/modprobe.d/raspi-blacklist.conf
      etc/modprobe.d/i2c.conf
-     etc/dhcp/dhcpd.conf
      etc/apache2/sites-available/default
      etc/ssh/sshd_config
-     etc/default/isc-dhcp-server
      etc/modules
-     etc/init.d/p2pfoodlab)
+     etc/init.d/p2pfoodlab
+     etc/logrotate.d/p2pfoodlab)
 
 
