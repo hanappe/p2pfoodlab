@@ -857,7 +857,22 @@ static int camera_userptrinit(camera_t* camera, unsigned int buffer_size)
 }
 #endif
 
-static int camera_open(camera_t* camera)
+static int camera_list_devices(camera_t* camera, char** name, int* count)
+{
+        char path[256];
+        struct stat st;
+        int n = 0;
+
+        for (int i = 0; i <= 9; i++) {
+                snprintf(path, sizeof(path), "/dev/video%d", i);
+                if ((stat(path, &st) == 0) && S_ISCHR(st.st_mode))
+                        name[n++] = strdup(path); 
+        }
+        *count = n;
+        return 0;
+}
+
+static int camera_open_dev(camera_t* camera, const char* name)
 {
         struct stat st;
 
@@ -867,30 +882,60 @@ static int camera_open(camera_t* camera)
         }
 
         // stat file
-
-        if (-1 == stat(camera->device_name, &st)) {
-                log_err("Camera: Cannot identify '%s': %d, %s", camera->device_name, errno, strerror(errno));
+        if (stat(name, &st) == -1) {
+                log_err("Camera: Cannot identify '%s': %d, %s", name, errno, strerror(errno));
                 return -1;
         }
 
         // check if its device
-        if (!S_ISCHR (st.st_mode)) {
-                log_err("Camera: %s is no device", camera->device_name);
+        if (!S_ISCHR(st.st_mode)) {
+                log_err("Camera: %s is no device", name);
                 return -1;
         }
 
         // open device
-        camera->fd = open(camera->device_name, O_RDWR /* required */ | O_NONBLOCK, 0);
+        camera->fd = open(name, O_RDWR /* required */ | O_NONBLOCK, 0);
 
         // check if opening was successfull
         if (-1 == camera->fd) {
-                log_err("Camera: Cannot open '%s': %d, %s", camera->device_name, errno, strerror(errno));
+                log_err("Camera: Cannot open '%s': %d, %s", name, errno, strerror(errno));
                 return -1;
         }
 
         camera->state = CAMERA_OPEN;
 
+
         return 0;
+}
+
+static int camera_open(camera_t* camera)
+{
+        int ret = camera_open_dev(camera, camera->device_name);
+        if (ret == 0)
+                return 0;
+
+        log_warn("Camera: Failed to open default device (%s). Looking for another device.", 
+                 camera->device_name);
+        
+        char* list[10];
+        int count = 0;
+
+        for (int i = 0; i < 10; i++)
+                list[i] = NULL;
+
+        camera_list_devices(camera, list, &count);
+        ret = -1;
+        for (int i = 0; i < count; i++) {
+                ret = camera_open_dev(camera, list[i]);
+                if (ret == 0) {
+                        log_info("Camera: Using %s for camera.", list[i]);
+                        break;
+                }
+        }
+        for (int i = 0; i < count; i++)
+                free(list[i]);
+
+        return ret;
 }
 
 /*

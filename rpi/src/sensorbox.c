@@ -1834,7 +1834,7 @@ void sensorbox_update_ssh(sensorbox_t* box)
 int sensorbox_upload_status(sensorbox_t* box)
 {
         if (!network_connected())
-                return;
+                return 0;
 
         log_info("Sensorbox: Uploading log file");
 

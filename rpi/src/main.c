@@ -246,6 +246,10 @@ int main(int argc, char **argv)
         } else if (strcmp(command, "grab-image") == 0) {
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
+                if (_output_file == NULL) {
+                        log_err("grab-image: missing filename to store the output (use -o <filename>).");
+                        goto error_recovery;
+                }
                 sensorbox_grab_image(box, _output_file);
 
         } else if (strcmp(command, "camera") == 0) {
