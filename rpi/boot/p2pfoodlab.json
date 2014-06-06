@@ -1,7 +1,8 @@
 {
   "general": {"name":"sensorbox"},
   "opensensordata": {"key":"aaaa-bbbbcccc-dddd-eeee-ffff"},
+  "wired": {"enable":"yes"},
   "wifi": {"enable":"no", "ssid":"", "password":""},
-  "power": {"poweroff":"no"},
   "gsm": {"enable":"no", "pin":"", "apn":"orange.fr", "username":"orange", "password":"orange", "phone":"*99#", "baud":"115200"}
+  "power": {"poweroff":"no"},
 }
