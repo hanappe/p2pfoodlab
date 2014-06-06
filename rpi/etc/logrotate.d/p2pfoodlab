@@ -1,0 +1,10 @@
+/var/p2pfoodlab/log.txt {
+        weekly
+        missingok
+        rotate 52
+        compress
+        delaycompress
+        notifempty
+        sharedscripts
+}
+

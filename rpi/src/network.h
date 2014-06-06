@@ -33,9 +33,6 @@ extern "C" {
         int network_ifup(const char* iface);
         int network_ifdown(const char* iface);
 
-        int network_start_dhcpd();
-        int network_stop_dhcpd();
-
 #ifdef __cplusplus
 }
 #endif

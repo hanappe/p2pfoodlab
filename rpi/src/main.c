@@ -287,9 +287,6 @@ int main(int argc, char **argv)
         } else if (strcmp(command, "ifup") == 0) {
                 sensorbox_bring_network_up(box);
 
-        } else if (strcmp(command, "ifdown") == 0) {
-                sensorbox_bring_network_down(box);
-
         } else if (strcmp(command, "osd") == 0) {
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;

@@ -36,6 +36,7 @@ extern "C" {
                                unsigned char* enabled, 
                                unsigned char* period);
 
+        int config_iface_enabled(json_object_t config, const char* iface);
         const char* config_get_network_interface(json_object_t config);
 
         int config_powersaving_enabled(json_object_t config);

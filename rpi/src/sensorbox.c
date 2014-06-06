@@ -1210,16 +1210,24 @@ int sensorbox_run_ntp(sensorbox_t* box)
 
 int sensorbox_bring_network_up_and_run_ntp(sensorbox_t* box)
 {
-        const char* iface = config_get_network_interface(box->config);
-        int r = network_gogo(iface);
-        
-        if (r == 0) {
-                // Use the opportunity to update the clock
-                if (sensorbox_run_ntp(box) == 0)
-                        sensorbox_set_time(box, time(NULL)); 
-        }
+        if (config_iface_enabled(box->config, "eth0"))
+                network_gogo("eth0");
 
-        return r;
+        if (config_iface_enabled(box->config, "wlan0"))
+                network_gogo("wlan0");
+
+        if (config_iface_enabled(box->config, "ppp0"))
+                network_gogo("ppp0");
+
+        if (!network_connected()) {
+                log_info("Sensorbox: No network");
+                return -1;
+        }
+        
+        if (sensorbox_run_ntp(box) == 0)
+                sensorbox_set_time(box, time(NULL)); 
+
+        return 0;
 }
 
 int sensorbox_bring_network_up(sensorbox_t* box)
@@ -1227,30 +1235,23 @@ int sensorbox_bring_network_up(sensorbox_t* box)
         return sensorbox_bring_network_up_and_run_ntp(box);
 }
 
-int sensorbox_bring_network_down(sensorbox_t* box)
-{
-        const char* iface = config_get_network_interface(box->config);
-        return network_byebye(iface);
-}
-
 void sensorbox_bring_network_down_maybe(sensorbox_t* box)
 {
-        const char* iface = config_get_network_interface(box->config);
-
-        if (strcmp(iface, "eth0") == 0) {
-                log_info("Sensorbox: Bring eth0 down? No.");
-                return;        
-        } else if (strcmp(iface, "wlan0") == 0) {
-                if (sensorbox_powersaving_enabled(box)) {
-                        log_info("Sensorbox: Bring wlan0 down? Yes.");
-                        sensorbox_bring_network_down(box);
-                } else {
-                        log_info("Sensorbox: Bring wlan0 down? No. "
-                                 "Not in power saving mode.");
-                }
-        } else if (strcmp(iface, "ppp0") == 0) {
-                log_info("Sensorbox: Bring ppp0 down? Yes.");
-                sensorbox_bring_network_down(box);
+        /* In powersaving mode, all network interfaces go
+           down. Otherwise, only the GSM interface goes down. */
+        if (sensorbox_powersaving_enabled(box)) {
+                if (config_iface_enabled(box->config, "eth0"))
+                        network_byebye("eth0");
+                
+                if (config_iface_enabled(box->config, "wlan0"))
+                        network_byebye("wlan0");
+                
+                if (config_iface_enabled(box->config, "ppp0"))
+                        network_byebye("ppp0");
+                
+        } else {
+                if (config_iface_enabled(box->config, "ppp0"))
+                        network_byebye("ppp0");
         }
 }
 
@@ -1456,14 +1457,10 @@ static int sensorbox_generate_network_interfaces(sensorbox_t* box)
 
         if (json_streq(box->config, "wired.inet", "dhcp")) {
                 fprintf(fp, 
-                        "auto eth0\n"
-                        "allow-hotplug eth0\n"
                         "iface eth0 inet dhcp\n\n");
 
         } else if (json_streq(box->config, "wired.inet", "static")) {
                 fprintf(fp, 
-                        "auto eth0\n"
-                        "allow-hotplug eth0\n"
                         "iface eth0 inet static\n"
                         "        address %s\n" 
                         "        netmask %s\n\n",
@@ -1473,8 +1470,6 @@ static int sensorbox_generate_network_interfaces(sensorbox_t* box)
 
         if (json_streq(box->config, "wifi.enable", "yes")) {
                 fprintf(fp, 
-                        "auto wlan0\n"
-                        "allow-hotplug wlan0\n"
                         "iface wlan0 inet dhcp\n"
                         "      wpa-ssid \"%s\"\n"
                         "      wpa-psk \"%s\"\n\n",
@@ -1493,45 +1488,6 @@ static int sensorbox_generate_network_interfaces(sensorbox_t* box)
         return 0;
 }
 
-static int sensorbox_generate_dhcpd_config(sensorbox_t* box)
-{
-        char filename[512];
-
-        snprintf(filename, 511, "%s/etc/dhcpd.conf", box->home_dir);
-        filename[511] = 0;
-        
-        FILE* fp = fopen(filename, "w");
-        if (fp == NULL) {
-                log_err("Failed to open temp dhcpd config file: %s", filename);
-                return -1;
-        }
-
-        if (json_streq(box->config, "wired.dhcpserver.enable", "yes")) {
-                fprintf(fp,
-                        "ddns-update-style none;\n"
-                        "option domain-name \"p2pfoodlab.lan\";\n"
-                        "option domain-name-servers %s\n"
-                        "default-lease-time 3600;\n"
-                        "max-lease-time 7200;\n"
-                        "authoritative;\n"
-                        "log-facility local7;\n"
-                        "\n"
-                        "subnet %s netmask %s {\n"
-                        "  range %s %s\n"
-                        "  option routers %s\n"
-                        "}\n\n",
-                        json_getstr(box->config, "wired.static.gateway"),
-                        json_getstr(box->config, "wired.dhcpserver.subnet"),
-                        json_getstr(box->config, "wired.static.netmask"),
-                        json_getstr(box->config, "wired.dhcpserver.from"),
-                        json_getstr(box->config, "wired.dhcpserver.to"),
-                        json_getstr(box->config, "wired.static.gateway"));
-        }
-        fclose(fp);
-        
-        return 0;
-}
-
 static int sensorbox_generate_wvdial_config(sensorbox_t* box)
 {
         char filename[512];
@@ -1541,7 +1497,7 @@ static int sensorbox_generate_wvdial_config(sensorbox_t* box)
         
         FILE* fp = fopen(filename, "w");
         if (fp == NULL) {
-                log_err("Failed to open temp dhcpd config file: %s", filename);
+                log_err("Failed to open temp wvdial config file: %s", filename);
                 return -1;
         }
 
@@ -1586,7 +1542,7 @@ static int sensorbox_generate_authorized_keys(sensorbox_t* box)
 
         FILE* fp = fopen(filename, "w");
         if (fp == NULL) {
-                log_err("Failed to open temp dhcpd config file: %s", filename);
+                log_err("Failed to open temp authorized_keys file: %s", filename);
                 return -1;
         }
 
@@ -1761,11 +1717,6 @@ static int sensorbox_install_network_interfaces(sensorbox_t* box)
         return sensorbox_install_file(box, "/etc/network/interfaces", "interfaces");
 }
 
-static int sensorbox_install_dhcpd_config(sensorbox_t* box)
-{
-        return sensorbox_install_file(box, "/etc/dhcp/dhcpd.conf", "dhcpd.conf");
-}
-
 static int sensorbox_install_wvdial_config(sensorbox_t* box)
 {
         return sensorbox_install_file(box, "/etc/wvdial.conf", "wvdial.conf");
@@ -1796,9 +1747,6 @@ void sensorbox_generate_system_files(sensorbox_t* box)
         if (sensorbox_generate_network_interfaces(box) == 0) 
                 sensorbox_install_network_interfaces(box);
 
-        if (sensorbox_generate_dhcpd_config(box) == 0) 
-                sensorbox_install_dhcpd_config(box);
-
         if (sensorbox_generate_wvdial_config(box) == 0) 
                 sensorbox_install_wvdial_config(box);
 
@@ -1814,15 +1762,8 @@ void sensorbox_update_network(sensorbox_t* box, const char* iface)
         if (sensorbox_install_network_interfaces(box) != 0)
                 return;
 
-        if (strcmp(iface, "eth0") == 0)
-                network_stop_dhcpd();
-
         network_ifdown(iface);
         network_ifup(iface);
-
-        if ((strcmp(iface, "eth0") == 0)
-            && json_streq(box->config, "wired.dhcpserver.enable", "yes"))
-                network_start_dhcpd();
 }
 
 void sensorbox_update_ssh(sensorbox_t* box)

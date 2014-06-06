@@ -101,7 +101,7 @@ int network_connected()
         return 1;
 }
 
-int network_ifaddr(const char* name, char *addr, int len)
+int network_ifaddr(const char* iface, char *addr, int len)
 {
         struct ifaddrs *ifaddr, *ifa;
         int s;
@@ -122,7 +122,7 @@ int network_ifaddr(const char* name, char *addr, int len)
                 if (ifa->ifa_addr->sa_family != AF_INET)
                         continue;
 
-                if (strcmp(ifa->ifa_name, name) == 0) {
+                if (strcmp(ifa->ifa_name, iface) == 0) {
 
                         s = getnameinfo(ifa->ifa_addr,
                                         sizeof(struct sockaddr_in),
@@ -164,24 +164,22 @@ int network_ifup(const char* name)
 
 int network_ifdown(const char* name)
 {
-        /* char buffer[1024]; */
-        /* int r = network_ifaddr(name, buffer, 1024); */
-        /* if (r == -1)  */
-        /*         return 0; */
-        /* log_info("Network: Shutting down %s (%s)", name, buffer); */
-
         log_info("Network: Shutting down %s", name);
         return network_ifchange(name, "/sbin/ifdown");
 }
 
 int network_gogo(const char* iface)
 {
-        if (network_connected() == 1) {
-                log_info("Network: Connected");
+        char addr[1024];
+
+        if (network_ifaddr(iface, addr, 1024) == 0) {
+                log_info("Network: %s is up, address %s", iface, addr);
                 return 0;
         }
+
         for (int i = 0; i < 5; i++) {
-                log_info("Network: Bringing up interface %s", iface);
+                log_info("Network: Bringing up interface %s (attempt %d/5)", 
+                         iface, i+1);
 
                 int ret = network_ifup(iface);
                 if (ret != 0) {
@@ -194,13 +192,13 @@ int network_gogo(const char* iface)
                         char addr[1024];
                         ret = network_ifaddr(iface, addr, 1024);
                         if (ret == 0) {
-                                log_info("Network: %s's address is %s", iface, addr);
+                                log_info("Network: %s is up, address %s", iface, addr);
                                 break;
                         } else
                                 sleep(10);
                 }
 
-                // check to be be sure
+                // check that we have network access to be be sure
                 if (network_connected()) {
                         log_info("Network: Connected");
                         return 0;
@@ -217,24 +215,4 @@ int network_gogo(const char* iface)
 int network_byebye(const char* iface)
 {
         return network_ifdown(iface);
-}
-
-int network_start_dhcpd()
-{
-        log_info("Sensorbox: Stopping DHCP daemon");
-        char* const argv[] = { "/usr/bin/sudo", "/usr/sbin/service", "isc-dhcp-server", "start", NULL};
-        int ret = system_run(argv);
-        if (ret != 0) 
-                log_warn("Sensorbox: 'service isc-dhcp-server start' failed (%d)", ret);
-        return ret;
-}
-
-int network_stop_dhcpd()
-{
-        log_info("Sensorbox: Stopping DHCP daemon");
-        char* const argv[] = { "/usr/bin/sudo", "/usr/sbin/service", "isc-dhcp-server", "stop", NULL};
-        int ret = system_run(argv);
-        if (ret != 0) 
-                log_warn("Sensorbox: 'service isc-dhcp-server stop' failed (%d)", ret);
-        return ret;
 }

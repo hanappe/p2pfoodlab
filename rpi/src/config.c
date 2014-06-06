@@ -132,68 +132,37 @@ int config_get_sensors(json_object_t config,
         return 0;
 }
 
+int config_iface_enabled(json_object_t config, const char* iface)
+{
+        if (strcmp(iface, "eth0") == 0)
+                return json_streq(config, "wired.enable", "yes");
+        if (strcmp(iface, "wlan0") == 0)
+                return json_streq(config, "wifi.enable", "yes");
+        if (strcmp(iface, "ppp0") == 0)
+                return json_streq(config, "gsm.enable", "yes");
+        return 0;
+}
+
 const char* config_get_network_interface(json_object_t config)
 {
-        json_object_t wifi_config = json_object_get(config, "wifi");
-        if (json_isnull(wifi_config) || !json_isobject(wifi_config)) {
-                log_err("Config: Failed to get the WiFi configuration"); 
-        } else {
-                json_object_t enabled = json_object_get(wifi_config, "enable");
-                if (!json_isstring(enabled)) {
-                        log_err("Config: WiFi enabled setting is not a JSON string, as expected"); 
-                } else if (json_string_equals(enabled, "yes")) {
-                        log_debug("Config: Using WiFi interface");
-                        return "wlan0";
-                }
-        }
-
-        json_object_t gsm_config = json_object_get(config, "gsm");
-        if (json_isnull(gsm_config) || !json_isobject(gsm_config)) {
-                log_err("Config: Failed to get the GSM configuration"); 
-        } else {
-                json_object_t enabled = json_object_get(gsm_config, "enable");
-                if (!json_isstring(enabled)) {
-                        log_err("Config: GSM enabled setting is not a JSON string, as expected"); 
-                } else if (json_string_equals(enabled, "yes")) {
-                        log_debug("Config: Using GSM interface");
-                        return "ppp0";
-                }
-        }
-        
-        return "eth0";
+        if (json_streq(config, "wired.enable", "yes"))
+                return "eth0";
+        if (json_streq(config, "wifi.enable", "yes"))
+                return "wlan0";
+        if (json_streq(config, "gsm.enable", "yes"))
+                return "ppp0";
+        log_warn("No network interface enabled.");
+        return NULL;
 }
 
 int config_powersaving_enabled(json_object_t config)
 {
-        json_object_t power = json_object_get(config, "power");
-        if (!json_isobject(power)) {
-                log_err("Config: Power settings are not a JSON object, as expected"); 
-                return 0;
-        }
-        json_object_t poweroff = json_object_get(power, "poweroff");
-        if (!json_isstring(poweroff)) {
-                log_err("Config: Poweroff setting is not a JSON string, as expected"); 
-                return 0;
-        }
-        if (json_string_equals(poweroff, "yes")) {
-                return 1;
-        }
-        return 0;
+        return json_streq(config, "power.poweroff", "yes");
 }
 
 int config_camera_enabled(json_object_t config)
 {
-        json_object_t camera_obj = json_object_get(config, "camera");
-        if (json_isnull(camera_obj)) {
-                log_err("Config: Could not find the camera configuration"); 
-                return -1;
-        }
-        json_object_t enabled = json_object_get(camera_obj, "enable");
-        if (!json_isstring(enabled)) {
-                log_err("Config: Camera enabled setting is not a JSON string, as expected"); 
-                return -1;
-        }
-        return json_string_equals(enabled, "yes")? 1 : 0;
+        return json_streq(config, "camera.enable", "yes");
 }
 
 static double config_get_general_value(json_object_t config, const char* name)
