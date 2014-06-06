@@ -952,10 +952,6 @@ void sensorbox_upload_data(sensorbox_t* box)
         if (rename(filename, backupfile) == -1) {
                 log_err("Sensorbox: Failed to copy datapoints to %s", backupfile); 
         }        
-
-        // FIXME: DEBUG!!!
-        log_info("Sensorbox: Uploading log file");
-        sensorbox_upload_status(box);
 }
 
 void sensorbox_upload_photos(sensorbox_t* box)
@@ -1837,6 +1833,11 @@ void sensorbox_update_ssh(sensorbox_t* box)
 
 int sensorbox_upload_status(sensorbox_t* box)
 {
+        if (!network_connected())
+                return;
+
+        log_info("Sensorbox: Uploading log file");
+
         char remote_name[512];
         snprintf(remote_name, 512, 
                  "sensorbox@p2pfoodlab.net:log-%s-%s.txt",
@@ -1849,6 +1850,6 @@ int sensorbox_upload_status(sensorbox_t* box)
                                remote_name, 
                                NULL };
 
-        return system_run(argv);        
+        return system_run(argv);
 }
 

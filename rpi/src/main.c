@@ -217,6 +217,7 @@ int main(int argc, char **argv)
                 /* Upload what ever data we have. */
                 sensorbox_upload_data(box);
                 sensorbox_upload_photos(box);
+                sensorbox_upload_status(box); // Only runs if network is up
 
                 /* Bring the network down, if not needed (particularly
                    GSM). */
