@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <math.h>
 
 #define HASHTABLE_MIN_SIZE 7
@@ -1252,6 +1253,22 @@ static void json_parser_set_error(json_parser_t* parser, int32 error, const char
 	parser->error_message = json_strdup(message);
 }
 
+/*
+static void json_parser_print_error(json_parser_t* parser, int32 error, const char* format, ...)
+{
+        char buffer[1024];
+        va_list ap;
+
+        va_start(ap, format);
+        vsnprintf(buffer, 1024, format, ap);
+        buffer[1023] = 0;
+        va_end(ap);
+
+	parser->error_code = error;
+	parser->error_message = json_strdup(buffer);        
+}
+*/
+
 static int32 json_parser_append(json_parser_t* parser, char c)
 {
 	if (parser->bufindex >= parser->buflen) {
@@ -1351,6 +1368,7 @@ static int32 json_parser_token(json_parser_t* parser, int32 token)
 	switch (state) {
 
 	case k_parse_done:
+                json_parser_set_error(parser, 1, "input data after end of parsing");
 		r = k_parsing_error;
 		break;
 
@@ -1434,6 +1452,7 @@ static int32 json_parser_token(json_parser_t* parser, int32 token)
 			break;
 
 		default:
+                        json_parser_set_error(parser, 1, "expected a new value");
 			r = k_parsing_error;
 			break;		
 		}
@@ -1448,6 +1467,7 @@ static int32 json_parser_token(json_parser_t* parser, int32 token)
 			}
 			parser->state_stack[parser->stack_top] = k_object_2; 
 		} else {
+                        json_parser_set_error(parser, 1, "expected a string (object field)");
 			r = k_parsing_error;
 		}
 		break;
@@ -1460,6 +1480,7 @@ static int32 json_parser_token(json_parser_t* parser, int32 token)
 				r = k_stack_overflow;
 			}
 		} else {
+                        json_parser_set_error(parser, 1, "expected a colon ':'");
 			r = k_parsing_error;
 		}
 		break;
@@ -1483,6 +1504,7 @@ static int32 json_parser_token(json_parser_t* parser, int32 token)
 			break;
 			
 		default:
+                        json_parser_set_error(parser, 1, "expected a object field value");
 			r = k_parsing_error;
 			break;
 		}
@@ -1508,6 +1530,7 @@ static int32 json_parser_token(json_parser_t* parser, int32 token)
 			break;
 
 		default:
+                        json_parser_set_error(parser, 1, "expected '}' or ','");
 			r = k_parsing_error;
 			break;
 		}
@@ -1530,6 +1553,7 @@ static int32 json_parser_token(json_parser_t* parser, int32 token)
 			break;
 			
 		default:
+                        json_parser_set_error(parser, 1, "expected array element");
 			r = k_parsing_error;
 			break;
 		}
@@ -1555,6 +1579,7 @@ static int32 json_parser_token(json_parser_t* parser, int32 token)
 			break;
 
 		default:
+                        json_parser_set_error(parser, 1, "expected ']' or ','");
 			r = k_parsing_error;
 			break;
 		}
@@ -2038,8 +2063,16 @@ json_object_t json_load(const char* filename, int* err, char* errmsg, int len)
                 json_parser_destroy(parser);
                 return json_null();
         }
+        int linenum = 1;
+        int colnum = 0;
+
         while (!json_parser_done(parser)) {
                 int c = fgetc(fp);
+                colnum++;
+                if (c == '\n') {
+                        linenum++;
+                        colnum = 0;
+                }
                 if (c == EOF) {
                         *err = 1;
                         snprintf(errmsg, len, "json_load: The file is corrupt.");
@@ -2052,8 +2085,8 @@ json_object_t json_load(const char* filename, int* err, char* errmsg, int len)
                 if (r != 0) {
                         *err = 1;
                         snprintf(errmsg, len, 
-                                 "json_load: Failed to parse the file: %s: %s.\n",
-                                 filename, json_parser_errstr(parser));
+                                 "json_load: %s:%d:%d  error: %s",
+                                 filename, linenum, colnum, json_parser_errstr(parser));
                         errmsg[len-1] = 0;
                         fclose(fp);
                         json_parser_destroy(parser);
