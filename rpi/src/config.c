@@ -220,6 +220,16 @@ static void config_copy(json_object_t src, json_object_t dest);
  
 static int32 config_copy_iterator(const char* key, json_object_t value, config_copy_stack_t* copy_stack)
 {
+        char indent[128];
+        
+        for (int i = 0; i < copy_stack->top; i++) {
+                indent[2*i] = ' ';
+                indent[2*i+1] = ' ';
+        }
+        indent[2*copy_stack->top] = '\0';
+
+        log_debug("        %sCopying '%s'", indent, key); 
+        
         json_object_t dest = copy_stack->stack[copy_stack->top];
 
         if (json_isobject(value)) {
@@ -252,7 +262,12 @@ static int32 config_copy_iterator(const char* key, json_object_t value, config_c
                                 json_array_set(v, e, i);
                 }
 
-        } else { 
+        } else if (json_isstring(value)) { 
+                log_debug("        - %s%s=%s", indent, key, json_string_value(value)); 
+                json_object_set(dest, key, value);
+
+        } else if (json_isnumber(value)) { 
+                log_debug("        - %s%s=%f", indent, key, json_number_value(value)); 
                 json_object_set(dest, key, value);
         }
 
@@ -284,12 +299,16 @@ void config_check_boot_file(json_object_t config, const char* bootfile)
 
         if (attrib_bootfile.st_mtime < attrib_curfile.st_mtime)
                 return;
+
+        log_debug("Config: Loading '%s'", bootfile); 
         
         newconfig = json_load(bootfile, &err, buffer, 512);
         if (err != 0) {
                 log_err("%s", buffer); 
                 return;
         } 
+
+        log_debug("Config: Merging '%s'", bootfile); 
 
         config_copy(newconfig, config);
 

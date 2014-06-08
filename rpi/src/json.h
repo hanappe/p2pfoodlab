@@ -99,6 +99,13 @@ typedef int32 (*json_writer_t)(void* userdata, const char* s, int32 len);
 
 json_object_t json_load(const char* filename, int* err, char* errmsg, int len);
 
+/*
+
+   object.field
+   array[index]
+   array[index].field
+
+*/
 json_object_t json_get(json_object_t obj, const char* expression);
 const char* json_getstr(json_object_t obj, const char* expression);
 int json_streq(json_object_t obj, const char* expression, const char* value);
