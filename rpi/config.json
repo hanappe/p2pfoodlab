@@ -40,7 +40,7 @@
   "camera":{
       "enable":"yes",
       "device":"\/dev\/video0",
-      "size":"1280x720",
+      "size":"640x480",
       "update":"fixed",
       "fixed":[
           {"h":"12","m":"00"},
