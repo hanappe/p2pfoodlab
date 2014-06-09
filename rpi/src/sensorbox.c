@@ -1255,6 +1255,28 @@ void sensorbox_bring_network_down_maybe(sensorbox_t* box)
         }
 }
 
+void sensorbox_bring_network_up_maybe(sensorbox_t* box)
+{
+        /* In powersaving mode, no network interfaces are brought
+           up. Otherwise bring up eth0 and wlan0, if enabled. */
+        if (!sensorbox_powersaving_enabled(box)) {
+                if (config_iface_enabled(box->config, "eth0"))
+                        network_gogo("eth0");
+                
+                if (config_iface_enabled(box->config, "wlan0"))
+                        network_gogo("wlan0");
+
+
+                if (!network_connected()) {
+                        log_info("Sensorbox: No network");
+                        return;
+                }
+                
+                if (sensorbox_run_ntp(box) == 0)
+                        sensorbox_set_time(box, time(NULL)); 
+        }
+}
+
 int sensorbox_lock(sensorbox_t* box) 
 {
         int fd;
