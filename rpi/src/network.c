@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <curl/curl.h>
 #include "log_message.h"
 #include "network.h"
 #include "system.h"
@@ -150,7 +151,7 @@ int network_ifchange(const char* name, const char* cmd)
 {
         log_info("Network: Running %s %s", cmd, name);
         char* const argv[] = { "/usr/bin/sudo", (char*) cmd, (char*) name, NULL};
-        return system_run(argv);
+        return system_run(argv, 180);
 }
 
 int network_ifup(const char* name)
@@ -216,3 +217,59 @@ int network_byebye(const char* iface)
 {
         return network_ifdown(iface);
 }
+
+int network_http_get(const char* url,
+                     const char* filename)
+{
+        FILE* fp = fopen(filename, "w");
+        if (fp == NULL) {
+                log_err("Network: Failed to open the file '%s'.", filename);
+                return -1;
+        }
+
+        CURL* curl = curl_easy_init();
+        if (curl == NULL) {
+                log_err("Network: Failed to initialise curl.");
+                fclose(fp);
+                return -1;
+        }
+        
+        char errmsg[CURL_ERROR_SIZE];
+
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 300L); // 5 minutes
+        curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errmsg);
+        
+        CURLcode res = curl_easy_perform(curl);
+        if (res != CURLE_OK) {
+                log_err("Network: Failed to get the data: %s", errmsg);
+                fclose(fp);
+                curl_easy_cleanup(curl);
+                curl = NULL;
+                return res;
+        }
+        fclose(fp);
+
+        long response_code = -1;
+        res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+        if (res != CURLE_OK) {
+                log_err("Network: Failed to obtain curl's response code.");
+                curl_easy_cleanup(curl);
+                curl = NULL;
+                return -1;
+        }
+        if (response_code != 200) {
+                log_err("Network: HTTP GET request failed (HTTP code %d).", response_code);
+                curl_easy_cleanup(curl);
+                curl = NULL;
+                return -1;
+        }
+        log_debug("Network: HTTP GET request successful (HTTP code %d).", response_code);
+                
+        curl_easy_cleanup(curl);
+        curl = NULL;
+
+        return 0;
+}
+

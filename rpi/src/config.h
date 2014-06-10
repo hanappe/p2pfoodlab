@@ -51,6 +51,7 @@ extern "C" {
         const char* config_getstr(json_object_t config, const char* expr);
         double config_getnum(json_object_t config, const char* expr);
         void config_check_boot_file(json_object_t config, const char* bootfile);
+        void config_check_online_file(json_object_t config);
 
 #ifdef __cplusplus
 }

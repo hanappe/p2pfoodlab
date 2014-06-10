@@ -27,7 +27,7 @@
 #include <unistd.h>
 #include "config.h"
 #include "log_message.h"
-#include "arduino.h"
+#include "network.h"
 
 static char* _file = NULL;
 
@@ -283,13 +283,33 @@ static void config_copy(json_object_t src, json_object_t dest)
         json_object_foreach(src, (json_iterator_t) config_copy_iterator, &config_copy_stack);
 }
 
+static int config_merge(json_object_t config, const char* filename)
+{
+        json_object_t newconfig;
+        int err;
+        char buffer[512];
+
+        log_debug("Config: Loading '%s'", filename); 
+        
+        newconfig = json_load(filename, &err, buffer, sizeof(buffer));
+        if (err != 0) {
+                log_err("%s", buffer); 
+                return -1;
+        } 
+
+        log_debug("Config: Merging '%s'", filename); 
+
+        config_copy(newconfig, config);
+
+        config_save(config);
+
+        return 0;
+}
+
 void config_check_boot_file(json_object_t config, const char* bootfile)
 {
         struct stat attrib_bootfile;
         struct stat attrib_curfile;
-        int err;
-        char buffer[512];
-        json_object_t newconfig;
 
         if (stat(bootfile, &attrib_bootfile) != 0)
                 return;
@@ -300,19 +320,33 @@ void config_check_boot_file(json_object_t config, const char* bootfile)
         if (attrib_bootfile.st_mtime < attrib_curfile.st_mtime)
                 return;
 
-        log_debug("Config: Loading '%s'", bootfile); 
-        
-        newconfig = json_load(bootfile, &err, buffer, 512);
-        if (err != 0) {
-                log_err("%s", buffer); 
-                return;
-        } 
-
-        log_debug("Config: Merging '%s'", bootfile); 
-
-        config_copy(newconfig, config);
-
-        config_save(config);
+        config_merge(config, bootfile);
 }
 
+void config_check_online_file(json_object_t config)
+{
+        const char* account = json_getstr(config, "general.account");
+        if (account == NULL) {
+                log_warn("Config: no value for 'general.account'");
+                return;
+        }
 
+        const char* name = json_getstr(config, "general.name");
+
+        char url[512];
+        snprintf(url, 512, "https://p2pfoodlab.net/sensorbox/%s/%s/config.json",
+                 account, name);
+        url[511] = 0;
+
+        char filename[512];
+        snprintf(filename, 512, "/tmp/config-%d.json", getpid());
+        filename[511] = 0;
+
+        int r = network_http_get(url, filename);
+        if (r != 0) {
+                log_warn("Config: failed to download '%s'", url);
+                return;
+        }
+
+        config_merge(config, filename);
+}

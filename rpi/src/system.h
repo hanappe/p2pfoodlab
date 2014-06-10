@@ -45,9 +45,13 @@ extern "C" {
         
         void delete_process(process_t* p);
         void process_wait(process_t* p);
+        int process_kill(process_t* p);
 
         process_t* system_exec(char* const argv[], int wait);
-        int system_run(char* const argv[]);
+
+        /* The timeout is measured in seconds. A value of 0 means no
+           timeout (wait indefinitely). */
+        int system_run(char* const argv[], int timeout);
 
 #ifdef __cplusplus
 }

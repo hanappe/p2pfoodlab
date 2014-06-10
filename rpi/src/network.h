@@ -33,6 +33,9 @@ extern "C" {
         int network_ifup(const char* iface);
         int network_ifdown(const char* iface);
 
+        int network_http_get(const char* url,
+                             const char* filename);
+
 #ifdef __cplusplus
 }
 #endif

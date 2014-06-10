@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <signal.h>
-#include <sys/wait.h>
+#include <time.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/select.h>
 #include "system.h"
 #include "log_message.h"
@@ -62,6 +62,46 @@ void process_wait(process_t* p)
         } else {
                 log_err("System: process_wait failed");
         }
+}
+
+static int _process_kill(process_t* p, int sig, const char* signame)
+{
+        int ret = kill(p->id, SIGINT);
+
+        if (ret == 0)  {
+                pid_t id = waitpid(p->id, &p->status, WNOHANG);
+
+                if (id == -1) {
+                        log_err("System: process_kill: waitpid failed: %s", strerror(errno));
+                        return -1;
+                        
+                } else if (WIFEXITED(p->status)) {
+                        p->exited = 1;
+                        p->ret = WEXITSTATUS(p->status);
+                        return 0;
+                }
+
+        } else if (errno == ESRCH) {
+                p->exited = 1;
+                p->ret = 0; // FIXME...
+                return 0;
+
+        } else {
+                log_err("System: process_kill: kill(%s) failed: %s", 
+                        signame, strerror(errno));
+                return -1;
+        }
+        return -1;
+}
+
+int process_kill(process_t* p)
+{
+        int r = _process_kill(p, SIGINT, "SIGINT");
+        if (r != 0) {
+                sleep(5);
+                r = _process_kill(p, SIGKILL, "SIGKILL");
+        }
+        return r;
 }
 	
 process_t* system_exec(char* const argv[], int wait)
@@ -150,9 +190,25 @@ process_t* system_exec(char* const argv[], int wait)
         }
 }
 
-int system_run(char* const argv[])
+int system_run(char* const argv[], int timeout)
 {
-        log_info("System: Running %s", argv[0]);
+        if (1) {
+                char buffer[1024];
+                int buflen = 0;
+                buffer[0] = 0;
+
+                for (int i = 0; argv[i] != NULL; i++) {
+                        int arglen = strlen(argv[i]);
+                        if (buflen + arglen + 2 < sizeof(buffer)) {                        
+                                strcat(buffer, argv[i]);
+                                strcat(buffer, " ");
+                        }
+                        buflen += arglen + 1;
+                }
+                buffer[sizeof(buffer)-1] = 0;
+
+                log_info("System: Running %s", buffer);
+        }
 
         process_t* p = system_exec(argv, 0);
         if (p == NULL) 
@@ -161,6 +217,8 @@ int system_run(char* const argv[])
         fd_set rfds;
         struct timeval tv;
         int retval;
+        time_t start_time = time(NULL);
+        time_t duration = 0;
 
         while (1) {
 
@@ -168,7 +226,7 @@ int system_run(char* const argv[])
                 FD_SET(p->out, &rfds);
                 FD_SET(p->err, &rfds);
 
-                tv.tv_sec = 10;
+                tv.tv_sec = 1;
                 tv.tv_usec = 0;
 
                 int nfds = (p->out > p->err)? p->out : p->err;
@@ -202,12 +260,20 @@ int system_run(char* const argv[])
                         if (count == 0)
                                 break;
 
-                } else {
+                }
+
+                duration = time(NULL) - start_time;
+                if ((timeout > 0) && (duration > timeout)) {
+                        log_err("System: %s: timed out", argv[0]);
                         break;
                 }
         }
 
-        process_wait(p);
+        duration = time(NULL) - start_time;
+        if ((timeout > 0) && (duration > timeout))
+                process_kill(p);
+        else 
+                process_wait(p);
 
         int ret = (p->exited && (p->ret == 0))? 0 : -1;
 
@@ -216,7 +282,7 @@ int system_run(char* const argv[])
         return ret;
 }
 
-int system_getserial(char *buffer, int len)
+int system_get_serial_number(char *buffer, int len)
 {
         FILE *f = fopen("/proc/cpuinfo", "r");
         if (f == NULL)

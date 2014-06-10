@@ -1197,7 +1197,7 @@ int sensorbox_run_ntp(sensorbox_t* box)
         char* const argv[] = { "/usr/bin/sudo", 
                                "/usr/sbin/ntpd", 
                                "-q", "-g", NULL};
-        int ret = system_run(argv);
+        int ret = system_run(argv, 120);
 
         log_debug("NTP returned %d", ret);
 
@@ -1815,6 +1815,6 @@ int sensorbox_upload_status(sensorbox_t* box)
                                remote_name, 
                                NULL };
 
-        return system_run(argv);
+        return system_run(argv, 180);
 }
 

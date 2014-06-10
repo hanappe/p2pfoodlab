@@ -32,7 +32,7 @@ do_start() {
     name_before=$(cat /etc/hostname)
 
     log_message "[p2pfoodlab] Info: Updating P2P Food Lab configuration files" 
-    /var/p2pfoodlab/bin/sensorbox generate-system-files
+    /var/p2pfoodlab/bin/sensorbox system-init
 
     name_after=$(cat /etc/hostname)
     if [ "x$name_before" != "x$name_after" ]; then
