@@ -1081,14 +1081,16 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
                 return;
 
         localtime_r(&t, &tm);
-        log_debug("Current time: %02d:%02d.", tm.tm_hour, tm.tm_min);
+        log_debug("Sensorbox: Considering powering off. Current time: %02d:%02d.", tm.tm_hour, tm.tm_min);
         int cur_minute = tm.tm_hour * 60 + tm.tm_min;
 
         event_t* e = eventlist_get_next(box->events, cur_minute + 1);
         if (e == NULL)
                 e = eventlist_get_next(box->events, 0);
-        if (e == NULL)
+        if (e == NULL) {
+                log_warn("Sensorbox: Couldn't determine the next event?!");
                 return;
+        }
 
         int delta;
         if (e->minute < cur_minute) 
@@ -1096,18 +1098,7 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
         else
                 delta = e->minute - cur_minute;
 
-        if (delta == 0) {
-                return;
-        } else if (delta == 1) {
-                log_info("Next event in 1 minute");
-                return;
-        } else if (delta <= 5) {
-                log_info("Next event in %d minute(s)", delta);
-        } else if ((delta < 60) && ((delta % 10) == 0)) {
-                log_info("Next event in %d minute(s)", delta);
-        } else if ((delta >= 60) && (delta % 60) == 0) {
-                log_info("Next event in %d minute(s)", delta);
-        }  
+        log_info("Next event in %d minute(s)", delta);
 
         /* Power off if:
            1. poweroff enabled in config
@@ -1119,8 +1110,10 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
          */
         int uptime = sensorbox_uptime(box);
         int enabled = sensorbox_powersaving_enabled(box);
-        if (!enabled) 
+        if (!enabled) {
+                log_debug("Sensorbox: Powering off not enabled");
                 return;
+        }
 
         if ((delta > 3) && (uptime > 180)) {
                 if (box->test) 
