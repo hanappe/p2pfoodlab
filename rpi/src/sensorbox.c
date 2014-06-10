@@ -1070,13 +1070,7 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
         time_t t;
         struct tm tm;
 
-        if (box->arduino == NULL) {
-                log_warn("Sensorbox: Failed to initialise Arduino"); 
-                return;
-        }
-
-        //t = time(NULL);
-        err = arduino_get_time(box->arduino, &t);
+        err = sensorbox_get_time(box, &t);
         if (err != 0)
                 return;
 
@@ -1129,7 +1123,11 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
 
 int sensorbox_get_time(sensorbox_t* box, time_t* m) 
 {
-        if (arduino_get_time(box->arduino, m) != 0) {
+        if (box->arduino == NULL) {
+                log_warn("Sensorbox: Arduino not initiliased"); 
+                log_warn("Sensorbox: Using local system time"); 
+                time(m);
+        } else if (arduino_get_time(box->arduino, m) != 0) {
                 log_warn("Failed to get Arduino's current time.");
                 log_warn("Sensorbox: Using local system time"); 
                 time(m);
