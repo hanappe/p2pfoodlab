@@ -149,7 +149,9 @@ fi
 echo --------------------------------------------------------
 echo STEP 7: Generating SSH keys
 
-sudo -u pi ssh-keygen -t rsa -N "" -f /home/pi/.ssh/id_rsa
+if [ ! -e /home/pi/.ssh/id_rsa ]; then
+    sudo -u pi ssh-keygen -t rsa -N "" -f /home/pi/.ssh/id_rsa
+fi
 
 echo --------------------------------------------------------
 echo Done!
