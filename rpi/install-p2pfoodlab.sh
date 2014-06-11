@@ -77,10 +77,18 @@ install --directory --owner=$uid --group=www-data --mode=0775 $dest/etc/opensens
 install --directory --owner=$uid --group=$gid --mode=0700 $home/.ssh
 
 install --directory --owner=$uid --group=www-data --mode=0755 $dest/web/data
-ln -s $dest/datapoints.csv $dest/web/data/datapoints.csv
-ln -s $dest/log.txt $dest/web/data/log.txt
-ln -s $dest/backup $dest/web/data/backup
-ln -s $dest/photostream $dest/web/data/photostream
+if [ ! -e $dest/web/data/datapoints.csv ]; then
+    ln -s $dest/datapoints.csv $dest/web/data/datapoints.csv
+fi
+if [ ! -e $dest/web/data/log.txt ]; then
+    ln -s $dest/log.txt $dest/web/data/log.txt
+fi
+if [ ! -e $dest/web/data/backup ]; then
+    ln -s $dest/backup $dest/web/data/backup
+fi
+if [ ! -e $dest/web/data/photostream ]; then
+    ln -s $dest/photostream $dest/web/data/photostream
+fi
 
 touch $dest/log.txt
 chown pi.www-data $dest/log.txt
