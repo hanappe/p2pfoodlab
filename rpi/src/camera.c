@@ -92,7 +92,7 @@ enum {
         CAMERA_ERROR
 };
 
-typedef struct _camera_t {
+struct _camera_t {
         io_method io;
         int fd;
         int debug;
@@ -111,7 +111,7 @@ typedef struct _camera_t {
         int jpeg_buffer_size;
         int image_size;
         int state;
-} camera_t;
+};
 
 static int camera_prepare(camera_t* camera);
 static int camera_open(camera_t* camera);
