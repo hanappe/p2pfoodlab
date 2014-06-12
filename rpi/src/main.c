@@ -39,6 +39,7 @@
 
 static char* _home_dir = "/var/p2pfoodlab";
 static char* _log_file = "/var/p2pfoodlab/log.txt";
+static char* _config_file = NULL;
 static char* _output_file = NULL;
 static int _test = 0;
 
@@ -51,28 +52,32 @@ static void usage(FILE* fp, int argc, char** argv)
         fprintf (fp,
                  "Usage: %s [options] [command]\n\n"
                  "Options:\n"
-                 "-h | --help          Print this message\n"
-                 "-v | --version       Print version\n"
-                 "-d | --d             Directory (default: /var/p2pfoodlab))\n"
-                 "-l | --log           Log file ('-' for stderr, default: /var/p2pfoodlab/log.txt)\n"
-                 "-t | --test          Test run\n"
-                 "-o | --output-file   Where to write the data/image to ['-' for console]\n"
-                 "-D | --debug         Print debug message\n"
+                 "-h | --help              Print this message\n"
+                 "-v | --version           Print version\n"
+                 "-d | --directory         Directory (default: /var/p2pfoodlab)\n"
+                 "-c | --config            Alternative config file (default: ${directory}/etc/config.json)\n"
+                 "-l | --log               Log file ('-' for stderr, default: /var/p2pfoodlab/log.txt)\n"
+                 "-t | --test              Test run\n"
+                 "-o | --output-file       Where to write the data/image to ['-' for console]\n"
+                 "-D | --debug             Print debug message\n"
                  "Commands:\n"
-                 "  update             Parse the config, create the OpenSensorData definitions if needed,\n"
-                 "                     update sensors and/or camera if necessary,\n"
-                 "                     upload data and photos [default]\n"
-                 "  store-data         Store the latest sensor values\n"
-                 "  upload-data        Upload the datapoints\n"
-                 "  camera             Grab a photo\n"
-                 "  upload-photos      Upload the photos on the disk\n"
-                 "  get-time           Get the current time on the arduino\n"
-                 "  set-time           Set the time on the arduino\n"
-                 "  list-events        Set the time on the arduino\n"
-                 "  ifup               Bring the network inerface up\n"
-                 "  ifdown             Bring the network inerface down\n"
-                 "  osd                Create the OpenSensorData definitions\n"
-                 "  measure            Measure and print sensor values\n"
+                 "  update                 Parse the config, create the OpenSensorData definitions if needed,\n"
+                 "                         update sensors and/or camera if necessary,\n"
+                 "                         upload data and photos [default]\n"
+                 "  store-data             Store the latest sensor values\n"
+                 "  upload-data            Upload the datapoints\n"
+                 "  camera                 Grab a photo\n"
+                 "  upload-photos          Upload the photos on the disk\n"
+                 "  get-time               Get the current time on the arduino\n"
+                 "  set-time               Set the time on the arduino\n"
+                 "  list-events            Set the time on the arduino\n"
+                 "  ifup                   Bring the network inerface up\n"
+                 "  ifdown                 Bring the network inerface down\n"
+                 "  osd                    Create the OpenSensorData definitions\n"
+                 "  measure                Measure and print sensor values\n"
+                 "  generate-system-files  Generate system files\n"
+                 "  system-init            Generate system files and bring up the network\n"
+                 "  merge filename         Merge the file into the existing config file\n"
                  "",
                  argv[0]);
 }
@@ -88,13 +93,14 @@ static void print_version(FILE* fp)
 
 static void parse_arguments(int argc, char **argv)
 {
-        static const char short_options [] = "hvtDd:l:o:";
+        static const char short_options [] = "hvtDd:l:o:c:";
 
         static const struct option
                 long_options [] = {
                 { "help",        no_argument, NULL, 'h' },
                 { "version",     no_argument, NULL, 'v' },
                 { "directory",   required_argument, NULL, 'd' },
+                { "config",      required_argument, NULL, 'c' },
                 { "log",         required_argument, NULL, 'l' },
                 { "test",        no_argument, NULL, 't' },
                 { "debug",       no_argument, NULL, 'D' },
@@ -128,6 +134,9 @@ static void parse_arguments(int argc, char **argv)
                         break;
                 case 'd':
                         _home_dir = optarg;
+                        break;
+                case 'c':
+                        _config_file = optarg;
                         break;
                 case 'l':
                         _log_file = optarg;
@@ -169,7 +178,7 @@ int main(int argc, char **argv)
 
         init_log(_log_file);
 
-        sensorbox_t* box = new_sensorbox(_home_dir);
+        sensorbox_t* box = new_sensorbox(_home_dir, _config_file);
         if (box == NULL) 
                 exit(1);
 
@@ -186,19 +195,8 @@ int main(int argc, char **argv)
 
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
-                
-                /* Check whether the time needs to be set. */
-                time_t t;
-                int r = sensorbox_get_time(box, &t);
-                if (r != 0) {
-                        log_warn("Failed to get the current time.");
-                } else if (t < 1395332000L) {
-                        /* The time on the Arduino has not been
-                           set. Run NTP and pass the correct date to
-                           Arduino. */
-                        log_warn("Arduino's time is not set.");
-                        sensorbox_bring_network_up_and_run_ntp(box);
-                }
+
+                sensorbox_init_time(box);
 
                 /* Check whether the definitions of the datastream are
                    up-to-date. */
@@ -287,6 +285,14 @@ int main(int argc, char **argv)
         } else if (strcmp(command, "ifup") == 0) {
                 sensorbox_bring_network_up(box);
 
+        } else if (strcmp(command, "merge") == 0) {
+                if (optind < argc) {
+                        const char* filename = argv[optind++];
+                        sensorbox_merge_config(box, filename);
+                } else {
+                        usage(stderr, argc, argv);                        
+                }
+
         } else if (strcmp(command, "osd") == 0) {
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
@@ -339,3 +345,4 @@ int main(int argc, char **argv)
         delete_sensorbox(box);
         exit(1);
 }
+
