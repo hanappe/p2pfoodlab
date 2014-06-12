@@ -45,7 +45,7 @@ extern "C" {
         
         void delete_process(process_t* p);
         void process_wait(process_t* p);
-        int process_kill(process_t* p);
+        int process_kill(process_t* p, int sudo);
 
         process_t* system_exec(char* const argv[], int wait);
 

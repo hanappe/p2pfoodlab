@@ -64,8 +64,21 @@ void process_wait(process_t* p)
         }
 }
 
-static int _process_kill(process_t* p, int sig, const char* signame)
+static int _process_kill(process_t* p, int sig, const char* signame, int sudo)
 {
+        if (sudo) { // FIXME....?!
+                char buffer[32];
+                snprintf(buffer, 31, "%d", p->id);
+                buffer[31] = 0;
+
+                char* const argv[] = { "/usr/bin/sudo", 
+                                       "kill", "-9", buffer, NULL};
+                int ret = system_run(argv, 0);                
+                p->exited = 1;
+                p->ret = 1;
+                return ret;
+        }
+
         int ret = kill(p->id, SIGINT);
 
         if (ret == 0)  {
@@ -94,12 +107,12 @@ static int _process_kill(process_t* p, int sig, const char* signame)
         return -1;
 }
 
-int process_kill(process_t* p)
+int process_kill(process_t* p, int sudo)
 {
-        int r = _process_kill(p, SIGINT, "SIGINT");
+        int r = _process_kill(p, SIGINT, "SIGINT", sudo);
         if (r != 0) {
                 sleep(5);
-                r = _process_kill(p, SIGKILL, "SIGKILL");
+                r = _process_kill(p, SIGKILL, "SIGKILL", sudo);
         }
         return r;
 }
@@ -208,6 +221,7 @@ int system_run(char* const argv[], int timeout)
                 buffer[sizeof(buffer)-1] = 0;
 
                 log_info("System: Running %s", buffer);
+                if (timeout) log_info("System: Timeout set to %d", timeout);
         }
 
         process_t* p = system_exec(argv, 0);
@@ -263,6 +277,7 @@ int system_run(char* const argv[], int timeout)
                 }
 
                 duration = time(NULL) - start_time;
+                log_debug("System: Duration %d", duration);
                 if ((timeout > 0) && (duration > timeout)) {
                         log_err("System: %s: timed out", argv[0]);
                         break;
@@ -270,10 +285,14 @@ int system_run(char* const argv[], int timeout)
         }
 
         duration = time(NULL) - start_time;
-        if ((timeout > 0) && (duration > timeout))
-                process_kill(p);
-        else 
+        if ((timeout > 0) && (duration > timeout)) {
+                int sudo = 0;
+                if (strstr(argv[0], "/sudo") != NULL)
+                        sudo = 1;
+                process_kill(p, sudo);
+        } else { 
                 process_wait(p);
+        }
 
         int ret = (p->exited && (p->ret == 0))? 0 : -1;
 
