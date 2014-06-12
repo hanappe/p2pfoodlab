@@ -216,74 +216,75 @@ typedef struct _config_copy_stack_t {
         json_object_t stack[32];
 } config_copy_stack_t;
 
-static void config_copy(json_object_t src, json_object_t dest);
- 
-static int32 config_copy_iterator(const char* key, json_object_t value, config_copy_stack_t* copy_stack)
+static void config_merge_object(json_object_t src, json_object_t dest);
+static void config_merge_array(json_object_t src, json_object_t dest);
+
+void config_merge_array(json_object_t src, json_object_t dest)
 {
-        char indent[128];
-        
-        for (int i = 0; i < copy_stack->top; i++) {
-                indent[2*i] = ' ';
-                indent[2*i+1] = ' ';
+        int length = json_array_length(src);
+
+        for (int i = 0; i < length; i++) {
+                json_object_t val_src = json_array_get(src, i);
+                json_object_t val_dst = json_array_get(dest, i);
+                
+                if (json_isstring(val_src)) {
+                        json_array_set(dest, val_src, i);
+                        
+                } else if (json_isnumber(val_src)) {
+                        json_array_set(dest, val_src, i);
+                        
+                } else if (json_isobject(val_src)) {
+                        if (!json_isobject(val_dst))
+                                json_array_set(dest, val_dst, i);
+                        else
+                                config_merge_object(val_src, val_dst);
+                        
+                }  else if (json_isarray(val_src)) {
+                        if (!json_isarray(val_dst))
+                                json_array_set(dest, val_dst, i);
+                        else
+                                config_merge_array(val_src, val_dst);
+                }
         }
-        indent[2*copy_stack->top] = '\0';
+}
 
-        log_debug("        %sCopying '%s'", indent, key); 
-        
-        json_object_t dest = copy_stack->stack[copy_stack->top];
-
+static int32 config_copy_object_field(json_object_t dest, const char* key, json_object_t value)
+{
         if (json_isobject(value)) {
                 json_object_t v = json_object_get(dest, key);
-                if (!json_isobject(v)) {
-                        v = json_object_create();
+                if (!json_isobject(v))
                         json_object_set(dest, key, v);
-                        json_unref(v);
-                }
-
-                if (copy_stack->top >= 32)
-                        return -1;
-
-                copy_stack->stack[++copy_stack->top] = v;
-                config_copy(value, v);
-                copy_stack->top--;
+                else
+                        config_merge_object(value, v);
 
         } else if (json_isarray(value)) {
                 json_object_t v = json_object_get(dest, key);
-                if (json_isarray(v)) {
-                        v = json_array_create();
-                        json_object_set(dest, key, v);
-                        json_unref(v);
-                }
-                
-                int length = json_array_length(value);
-                for (int i = 0; i < length; i++) {
-                        json_object_t e = json_array_get(value, i);
-                        if (json_isnumber(e) || json_isstring(e))
-                                json_array_set(v, e, i);
-                }
+                if (!json_isarray(v))
+                        json_object_set(dest, key, value);
+                else
+                        config_merge_array(value, v);
 
         } else if (json_isstring(value)) { 
-                log_debug("        - %s%s=%s", indent, key, json_string_value(value)); 
                 json_object_set(dest, key, value);
 
         } else if (json_isnumber(value)) { 
-                log_debug("        - %s%s=%f", indent, key, json_number_value(value)); 
                 json_object_set(dest, key, value);
         }
 
         return 0;
 }
-
-static void config_copy(json_object_t src, json_object_t dest)
+ 
+static int32 config_copy_iterator(const char* key, json_object_t value, json_object_t dest)
 {
-        config_copy_stack_t config_copy_stack;
-        
-        config_copy_stack.top = 0;
-        config_copy_stack.stack[0] = dest;
-        json_object_foreach(src, (json_iterator_t) config_copy_iterator, &config_copy_stack);
+        return config_copy_object_field(dest, key, value);
 }
 
-static int config_merge(json_object_t config, const char* filename)
+static void config_merge_object(json_object_t src, json_object_t dest)
+{
+        json_object_foreach(src, (json_iterator_t) config_copy_iterator, dest);
+}
+
+int config_merge(json_object_t config, const char* filename)
 {
         json_object_t newconfig;
         int err;
@@ -299,7 +300,7 @@ static int config_merge(json_object_t config, const char* filename)
 
         log_debug("Config: Merging '%s'", filename); 
 
-        config_copy(newconfig, config);
+        config_merge_object(newconfig, config);
 
         config_save(config);
 
