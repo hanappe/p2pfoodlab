@@ -78,13 +78,16 @@ extern "C" {
 
         typedef struct _sensorbox_t sensorbox_t;
 
-        sensorbox_t* new_sensorbox(const char* dir);
+        /* If config_file is NULL, the default config file will be
+           loaded. */
+        sensorbox_t* new_sensorbox(const char* dir, const char* config_file);
         int sensorbox_init(sensorbox_t* box);
 
         int delete_sensorbox(sensorbox_t* sensorbox);
 
         const char* sensorbox_getdir(sensorbox_t* box);
         void sensorbox_test_run(sensorbox_t* sensorbox);
+        void sensorbox_init_time(sensorbox_t* sensorbox);
         void sensorbox_handle_events(sensorbox_t* box);
         void sensorbox_upload_data(sensorbox_t* box);
         void sensorbox_upload_photos(sensorbox_t* box);
@@ -127,8 +130,10 @@ extern "C" {
         void sensorbox_measure(sensorbox_t* box);
         void sensorbox_reset_stack(sensorbox_t* box);
 
+        void sensorbox_merge_config(sensorbox_t* box, const char* filename);
         void sensorbox_generate_system_files(sensorbox_t* box);                
         int sensorbox_upload_status(sensorbox_t* box);
+
 
 #ifdef __cplusplus
 }

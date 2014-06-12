@@ -55,6 +55,7 @@ struct _sensorbox_t {
         int test;
         FILE* datafp;
         int lock;
+        int use_arduino_time;
         unsigned char sensors_enabled;
         unsigned char sensors_period;
         sensor_t sensors[SENSOR_COUNT];
@@ -62,7 +63,7 @@ struct _sensorbox_t {
         photostream_t photostream;
 };
 
-static int sensorbox_load_config(sensorbox_t* box);
+static int sensorbox_load_config(sensorbox_t* box, const char* path);
 static int sensorbox_load_sensors(sensorbox_t* box);
 static char* sensorbox_path(sensorbox_t* box, const char* filename);
 static int sensorbox_init_osd(sensorbox_t* box);
@@ -73,7 +74,7 @@ static int sensorbox_init_camera(sensorbox_t* box);
 static void sensorbox_handle_event(sensorbox_t* box, event_t* e, time_t t);
 static void sensorbox_poweroff(sensorbox_t* box, int minutes);
 
-sensorbox_t* new_sensorbox(const char* dir)
+sensorbox_t* new_sensorbox(const char* dir, const char* config_file)
 {
         sensorbox_t* box = (sensorbox_t*) malloc(sizeof(sensorbox_t));
         if (box == NULL) { 
@@ -85,7 +86,7 @@ sensorbox_t* new_sensorbox(const char* dir)
         box->home_dir = strdup(dir);
         box->lock = -1;
 
-        if (sensorbox_load_config(box) != 0) {
+        if (sensorbox_load_config(box, config_file) != 0) {
                 delete_sensorbox(box);
                 return NULL;
         }
@@ -119,6 +120,24 @@ int sensorbox_init(sensorbox_t* box)
         return 0;
 }
 
+void sensorbox_init_time(sensorbox_t* box)
+{
+        /* Check whether the time needs to be set. */
+        time_t t = 0;
+
+        if ((box->arduino != NULL)
+            && (arduino_get_time(box->arduino, &t) != 0) 
+            && (t > 1395332000L)) {
+                log_warn("Sensorbox: Using Arduino's current time.");
+                box->use_arduino_time = 1;
+        } else {
+                log_warn("Sensorbox: Can't rely on the Arduino for the current time.");
+                log_warn("Sensorbox: Bringing up network to run NTP and using local system time"); 
+                box->use_arduino_time = 0;
+                sensorbox_bring_network_up_and_run_ntp(box);
+        }
+}
+
 int delete_sensorbox(sensorbox_t* box)
 {
         json_unref(box->config);
@@ -141,11 +160,14 @@ static char* sensorbox_path(sensorbox_t* box, const char* filename)
         return box->filenamebuf;
 }
 
-static int sensorbox_load_config(sensorbox_t* box)
+static int sensorbox_load_config(sensorbox_t* box, const char* path)
 {
-        box->config = config_load(sensorbox_path(box, "etc/config.json"));
+        if (path == NULL) 
+                path = sensorbox_path(box, "etc/config.json");
+
+        box->config = config_load(path);
         if (json_isnull(box->config)) {
-                log_err("Sensorbox: Failed to load the config file"); 
+                log_err("Sensorbox: Failed to load the config file: %s", path); 
                 return -1;
         } 
         return 0;
@@ -365,32 +387,43 @@ static int sensorbox_add_fixed_events(sensorbox_t* box, json_object_t fixed, int
                         log_err("Sensorbox: Camera fixed update time setting is invalid"); 
                         continue;
                 }
+                int h, m;
                 json_object_t hs = json_object_get(time, "h");
-                if (!json_isstring(hs)) {
+                if (!json_isstring(hs) && !json_isnumber(hs)) {
                         log_err("Sensorbox: Camera fixed update time setting is invalid"); 
                         continue;
                 }
-                if (json_string_equals(hs, "")) {
-                        continue;
+                if (json_isstring(hs)) {
+                        if (json_string_equals(hs, "")) {
+                                continue;
+                        }
+                        h = atoi(json_string_value(hs));
+                        if ((h < 0) || (h > 23)) {
+                                log_err("Sensorbox: Invalid camera update hour: %d", h); 
+                                continue;
+                        }
+                } else {
+                        h = (int) json_number_value(hs);
                 }
-                int h = atoi(json_string_value(hs));
-                if ((h < 0) || (h > 23)) {
-                        log_err("Sensorbox: Invalid camera update hour: %d", h); 
-                        continue;
-                }
+
                 json_object_t ms = json_object_get(time, "m");
-                if (!json_isstring(ms)) {
+                if (!json_isstring(ms) && !json_isstring(ms)) {
                         log_err("Sensorbox: Camera fixed update time setting is invalid"); 
                         continue;
                 }
-                if (json_string_equals(ms, "")) {
-                        continue;
+                if (json_isstring(ms)) {
+                        if (json_string_equals(ms, "")) {
+                                continue;
+                        }
+                        m = atoi(json_string_value(ms));
+                        if ((m < 0) || (m > 59)) {
+                                log_err("Sensorbox: Invalid camera update minute: %d", m); 
+                                continue;
+                        }
+                } else {
+                        m = (int) json_number_value(ms);
                 }
-                int m = atoi(json_string_value(ms));
-                if ((m < 0) || (m > 59)) {
-                        log_err("Sensorbox: Invalid camera update minute: %d", m); 
-                        continue;
-                }
+
                 event_t* e = new_event(h * 60 + m, type);
                 if (e == NULL)
                         return -1;
@@ -440,7 +473,6 @@ static int sensorbox_init_camera(sensorbox_t* box)
                 }
                 if (sensorbox_add_periodic_events(box, value, UPDATE_CAMERA) != 0)
                         return -1;
-                        
 
         } else {
                 log_err("Sensorbox: Invalid camera update setting: '%s'", 
@@ -550,10 +582,15 @@ void sensorbox_grab_image(sensorbox_t* box, const char* filename)
         if (box->camera == NULL)
                 return;
 
-        int error = camera_capture(box->camera);
-        if (error) {
-                log_err("Sensorbox: Failed to grab the image"); 
-                return;
+        int error;
+
+        for (int i = 0; i < 10; i++) {
+                error = camera_capture(box->camera);
+                if (error) {
+                        log_err("Sensorbox: Failed to grab the image"); 
+                        return;
+                }
+                usleep(200 * 1000); // 200 msec
         }
 
         log_info("Sensorbox: Storing photo in %s", filename);
@@ -1123,13 +1160,14 @@ void sensorbox_poweroff_maybe(sensorbox_t* box)
 
 int sensorbox_get_time(sensorbox_t* box, time_t* m) 
 {
-        if (box->arduino == NULL) {
-                log_warn("Sensorbox: Arduino not initiliased"); 
-                log_warn("Sensorbox: Using local system time"); 
-                time(m);
-        } else if (arduino_get_time(box->arduino, m) != 0) {
-                log_warn("Failed to get Arduino's current time.");
-                log_warn("Sensorbox: Using local system time"); 
+        if (box->use_arduino_time) {
+                if (arduino_get_time(box->arduino, m) != 0) {
+                        log_warn("Failed to get Arduino's current time.");
+                        log_warn("Sensorbox: Using local system time instead"); 
+                        time(m);
+                        box->use_arduino_time = 0;
+                }
+        } else {
                 time(m);
         }
         return 0;
@@ -1468,17 +1506,19 @@ static int sensorbox_generate_network_interfaces(sensorbox_t* box)
                 "auto lo\n"
                 "iface lo inet loopback\n\n");
 
-        if (json_streq(box->config, "wired.inet", "dhcp")) {
-                fprintf(fp, 
-                        "iface eth0 inet dhcp\n\n");
-
-        } else if (json_streq(box->config, "wired.inet", "static")) {
-                fprintf(fp, 
-                        "iface eth0 inet static\n"
-                        "        address %s\n" 
-                        "        netmask %s\n\n",
-                        json_getstr(box->config, "wired.static.address"),
-                        json_getstr(box->config, "wired.static.netmask"));
+        if (json_streq(box->config, "wired.enable", "yes")) {
+                if (json_streq(box->config, "wired.inet", "dhcp")) {
+                        fprintf(fp, 
+                                "iface eth0 inet dhcp\n\n");
+                        
+                } else if (json_streq(box->config, "wired.inet", "static")) {
+                        fprintf(fp, 
+                                "iface eth0 inet static\n"
+                                "        address %s\n" 
+                                "        netmask %s\n\n",
+                                json_getstr(box->config, "wired.static.address"),
+                                json_getstr(box->config, "wired.static.netmask"));
+                }
         }
 
         if (json_streq(box->config, "wifi.enable", "yes")) {
@@ -1807,5 +1847,10 @@ int sensorbox_upload_status(sensorbox_t* box)
                                NULL };
 
         return system_run(argv, 180);
+}
+
+void sensorbox_merge_config(sensorbox_t* box, const char* filename)
+{
+        config_merge(box->config, filename);
 }
 
