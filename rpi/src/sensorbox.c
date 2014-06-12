@@ -124,16 +124,22 @@ void sensorbox_init_time(sensorbox_t* box)
 {
         /* Check whether the time needs to be set. */
         time_t t = 0;
+        box->use_arduino_time = 1;
 
-        if ((box->arduino != NULL)
-            && (arduino_get_time(box->arduino, &t) != 0) 
-            && (t > 1395332000L)) {
-                log_warn("Sensorbox: Using Arduino's current time.");
-                box->use_arduino_time = 1;
-        } else {
+        if (box->arduino == NULL) {
+                log_warn("Sensorbox: Not using Arduino's time: Arduino not initialised.");
+                box->use_arduino_time = 0;
+        } else if (arduino_get_time(box->arduino, &t) != 0) {
+                log_warn("Sensorbox: Not using Arduino's time: Failed to retrieve the time.");
+                box->use_arduino_time = 0;
+        } else if (t < 1395332000L) {
+                log_warn("Sensorbox: Not using Arduino's time: Time not set.");
+                box->use_arduino_time = 0;
+        }
+
+        if (!box->use_arduino_time) {
                 log_warn("Sensorbox: Can't rely on the Arduino for the current time.");
                 log_warn("Sensorbox: Bringing up network to run NTP and using local system time"); 
-                box->use_arduino_time = 0;
                 sensorbox_bring_network_up_and_run_ntp(box);
         }
 }
@@ -1841,7 +1847,7 @@ int sensorbox_upload_status(sensorbox_t* box)
                  json_getstr(box->config, "opensensordata.key"));
         
         char* const argv[] = { "/usr/bin/rsync", 
-                               "-q",
+                               "-qz",
                                "-e", "/usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q",
                                "--timeout=60", 
                                "/var/p2pfoodlab/log.txt", 
