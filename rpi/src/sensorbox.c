@@ -1827,6 +1827,8 @@ void sensorbox_update_ssh(sensorbox_t* box)
 
 int sensorbox_upload_status(sensorbox_t* box)
 {
+        // FIXME: find to way to upload only once a day.
+
         if (!network_connected())
                 return 0;
 
@@ -1841,7 +1843,7 @@ int sensorbox_upload_status(sensorbox_t* box)
         char* const argv[] = { "/usr/bin/rsync", 
                                "-q",
                                "-e", "/usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q",
-                               "--timeout=30", 
+                               "--timeout=60", 
                                "/var/p2pfoodlab/log.txt", 
                                remote_name, 
                                NULL };
