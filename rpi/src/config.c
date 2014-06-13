@@ -228,9 +228,11 @@ void config_merge_array(json_object_t src, json_object_t dest)
                 json_object_t val_dst = json_array_get(dest, i);
                 
                 if (json_isstring(val_src)) {
+                        log_debug("Config: [%d]='%s'", i, json_string_value(val_src));
                         json_array_set(dest, val_src, i);
                         
                 } else if (json_isnumber(val_src)) {
+                        log_debug("Config: [%d]=%f", i, json_number_value(val_src));
                         json_array_set(dest, val_src, i);
                         
                 } else if (json_isobject(val_src)) {
@@ -250,6 +252,8 @@ void config_merge_array(json_object_t src, json_object_t dest)
 
 static int32 config_copy_object_field(json_object_t dest, const char* key, json_object_t value)
 {
+        log_debug("Config: Merging '%s'", key);
+
         if (json_isobject(value)) {
                 json_object_t v = json_object_get(dest, key);
                 if (!json_isobject(v))
@@ -265,9 +269,11 @@ static int32 config_copy_object_field(json_object_t dest, const char* key, json_
                         config_merge_array(value, v);
 
         } else if (json_isstring(value)) { 
+                log_debug("Config: '%s'='%s'", key, json_string_value(value));
                 json_object_set(dest, key, value);
 
         } else if (json_isnumber(value)) { 
+                log_debug("Config: '%s'=%d", key, json_number_value(value));
                 json_object_set(dest, key, value);
         }
 
