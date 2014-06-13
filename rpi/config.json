@@ -4,8 +4,7 @@
       "pwhash":"dd9dc0780de4c0ff4bad8789f821e16b"
   },
   "general": {
-      "name":"test_test",
-      "email":"yourname@example.com",
+      "name":"pleasegivemeaname",
       "timezone":"1",
       "latitude":"0.000000",
       "longitude":"0.000000"
@@ -43,7 +42,7 @@
       "size":"640x480",
       "update":"fixed",
       "fixed":[
-          {"h":"12","m":"00"},
+          {"h":"10","m":"00"},
           {"h":"","m":""},
           {"h":"","m":""},
           {"h":"","m":""}],
@@ -58,7 +57,7 @@
       "update":"60",
       "upload":"fixed",
       "fixed":[
-          {"h":"12","m":"00"},
+          {"h":"10","m":"00"},
           {"h":"","m":""},
           {"h":"","m":""},
           {"h":"","m":""}],
