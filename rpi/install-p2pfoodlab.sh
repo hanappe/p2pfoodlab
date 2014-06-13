@@ -123,9 +123,6 @@ echo P2P Food Lab daemon:
 update-rc.d p2pfoodlab start 99 2 3 4 5 . stop 99 0 6 .
 #update-rc.d arduino-hwclock start 10 S . stop 10 0 1 6 .
 
-echo P2P Food Lab init scripts:
-update-rc.d p2pfoodlab-init start 01 S .
-
 service p2pfoodlab restart
 
 # Restart the web server.
