@@ -1,12 +1,12 @@
 #!/bin/bash
 
-rm /var/p2pfoodlab/etc/config.json
-rm /var/p2pfoodlab/etc/opensensordata/*
+rm -f /var/p2pfoodlab/etc/config.json
+rm -f /var/p2pfoodlab/etc/opensensordata/*
 rm -rf ~/.ssh/
 sudo rm -f /boot/p2pfoodlab*.json*
 > /var/p2pfoodlab/log.txt
-rm /home/pi/.bash_history 
-sudo rm /root/.bash_history 
+rm -f /home/pi/.bash_history 
+sudo rm -f /root/.bash_history 
 
 cd /home/pi/p2pfoodlab/rpi/src/
 git pull
