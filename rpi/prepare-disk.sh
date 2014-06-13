@@ -20,3 +20,5 @@ sudo rm -rf /var/p2pfoodlab/backup/*
 
 sudo cp /home/pi/p2pfoodlab/rpi/boot/p2pfoodlab.json /boot/p2pfoodlab.json
 
+history -c
+history -w
