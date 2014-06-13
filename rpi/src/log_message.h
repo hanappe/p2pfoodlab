@@ -38,7 +38,6 @@ extern "C" {
 int log_get_level();
 void log_set_level(int level);
 int log_set_file(const char* filename);
-void log_set_filep(FILE* file);
 
 void log_err(const char* format, ...);
 void log_warn(const char* format, ...);

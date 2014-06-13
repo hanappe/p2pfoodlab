@@ -46,6 +46,7 @@
 
 struct _sensorbox_t {
         char* home_dir;
+        char* log_file;
         json_object_t config;
         arduino_t* arduino;
         camera_t* camera;
@@ -74,8 +75,12 @@ static int sensorbox_init_camera(sensorbox_t* box);
 static void sensorbox_handle_event(sensorbox_t* box, event_t* e, time_t t);
 static void sensorbox_poweroff(sensorbox_t* box, int minutes);
 
-sensorbox_t* new_sensorbox(const char* dir, const char* config_file)
+sensorbox_t* new_sensorbox(const char* dir, 
+                           const char* config_file, 
+                           const char* log_file)
 {
+        log_set_file(log_file);
+
         sensorbox_t* box = (sensorbox_t*) malloc(sizeof(sensorbox_t));
         if (box == NULL) { 
                 log_err("Sensorbox: out of memory");
@@ -83,8 +88,22 @@ sensorbox_t* new_sensorbox(const char* dir, const char* config_file)
         }
         memset(box, 0, sizeof(sensorbox_t));
 
-        box->home_dir = strdup(dir);
         box->lock = -1;
+        box->home_dir = strdup(dir);
+        if (box->home_dir == NULL) {
+                log_err("Sensorbox: out of memory");
+                delete_sensorbox(box);
+                return NULL;
+        }
+
+        if ((log_file != NULL) && (strcmp(log_file, "-") != 0)) {
+                box->log_file = strdup(log_file);
+                if (box->log_file == NULL) {
+                        log_err("Sensorbox: out of memory");
+                        delete_sensorbox(box);
+                        return NULL;
+                }
+        }
 
         if (sensorbox_load_config(box, config_file) != 0) {
                 delete_sensorbox(box);
@@ -139,8 +158,10 @@ void sensorbox_init_time(sensorbox_t* box)
 
         if (!box->use_arduino_time) {
                 log_warn("Sensorbox: Can't rely on the Arduino for the current time.");
-                log_warn("Sensorbox: Bringing up network to run NTP and using local system time"); 
+                log_info("Sensorbox: Bringing up network to run NTP and using local system time"); 
                 sensorbox_bring_network_up_and_run_ntp(box);
+        } else {
+                log_info("Sensorbox: Using Arduino's time.");
         }
 }
 
@@ -590,13 +611,13 @@ void sensorbox_grab_image(sensorbox_t* box, const char* filename)
 
         int error;
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 20; i++) {
                 error = camera_capture(box->camera);
                 if (error) {
                         log_err("Sensorbox: Failed to grab the image"); 
                         return;
                 }
-                usleep(200 * 1000); // 200 msec
+                usleep(100 * 1000); // 100 msec
         }
 
         log_info("Sensorbox: Storing photo in %s", filename);
@@ -1229,10 +1250,23 @@ int sensorbox_run_ntp(sensorbox_t* box)
 
         // Use the opportunity to update the clock
         log_info("Network: Running NTPD");
-        char* const argv[] = { "/usr/bin/sudo", 
-                               "/usr/sbin/ntpd", 
-                               "-q", "-g", NULL};
-        int ret = system_run(argv, 120);
+
+        int ret;
+
+        if (box->log_file != NULL) {
+                char* const argv[] = { "/usr/bin/sudo", 
+                                       "/usr/sbin/ntpd", 
+                                       "-q", "-g", 
+                                       "-l", box->log_file,
+                                       NULL};
+                ret = system_run(argv, 120);
+
+        } else {
+                char* const argv[] = { "/usr/bin/sudo", 
+                                       "/usr/sbin/ntpd", 
+                                       "-q", "-g", NULL};
+                ret = system_run(argv, 120);
+        }
 
         log_debug("NTP returned %d", ret);
 

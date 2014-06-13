@@ -151,22 +151,6 @@ static void parse_arguments(int argc, char **argv)
         }
 }
 
-static void init_log(const char* file)
-{
-        FILE* log = NULL;
-        if (strcmp(file, "-") == 0) {
-                log = stderr;
-        } else {
-                log = fopen(file, "a");
-        }
-        if (log == NULL) {
-                fprintf(stderr, "Failed to open the log file ('%s')", file);
-                log_set_filep(stderr);
-        } else {
-                log_set_filep(log);
-        }
-}
-
 int main(int argc, char **argv)
 {
         char* command = "update";
@@ -176,9 +160,7 @@ int main(int argc, char **argv)
         if (optind < argc) 
                 command = argv[optind++];
 
-        init_log(_log_file);
-
-        sensorbox_t* box = new_sensorbox(_home_dir, _config_file);
+        sensorbox_t* box = new_sensorbox(_home_dir, _config_file, _log_file);
         if (box == NULL) 
                 exit(1);
 

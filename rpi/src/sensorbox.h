@@ -80,7 +80,9 @@ extern "C" {
 
         /* If config_file is NULL, the default config file will be
            loaded. */
-        sensorbox_t* new_sensorbox(const char* dir, const char* config_file);
+        sensorbox_t* new_sensorbox(const char* dir, 
+                                   const char* config_file, 
+                                   const char* log_file);
         int sensorbox_init(sensorbox_t* box);
 
         int delete_sensorbox(sensorbox_t* sensorbox);

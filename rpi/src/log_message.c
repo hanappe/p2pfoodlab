@@ -32,15 +32,20 @@ static FILE* _log_file = NULL;
 
 int log_set_file(const char* filename)
 {
-        FILE* fp = fopen(filename, "a");
-        if (fp == NULL) return -1;
-        _log_file = fp;
-        return 0;
-}
+        if (filename == NULL) {
+                _log_file = stderr; // FIXME: use system logger?                
 
-void log_set_filep(FILE* file)
-{
-        _log_file = file;
+        } else if (strcmp(filename, "-") == 0) {
+                _log_file = stderr;
+
+        } else {
+                _log_file = fopen(filename, "a");
+                if (_log_file == NULL) {
+                        fprintf(stderr, "Failed to open the log file ('%s'). Using stderr.", filename);
+                        _log_file = stderr;
+                }
+        }
+        return 0;
 }
 
 int log_get_level()
