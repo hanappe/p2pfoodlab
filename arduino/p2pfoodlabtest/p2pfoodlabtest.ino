@@ -22,11 +22,10 @@
 */
 #include <DHT22.h>
 
-#define RHT03_1_PIN             4
-#define RHT03_2_PIN             2
+#define RHT03_1_PIN             2
+#define RHT03_2_PIN             4
 #define LUMINOSITY_PIN          A2
 #define BAT_USB_PIN             A3
-#define BAT_AAA_PIN             A3
 #define V_REF                   3.3f
 
 #define DebugPrint(_s) { Serial.println(_s); } 
@@ -37,8 +36,11 @@ DHT22 rht03_2(RHT03_2_PIN);
 
 static short get_level_usb_batttery()
 {
-        int a = analogRead(BAT_USB_PIN);
-        DebugPrintValue("  A3 ", a);
+        int a;
+        for (int i = 0; i < 20; i++) {
+                a = analogRead(BAT_USB_PIN);
+                delay(10);
+        }
         float v = V_REF * 2.0f * a / 1024.0f;
         short r = (short) (100 * v);
         return r;
@@ -46,12 +48,17 @@ static short get_level_usb_batttery()
 
 static short get_level_aaa_batttery()
 {
-        return analogRead(BAT_AAA_PIN);
+        return 0;
 }
 
 static short get_luminosity()
 {
-        return analogRead(LUMINOSITY_PIN);
+        int a;
+        for (int i = 0; i < 10; i++) {
+                a = analogRead(LUMINOSITY_PIN);
+                delay(10);
+        }
+        return a;
 }
 
 static short get_soilhumidity()

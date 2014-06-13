@@ -1,5 +1,5 @@
 {
-  "general": {"name":"sensorbox"},
+  "general": {"name":"sensorbox", "account": "-- my account name on p2pfoodlab.net --"},
   "opensensordata": {"key":"aaaa-bbbbcccc-dddd-eeee-ffff"},
   "wired": {"enable":"yes"},
   "wifi": {"enable":"no", "ssid":"", "password":""},
