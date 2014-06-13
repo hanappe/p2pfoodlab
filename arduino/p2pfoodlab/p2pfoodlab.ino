@@ -23,6 +23,7 @@
 #include <Wire.h>
 #include <DHT22.h>
 #include <Narcoleptic.h>
+#include <SoftwareSerial.h>
 
 #define DEBUG 1
 
@@ -73,6 +74,8 @@
 #define RPi_PIN                 9
 #define BAT_USB_PIN             A3
 #define PUMP_PIN                8
+#define SERIAL_RX_PIN           5
+#define SERIAL_TX_PIN           3
 
 #define SENSOR_TRH              (1 << 0)
 #define SENSOR_TRHX             (1 << 1)
@@ -83,11 +86,16 @@
 #define DEFAULT_SLEEP           20000
 
 #if DEBUG
-#define DebugPrint(_s) { Serial.println(_s); } 
-#define DebugPrintValue(_s,_v) { Serial.print(_s); Serial.println(_v); } 
+SoftwareSerial debugSerial(SERIAL_RX_PIN, SERIAL_TX_PIN); // RX, TX
+#define DebugPrint(_s) { Serial.print(_s); debugSerial.print(_s); } 
+#define DebugPrintln(_s) { Serial.println(_s); debugSerial.println(_s); } 
+#define DebugPrintlnHex(_s) { Serial.println(_s, HEX); debugSerial.println(_s, HEX); } 
+#define DebugPrintValue(_s,_v) { Serial.print(_s); Serial.println(_v); debugSerial.print(_s); debugSerial.println(_v); } 
 #else
-#define DebugPrint(_s) 
-#define DebugPrintValue(_s,_w)
+#define DebugPrint(_s)  {}
+#define DebugPrintln(_s) {}
+#define DebugPrintlnHex(_s) {}
+#define DebugPrintValue(_s,_w) {}
 #endif
 
 typedef short sensor_value_t; 
@@ -202,6 +210,7 @@ stack_t _stack;
 
 static void stack_clear()
 {
+        DebugPrintln("*** STACK RESET"); 
         _stack.disabled = 0;
         _stack.sp = 0;
         _stack.frames = 0;
@@ -246,7 +255,7 @@ static int stack_pushdate(unsigned long t)
                 _stack.values[_stack.sp++] = (sensor_value_t) ((t - _stack.offset) / 60);
                 return 1;
         } else {
-                DebugPrint("  STACK FULL");
+                DebugPrintln("*** STACK FULL ***");
                 return 0;
         }
 }
@@ -259,9 +268,42 @@ static int stack_push(short value)
                 _stack.values[_stack.sp++] = (sensor_value_t) value;
                 return 1;
         } else {
-                DebugPrint("  STACK FULL");
+                DebugPrintln("*** STACK FULL ***");
                 return 0;
         }
+}
+
+static void stack_print()
+{
+        DebugPrintln("STACK"); 
+        DebugPrint("T0  "); DebugPrintln(_stack.offset); 
+        DebugPrint("SP  "); DebugPrint(_stack.sp); DebugPrint("/"); DebugPrintln(STACK_SIZE); 
+        DebugPrint("#F  "); DebugPrintln(_stack.frames); 
+        DebugPrint("FSz "); DebugPrintln(_stack.framesize); 
+        DebugPrint("Sum "); DebugPrintlnHex(_stack.checksum); 
+
+        unsigned short index = 0;
+
+        for (unsigned short frame = 0; frame < _stack.frames; frame++) {
+                DebugPrint(frame); 
+                DebugPrintln("----\t----\t----"); 
+
+                DebugPrint("T\t"); 
+                DebugPrint(_stack.values[index]); 
+                DebugPrint("\t"); 
+                DebugPrintlnHex(_stack.values[index]); 
+                index++;
+
+                for (unsigned short val = 1; val < _stack.framesize; val++) {
+                        DebugPrint(val); 
+                        DebugPrint("\t"); 
+                        DebugPrint(_stack.values[index]); 
+                        DebugPrint("\t"); 
+                        DebugPrintlnHex(_stack.values[index]); 
+                        index++;
+                }
+        }
+        DebugPrintln("--------");
 }
 
 
@@ -278,7 +320,7 @@ static void receive_data(int len)
                 int v = Wire.read();
                 if (i < sizeof(recv_buf)) 
                         recv_buf[recv_len++] = v & 0xff;
-                //Serial.println(v);
+                //DebugPrintln(v);
         }
 
         state.command = recv_buf[0];
@@ -444,18 +486,79 @@ static void send_data()
  * Sensors & measurements
  */
 
-static short get_level_usb_batttery()
+static short _usbbat = 0;
+static unsigned char _usbbat_count = 0;
+
+static short _get_usbbat()
 {
-        int a = analogRead(BAT_USB_PIN);
-        //DebugPrintValue("  A3 ", a);
-        float v = V_REF * 2.0f * a / 1024.0f;
+        int i, s;
+        for (i = 0; i < 10; i++) {
+                analogRead(BAT_USB_PIN);
+                delay(10);
+        }
+        s = 0;
+        for (i = 0; i < 10; i++) {
+                s += analogRead(BAT_USB_PIN);
+                delay(10);
+        }
+        s = (s + 5) / 10;
+        float v = V_REF * 2.0f * s / 1024.0f;
         short r = (short) (100 * v);
         return r;
 }
 
+static void update_level_usb_batttery()
+{
+        int count = (int) _usbbat_count;
+        int sum = count * (int) _usbbat;
+        int v = _get_usbbat();
+        sum += v;
+        count++;
+        _usbbat = (short) ((sum + count / 2) / count);
+        _usbbat_count++;
+}
+
+static short get_level_usb_batttery()
+{
+        short v = _usbbat;
+        _usbbat = 0;
+        _usbbat_count = 0;
+        return v;
+}
+
+static short _luminosity = 0;
+
+static short _get_luminosity()
+{
+        int i, a;
+        for (i = 0; i < 5; i++) {
+                a = analogRead(LUMINOSITY_PIN);
+                delay(100);
+        }
+        int v = 0;
+        for (i = 0; i < 4; i++) {
+                a = analogRead(LUMINOSITY_PIN);
+                v += a;
+                delay(10);
+        }
+        short r = (short) (v + 2) / 4;
+        return r;
+}
+
+static void update_luminosity()
+{
+        float alpha = 0.9f;
+        float y = (float) _luminosity;
+        float x = (float) _get_luminosity();
+        y = (x + alpha * y) / (1.0f + alpha);
+        _luminosity = (short) (y + 0.5f);
+}
+
 static short get_luminosity()
 {
-        return analogRead(LUMINOSITY_PIN);
+        short v = _luminosity;
+        _luminosity = 0;
+        return v;
 }
 
 static short get_soilhumidity()
@@ -474,24 +577,33 @@ static int get_rht03(DHT22* sensor, short* t, short* h)
                         *h = 10 * sensor->getHumidityInt();
                         return 0;
                 }
-                DebugPrintValue("rht03 error: ", errorCode);
+                DebugPrintValue("** rht03 error: ", errorCode);
                 delay(500);  
         }
         return -1;
 }
 
+static void update_sensors()
+{  
+        if (state.sensors & SENSOR_LUM)
+                update_luminosity(); 
+
+        if (state.sensors & SENSOR_USBBAT)
+                update_level_usb_batttery(); 
+}
+
 static void measure_sensors()
 {  
-        DebugPrint("  measure");
+        DebugPrintln("MEASURES");
 
         if (!hastime())
-                DebugPrint("  *TIME NOT SET*");
+                DebugPrintln("** TIME NOT SET **");
 
         unsigned short old_sp = stack_frame_begin();
         unsigned char index = 0;
         
         if (state.suspend) {
-                DebugPrint("  *SUSPENDED*");
+                DebugPrintln("**  SUSPENDED **");
                 return;
         }
 
@@ -574,6 +686,8 @@ static void measure_sensors()
         // Enable I2C interupts
         interrupts();
 
+        DebugPrintln("--------");
+
         return;
 
  unroll_stack:
@@ -615,43 +729,23 @@ static void blink(int count, int msec_on, int msec_off = 0)
 
 static void print_state()
 {  
-        Serial.println(time(0)); 
-        Serial.println(state.minutes); 
-        Serial.println(_stack.sp); 
-        Serial.println(_stack.frames); 
-        Serial.println(state.period);
-        Serial.println(state.suspend);
-        Serial.println(state.measure);
-        Serial.println(state.poweroff);
-        Serial.println(state.wakeup);
-        Serial.println();
-}
-
-static void print_stack()
-{  
-        int i;
-        unsigned char* data = stack_address();
-        int len = stack_bytesize();
-        Serial.println("t:");
-        for (i = 0; i < len; i++) {
-                Serial.print(data[i], HEX);
-                if ((i % 4) == 3)
-                        Serial.println();
-                else
-                        Serial.print(" ");
-        }
-        if (((i-1) % 4) != 3)
-                Serial.println();
-        Serial.print("s:");
-        Serial.println(stack_checksum(), HEX);
-        Serial.print("o:");
-        Serial.println(stack_offset());
+        DebugPrintln("STATE"); delay(200);
+        DebugPrint("T "); DebugPrintln(time(0)); delay(200);
+        DebugPrint("M "); DebugPrintln(state.minutes); delay(200);
+        DebugPrint("SP "); DebugPrintln(_stack.sp); delay(200);
+        DebugPrint("#F "); DebugPrintln(_stack.frames); delay(200);
+        DebugPrint("P "); DebugPrintln(state.period); delay(200);
+        DebugPrint("Sus "); DebugPrintln(state.suspend); delay(200);
+        DebugPrint("Mes "); DebugPrintln(state.measure); delay(200);
+        DebugPrint("Pow "); DebugPrintln(state.poweroff); delay(200);
+        DebugPrint("Wup "); DebugPrintln(state.wakeup); delay(200);
+        DebugPrintln("--------");
 }
 
 static void handle_updates(unsigned long minutes)
 {  
         if (state.sensors != new_state.sensors) {
-                DebugPrintValue("  new sensor settings: ", new_state.sensors);
+                DebugPrintValue("*** new sensor settings: ", new_state.sensors);
                 state.sensors = new_state.sensors;
                 stack_clear();
                 stack_set_framesize(1 + count_sensors(state.sensors));
@@ -662,12 +756,14 @@ static void handle_updates(unsigned long minutes)
         }
 
         if (state.period != new_state.period) {
-                DebugPrintValue("  new period: ", new_state.period);
+                DebugPrintValue("*** new period: ", new_state.period);
                 state.period = new_state.period;
+                if (state.period > state.measure) 
+                        state.measure = state.period;
         }
 
         if (state.suspend != new_state.suspend) {
-                DebugPrintValue("  suspend: ", new_state.suspend);
+                DebugPrintValue("*** suspend: ", new_state.suspend);
                 state.suspend = new_state.suspend;
                 if (state.suspend) 
                         state.suspend_start = minutes;
@@ -744,7 +840,26 @@ void setup()
         stack_clear();
         stack_set_framesize(1 + count_sensors(state.sensors));
 
-        DebugPrint("Ready.");  
+#if DEBUG
+        debugSerial.begin(9600);
+#endif
+        DebugPrintln("Ready.");  
+}
+
+static void poweroff_linux()
+{
+        digitalWrite(RPi_PIN, LOW);
+        DebugPrintln("*** POWEROFF"); 
+        state.linux_running = 0;
+        state.poweroff = 0;
+}
+
+static void wakeup_linux()
+{
+        digitalWrite(RPi_PIN, HIGH);
+        DebugPrintln("*** WAKEUP"); 
+        state.linux_running = 1;
+        state.wakeup = 0;
 }
 
 void loop()
@@ -756,9 +871,36 @@ void loop()
         handle_updates(minutes);
 
 #if DEBUG
-        delay(100);   
-        print_state();
-        delay(100);   
+        if (debugSerial.available()) {
+                char c = debugSerial.read();
+                debugSerial.write(c);
+
+                switch (c) {
+                case 'd':
+                        state.debug |= DEBUG_STACK | DEBUG_STATE;
+                        break;
+
+                case 'r':
+                        stack_clear();
+                        break;
+
+                case 'w':
+                        wakeup_linux();
+                        break;
+
+                case 'p':
+                        poweroff_linux();
+                        break;
+
+                case 'm':
+                        stack_disable();
+                        measure_sensors();
+                        stack_enable();
+                        break;
+                default:
+                        break;
+                }
+        }
 #endif
 
         if (Serial.available()) {
@@ -790,7 +932,7 @@ void loop()
         }
 
         if (state.debug & DEBUG_STACK) {
-                print_stack();
+                stack_print();
                 state.debug &= ~DEBUG_STACK;
         }
 
@@ -810,7 +952,7 @@ void loop()
                    was not resumed correctly, start measuring again
                    after one minute. */
                 if (minutes - state.suspend_start > 3) {
-                        DebugPrint("  TRANSFER TIMEOUT"); 
+                        DebugPrintln("*** TRANSFER TIMEOUT ***"); 
                         new_state.suspend = 0;
                 }
 
@@ -818,7 +960,6 @@ void loop()
                 
                 /* Handle a stack reset request after a data transfer
                    or a change in the sensor configuration. */
-                DebugPrint("  STACK RESET"); 
                 stack_clear();
                 state.reset_stack = 0;
                 new_state.reset_stack = 0;
@@ -829,33 +970,33 @@ void loop()
 
                 while (state.minutes < minutes) {
 
+                        update_sensors();
+
                         if (state.measure > 0) {
                                 state.measure--;
                                 if (state.measure == 0) {
                                         blink(1, 100);
                                         measure_sensors();
-                                        print_stack(); // DEBUG
+                                        //print_stack(); // DEBUG
+                                        stack_print(); // DEBUG
                                         state.measure = state.period;
                                 }
                         }
                         if (state.poweroff > 0) {
                                 state.poweroff--;
-                                if (state.poweroff == 0) {
-                                        digitalWrite(RPi_PIN, LOW);
-                                        DebugPrint("  POWEROFF"); 
-                                        state.linux_running = 0;
-                                }
+                                if (state.poweroff == 0)
+                                        poweroff_linux();
                         }
                         if (state.wakeup > 0) {
                                 state.wakeup--;
-                                if (state.wakeup == 0) {
-                                        digitalWrite(RPi_PIN, HIGH);
-                                        DebugPrint("  WAKEUP"); 
-                                        state.linux_running = 1;
-                                }
+                                if (state.wakeup == 0)
+                                        wakeup_linux();
                         }
 
                         state.minutes++;
+#if DEBUG
+                        print_state();
+#endif
                 }
 
                 sleep = DEFAULT_SLEEP;
