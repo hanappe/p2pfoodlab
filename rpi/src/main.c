@@ -178,6 +178,8 @@ int main(int argc, char **argv)
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
 
+                sensorbox_bring_network_up_maybe(box);                
+
                 sensorbox_init_time(box);
 
                 /* Check whether the definitions of the datastream are
