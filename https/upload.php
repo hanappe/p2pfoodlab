@@ -100,11 +100,17 @@ for ($i = 0; $i < count($_FILES['docs']['name']); $i++) {
         $path = sprintf("%03d/upload/%d-upload-%s",
                         $d1, $visitor_account->id, $r);
 
+        $filename = sprintf("%s/%s.jpg", $docsdir, $path);        
+        if (copy($tmpname, $filename) === FALSE) {
+                internalServerError("Failed to copy the file.");
+        }
+
         // Generate the different size version of the image
         $img = new Imagick($tmpname);
         $size = getimagesize($tmpname);
 
         try {
+
                 $filename = sprintf("%s/%s-large.jpg", $docsdir, $path);        
                 //echo "filename = $filename<br>\n";
                 

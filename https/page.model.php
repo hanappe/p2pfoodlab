@@ -830,10 +830,23 @@ class MediaPage extends PersonalPage
                 for ($i = 0; $i < $len; $i++) {
                         $doc = $this->docs[$i];
                         if ($doc->type == "image/jpeg") {
-                                $src = $base_url . "/docs/" . $doc->path . "-medium.jpg";
+
+                                $orig = $base_url . "/docs/" . $doc->path . ".jpg";
+                                $large = $base_url . "/docs/" . $doc->path . "-large.jpg";
+                                $medium = $base_url . "/docs/" . $doc->path . "-medium.jpg";
+                                $small = $base_url . "/docs/" . $doc->path . "-small.jpg";
+                                $tiny = $base_url . "/docs/" . $doc->path . "-tiny.jpg";
+                                $thumb = $base_url . "/docs/" . $doc->path . "-thumb.jpg";
+
                                 echo "      <div class=\"strip\">\n";
                                 echo "        <div class=\"content_box\">\n";
-                                echo "          <img src=\"$src\" />";
+                                echo "          <img src=\"$medium\" /><br>\n";
+                                echo "          [<a href=\"$orig\">orig</a>]\n";
+                                echo "          [<a href=\"$large\">large</a>]\n";
+                                echo "          [<a href=\"$medium\">medium</a>]\n";
+                                echo "          [<a href=\"$small\">small</a>]\n";
+                                echo "          [<a href=\"$tiny\">tiny</a>]\n";
+                                echo "          [<a href=\"$thumb\">thumb</a>]<br>\n";
                                 echo "        </div>";
                                 echo "      </div>\n";
                         }
