@@ -161,8 +161,8 @@ if (isset($_FILES['docs'])) {
                         continue;
                 }
                 
-                $d1 = ($note->id % 1000);
-                $d2 = ($visitor_account->id % 1000);
+                $d1 = $visitor_account->id;
+                $d2 = $note->id;
 
                 $dir = sprintf("%s/%03d/%03d", $docsdir, $d1, $d2);
                 if (!is_dir($dir) && !mkdir($dir, 0775, true)) {

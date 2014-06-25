@@ -75,10 +75,6 @@ for ($i = 0; $i < count($_FILES['docs']['name']); $i++) {
                 badRequest("Image size too big");
         }
 
-        if (count($note->docs) >= 4) {
-                badRequest("Too many photos. Maximum 4.");
-        }
-
         $tmpname = $_FILES['docs']['tmp_name'][$i];
 
         //echo "tmpname = $tmpname<br>\n";
@@ -90,10 +86,9 @@ for ($i = 0; $i < count($_FILES['docs']['name']); $i++) {
                 continue;
         }
                 
-        $d1 = ($note->id % 1000);
-        $d2 = ($visitor_account->id % 1000);
+        $d1 = $visitor_account->id;
 
-        $dir = sprintf("%s/%03d/%03d", $docsdir, $d1, $d2);
+        $dir = sprintf("%s/%03d/upload", $docsdir, $d1);
         if (!is_dir($dir) && !mkdir($dir, 0775, true)) {
                 internalServerError("Failed to create the upload dir.");
         }
@@ -102,8 +97,8 @@ for ($i = 0; $i < count($_FILES['docs']['name']); $i++) {
         $r =  sprintf('%02x%02x%02x', mt_rand(0, 0xff), 
                       mt_rand(0, 0xff), mt_rand(0, 0xff));
                 
-        $path = sprintf("%03d/%03d/%d-%d-%s",
-                        $d1, $d2, $visitor_account->id, $note->id, $r);
+        $path = sprintf("%03d/upload/%d-upload-%s",
+                        $d1, $visitor_account->id, $r);
 
         // Generate the different size version of the image
         $img = new Imagick($tmpname);
