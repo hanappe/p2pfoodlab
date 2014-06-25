@@ -975,3 +975,186 @@ function showgroup()
                 
         }
 }
+
+function UploadPanel(id, parent)
+{
+        var self = this;
+
+        this.base = Component;
+        this.base(id, "upload_panel visible");
+
+        this.handleChange = function() {
+                self.updateTextLength();
+        }
+
+
+        this.form = document.createElement("FORM");
+        this.form.method = "POST";
+        this.form.action = p2pfoodlab.root + "/upload.php";
+        this.form.enctype = "multipart/form-data";
+
+        this.docs = 0;
+    
+        var input = document.createElement("INPUT");
+        input.setAttribute("type", "hidden");
+        input.setAttribute("name", "op");
+        input.setAttribute("value", "postdoc");
+        this.form.appendChild(input);
+
+        input = document.createElement("INPUT");
+        input.setAttribute("type", "hidden");
+        input.setAttribute("name", "url");
+        input.setAttribute("value", window.location.href);
+        this.form.appendChild(input);
+
+        this.docsdiv = document.createElement("DIV");
+        this.docsdiv.className = "editor_docs";
+        this.form.appendChild(this.docsdiv);
+
+        this.div.appendChild(this.form);
+
+        var div = document.createElement("DIV");
+        div.className = "editor_docs_errmsg";
+        div.id = "editor_docs_errmsg";
+        this.div.appendChild(div);
+
+        this._sendReply = function() {
+                self.form.submit();
+        }
+
+        this.docID = 0;
+
+        this.removeDocDiv = function(id) {
+                        //alert("id = " + id);
+                for (i = 0; i < this.docsdiv.childNodes.length; i++) {	    
+                        e = this.docsdiv.childNodes[i];
+                        //alert("div id = " + e.id);
+                        if (e.id && (e.id == id)) {
+                                this.docsdiv.removeChild(e);
+                                this.docs--;
+                                break;
+                        }
+                }
+        }
+
+        this.removeLocalDoc = function(id) {
+                this.removeDocDiv("doc_loc_" + id);
+        }
+
+        this.removeServerDoc = function(postid, docid) {
+                this.removeDocDiv("doc_serv_" + docid);
+                new P2PFoodLab().removeDoc(postid, docid);
+        }
+
+        this._showIcon = function(e) {
+                self.showIcon(e);
+        }
+
+        this.showIcon = function(e) {
+                var fileInput = e.target;
+                var inputId = e.target.id;
+                var file = e.target.files[0];
+
+                if (file.type == "image/jpeg") {
+
+                        var reader = new FileReader();
+                        reader.onload = function(e) {
+                                img = document.getElementById(inputId + "_img");
+                                img.src = reader.result;
+                                img.className = "note_icon visible";
+                                fileInput.className = "hidden";
+                        }
+                        reader.readAsDataURL(file);	
+                } else {
+                        this.removeDocDiv(inputId);
+                        var d = document.getElementById("editor_docs_errmsg");
+                        d.innerHTML = "Only JPEG images are currently supported.";
+                }
+        }
+
+        this.addLocalDoc = function() {
+                if (this.docs == 4)
+                        return;
+
+                var d = document.getElementById("editor_docs_errmsg");
+                d.innerHTML = "";
+
+                var div = document.createElement("DIV");
+                div.className = "editor_doc";
+                div.id = "doc_loc_" + this.docID;
+
+                var icondiv = document.createElement("DIV");
+                icondiv.className = "editor_icon";
+                icondiv.id = "doc_" + this.docID + "_icon";
+                div.appendChild(icondiv);
+
+                var img = document.createElement("IMG");
+                img.className = "note_icon hidden";
+                img.id = "doc_loc_" + this.docID + "_img";
+                img.src = "";
+                icondiv.appendChild(img);
+
+                var rmdiv = document.createElement("DIV");
+                rmdiv.className = "editor_rmdoc";
+                rmdiv.id = "doc_" + this.docID + "_rm";
+                div.appendChild(rmdiv);
+
+                var remover = new RemoveDoc(this, this.docID, null);
+                addEventImage(rmdiv, p2pfoodlab.root + "/close.png", 
+                              "remove", remover.removeLocalDoc, ""); 
+
+                var input = document.createElement("INPUT");
+                input.setAttribute("type", "file");
+                input.setAttribute("id", "doc_loc_" + this.docID);
+                input.setAttribute("name", "docs[]");
+                input.className = "editor_filechooser";
+                setEventHandler(input, "change", this._showIcon);
+                div.appendChild(input);
+
+                this.docsdiv.appendChild(div);
+                this.docID++;
+                this.docs++;
+
+                //alert("input.click");
+                input.click();
+        }
+
+        this._addLocalDoc = function() {
+                self.addLocalDoc();
+        }
+
+        this._cancel = function() {
+                self.cancel();
+        }
+
+        this.cancel = function() {
+                this.note.removeChild(this.div);
+                if (this.post) {
+                        // FIXME: cheap...
+                        window.location.reload(true);
+                }
+        }
+
+        this.addEventLink("Add a photo", this._addLocalDoc, "editor_button"); 
+        this.addEventLink("Send", this._sendReply, "editor_button"); 
+        var s = document.createElement("SPAN");
+        s.className = "separator";
+        this.appendChild(s);
+        this.addEventLink("Cancel", this._cancel, "editor_button"); 
+
+        this.note = document.getElementById(parent);
+        this.note.appendChild(this.div);
+
+        this.textarea.select();    
+}
+UploadPanel.prototype = new ComponentProto();
+
+
+
+function do_upload(lang, lang_opt)
+{
+        var panel = document.getElementById("upload_panel");
+        if (!panel) {
+                new UploadPanel("upload_panel", "upload");
+        }
+}
