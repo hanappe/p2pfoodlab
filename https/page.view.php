@@ -60,6 +60,8 @@
                 -
                 <a href="<?php url('people/' . $this->visitor->username . '/account') ?>" class="menu"><?php _p("account") ?></a> 
                 -
+                <a href="<?php url('media') ?>" class="menu"><?php _p("media") ?></a> 
+                -
                 <a href="<?php url('logout') ?>" class="menu"><?php _p("logout") ?></a> 
                 -
                 <a href="<?php url('help') ?>" class="menu"><?php _p("help") ?></a> 

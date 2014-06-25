@@ -785,6 +785,42 @@ class AccountPage extends PersonalPage
         }
 }
 
+class MediaPage extends PersonalPage
+{
+        public $docs;
+        public $visible;
+
+        function __construct($host, $visitor) 
+        {
+                global $osd_server, $mysqli;
+
+                parent::__construct($host, $visitor, "", "media");
+                $this->show_account_submenu = true;
+                $this->docs = Doc::loadall($host->id);
+        }
+
+        public function insert_title()
+        {
+                echo "<span class='title'>" . _s("media") . "</span>\n";
+        }
+
+        public function insert_body() 
+        {
+                $len = count($this->docs);
+                for ($i = 0; $i < $len; $i++) {
+                        $doc = $this->docs[$i];
+                        if ($doc->type == "image/jpeg") {
+                                $src = $base_url . "/docs/" . $doc->path . "-medium.jpg";
+                                echo "      <div class=\"strip\">\n";
+                                echo "        <div class=\"content_box\">\n";
+                                echo "          <img src=\"$src\" />";
+                                echo "        </div>";
+                                echo "      </div>\n";
+                        }
+                }
+        }
+}
+
 class HomePage extends PersonalPage
 {
         public $host;

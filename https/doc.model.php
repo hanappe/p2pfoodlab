@@ -26,12 +26,14 @@
 class Doc
 {
         public $id;
+        public $account;
         public $path;
         public $type;
 
         public function import($row) 
         {
                 $this->id = $row['id'];
+                $this->account = $row['account'];
                 $this->path = $row['path'];
                 $this->type = $row['type'];
         }
@@ -45,6 +47,7 @@ class Doc
 
                 $query = ("INSERT INTO docs VALUES ("
                           . "NULL,"
+                          . $mysqli->real_escape_string($this->account) . ","
                           . "'" . $mysqli->real_escape_string($this->path) . "',"
                           . "'" . $mysqli->real_escape_string($this->type) . "')");
 
@@ -59,6 +62,23 @@ class Doc
                 $this->id = $mysqli->insert_id;
 
                 return true;
+        }
+
+        public static function loadall($account) 
+        {
+                global $mysqli;
+
+                $docs = array();
+                $query = "SELECT * FROM docs WHERE account=" . $account;
+                $res = $mysqli->query($query);
+                if (!$mysqli->errno) {
+                        while ($row = $res->fetch_assoc()) {
+                                $d = new Doc();
+                                $d->import($row);
+                                $docs[] = $d;
+                        }
+                }
+                return $docs;
         }
 }
 
