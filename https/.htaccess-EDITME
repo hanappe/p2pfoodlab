@@ -25,8 +25,8 @@ RewriteRule ^people/(.*)/channel/(.*)/(.*)$  index.php?view=persochannel&host=$1
 RewriteRule ^people/(.*)/channel/(.*)/$  index.php?view=persochannel&host=$1&channel=$2 [L]
 RewriteRule ^people/(.*)/channel/(.*)$  index.php?view=persochannel&host=$1&channel=$2 [L]
 
-RewriteRule ^people/(.*)/$  index.php?view=notebook&host=$1 [L]
-RewriteRule ^people/(.*)$  index.php?view=notebook&host=$1 [L]
+RewriteRule ^people/(.*)/$  index.php?view=homepage&host=$1 [L]
+RewriteRule ^people/(.*)$  index.php?view=homepage&host=$1 [L]
 
 RewriteRule ^people/$  index.php?view=people [L]
 RewriteRule ^people$  index.php?view=people [L]
