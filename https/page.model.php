@@ -735,7 +735,7 @@ class PeoplePage extends Page
         }
 }
 
-class AccountPage extends Page
+class AccountPage extends PersonalPage
 {
         public $osd_account;
         public $datastreams;
@@ -745,7 +745,7 @@ class AccountPage extends Page
         {
                 global $osd_server, $mysqli;
 
-                parent::__construct($visitor);
+                parent::__construct($visitor, $visitor, "", "account");
                 $this->show_account_submenu = true;
 
                 $osd = new OpenSensorData($osd_server, null);
@@ -794,6 +794,35 @@ class GreenhousePage extends PersonalPage
         public $datastreams;
 
         function __construct($host, $visitor, $gid) 
+        {
+                global $osd_server, $mysqli;
+
+                parent::__construct($host, $visitor, "", "greenhouse");
+
+                $this->show_account_submenu = true;
+        }
+
+        public function insert_body() 
+        {
+                $query = "SELECT html FROM homepage WHERE id=" . $this->host->id;
+                $res = $mysqli->query($query);
+                if (!$mysqli->errno) {
+                        $row = $res->fetch_assoc();
+                        $html = $row['html'];
+                        return $html;
+                }
+        }
+}
+
+class Homepage extends PersonalPage
+{
+        public $host;
+        public $index;
+        public $select;
+        public $errmsg;
+        public $datastreams;
+
+        function __construct($host, $visitor) 
         {
                 global $osd_server, $mysqli;
 

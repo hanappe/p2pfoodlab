@@ -105,6 +105,11 @@ if ($view == "post") {
         $page->generate();
 
 
+ } else if ($view == "homepage") {
+        $page = new Homepage($host_account,
+                             $visitor_account);
+        $page->generate();
+
  } else if ($view == "account") {
         $page = new AccountPage($visitor_account);
         $page->generate();
@@ -147,7 +152,7 @@ if ($view == "post") {
         } else if ($op == "validate") {
                 $visitor_account = validate_account();
                 //echo "ok";
-                header("Location: ". $base_url . "/people/" . $visitor_account->username);
+                header("Location: ". $base_url . "/community/people/" . $visitor_account->username);
                 db_close();
                 exit(0);
         }

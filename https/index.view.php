@@ -24,6 +24,13 @@
 */
 
 ?>
+
+<div class="strip" style="margin-top: 20px;">
+    <div class="index_box">
+      <img src="p2pfoodlab-logo-800x200.png" class="adjusted" />
+    </div> 
+</div> 
+
 <div class="strip" style="margin-top: 20px;">
     <div class="index_box">
       <a href="http://p2pfoodlab.net" class="index_entry">
