@@ -110,6 +110,11 @@ if ($view == "post") {
                              $visitor_account);
         $page->generate();
 
+ } else if ($view == "media") {
+        $page = new MediaPage($host_account,
+                                $visitor_account);
+        $page->generate();
+
  } else if ($view == "account") {
         $page = new AccountPage($visitor_account);
         $page->generate();
