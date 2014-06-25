@@ -228,6 +228,7 @@ if (isset($_FILES['docs'])) {
                 }
 
                 $doc = new Doc();
+                $doc->account = $visitor_account->id;
                 $doc->path = $path;
                 $doc->type = $mimetype;
 

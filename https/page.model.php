@@ -804,8 +804,26 @@ class MediaPage extends PersonalPage
                 echo "<span class='title'>" . _s("media") . "</span>\n";
         }
 
+        public function insert_upload() 
+        {
+                $lang_sel = $this->lang? $this->lang->code : $this->visitor->lang[0];
+                $lang_opt = "['" . join("','", $this->visitor->lang) . "']"; 
+                echo "    <div class=\"strip\">\n";
+                echo "        <div class=\"content_box frame margin\">\n";
+                echo "             <a href=\"javascript:void(0);\" onclick=\"do_upload()\">" . _s("Upload files.") . "</a>\n";
+                echo "             <div id=\"newnote\" class=\"visible\"></div>\n";
+                echo "        </div>\n";
+                echo "    </div>\n";
+        }
+
         public function insert_body() 
         {
+                if (($this->visitor != NULL)
+                    && ($this->host != NULL)
+                    && ($this->visitor->id == $this->host->id)) {
+                        $this->insert_upload();
+                }
+
                 $len = count($this->docs);
                 for ($i = 0; $i < $len; $i++) {
                         $doc = $this->docs[$i];

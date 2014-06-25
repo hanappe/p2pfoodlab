@@ -41,8 +41,6 @@ $visitor_account = load_visitor_account();
 if ($visitor_account == NULL)
         unauthorized("Did your login expire?");
 
-$postnote_error = FALSE;
-
 $url = input_get_url();
 
 $op = input_get('op');
