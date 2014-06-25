@@ -809,8 +809,11 @@ class HomePage extends PersonalPage
                 $res = $mysqli->query($query);
                 if (!$mysqli->errno) {
                         $row = $res->fetch_assoc();
-                        $html = $row['html'];
-                        return $html;
+                        echo "      <div class=\"strip\">\n";
+                        echo "        <div class=\"content_box\">\n";
+                        echo $row['html'];
+                        echo "        </div>";
+                        echo "      </div>\n";
                 }
         }
 }
