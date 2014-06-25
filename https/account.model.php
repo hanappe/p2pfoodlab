@@ -564,6 +564,11 @@ class Account
                         $this->err = $mysqli->error;
                         return FALSE;
                 }
+                $row = $res->fetch_assoc();
+                if (!$row) {
+                        $this->err = "Could not find the homepage.";
+                        return FALSE;
+                }
                 return $row['html'];
         }
 
