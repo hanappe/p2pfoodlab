@@ -785,7 +785,7 @@ class AccountPage extends PersonalPage
         }
 }
 
-class DatasetPage extends PersonalPage
+class HomePage extends PersonalPage
 {
         public $host;
         public $index;
@@ -815,7 +815,7 @@ class DatasetPage extends PersonalPage
         }
 }
 
-class Homepage extends PersonalPage
+class DatasetPage extends PersonalPage
 {
         public $host;
         public $index;
@@ -827,7 +827,7 @@ class Homepage extends PersonalPage
         {
                 global $osd_server, $mysqli;
 
-                parent::__construct($host, $visitor, "", "greenhouse");
+                parent::__construct($host, $visitor, "", "dataset");
 
                 $this->host = $host;
                 $this->show_account_submenu = true;
