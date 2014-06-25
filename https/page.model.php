@@ -840,7 +840,7 @@ class MediaPage extends PersonalPage
 
                                 echo "      <div class=\"strip\">\n";
                                 echo "        <div class=\"content_box frame\">\n";
-                                echo "          <img src=\"$medium\" /><br>\n";
+                                echo "          <img src=\"$medium\" width=\"95%\"/><br>\n";
                                 echo "          [<a href=\"$orig\">orig</a>]\n";
                                 echo "          [<a href=\"$large\">large</a>]\n";
                                 echo "          [<a href=\"$medium\">medium</a>]\n";
