@@ -811,13 +811,15 @@ class MediaPage extends PersonalPage
                 echo "    <div class=\"strip\">\n";
                 echo "        <div class=\"content_box frame margin\">\n";
                 echo "             <a href=\"javascript:void(0);\" onclick=\"do_upload()\">" . _s("Upload files.") . "</a>\n";
-                echo "             <div id=\"newnote\" class=\"visible\"></div>\n";
+                echo "             <div id=\"upload\" class=\"visible\"></div>\n";
                 echo "        </div>\n";
                 echo "    </div>\n";
         }
 
         public function insert_body() 
         {
+                global $base_url;
+
                 if (($this->visitor != NULL)
                     && ($this->host != NULL)
                     && ($this->visitor->id == $this->host->id)) {
