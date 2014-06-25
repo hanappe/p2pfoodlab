@@ -1084,7 +1084,7 @@ function UploadPanel(id, parent)
         }
 
         this.addLocalDoc = function() {
-                if (this.docs == 4)
+                if (this.docs == 12)
                         return;
 
                 var d = document.getElementById("editor_docs_errmsg");
@@ -1155,8 +1155,6 @@ function UploadPanel(id, parent)
 
         this.note = document.getElementById(parent);
         this.note.appendChild(this.div);
-
-        this.textarea.select();    
 }
 UploadPanel.prototype = new ComponentProto();
 
