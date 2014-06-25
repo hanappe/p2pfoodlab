@@ -164,7 +164,7 @@ class ThreadListViewer extends Page
                 $post->load_docs();
                 $account = $this->get_account($post->from);
                 $from = $account->username;
-                $url = $base_url . "/people/" . $account->username;
+                $url = url_s('people/' . $account->username);
 
                 if ($first_post) 
                         echo "    <div class=\"note\" id=\"post_" . $post->id . "\">\n";
@@ -407,7 +407,7 @@ class PersonalPage extends ThreadListViewer
         public function insert_title()
         {
                 global $base_url;
-                $href = $base_url . "/people/" . $this->host->username;
+                $href = url_s('people/' . $this->host->username);
                 echo "<a class=\"title\" href=\"$href\">" . $this->host->username . "</a>\n";
         }
 
@@ -446,11 +446,11 @@ class PersonalPage extends ThreadListViewer
                 echo "              </div>";
         }
 
-        public function insert_greenhouse_menu()
+        public function insert_dataset_menu()
         {
                 global $mysqli;
 
-                $base = url_s('people/' . $this->host->username . '/greenhouse/');
+                $base = url_s('people/' . $this->host->username . '/dataset/');
                 $n = count($this->host->sensorbox);
 
                 if (($n <= 0) 
@@ -459,11 +459,11 @@ class PersonalPage extends ThreadListViewer
                         return;
 
                 $u = "";
-                if ($this->select == "greenhouse")
+                if ($this->select == "dataset")
                         $u = "selected_menu";
 
                 echo "              <div class=\"menu\">\n";
-                echo "                <a href=\"$base\" class=\"$u\">" . _s("greenhouse") . "</a>\n";
+                echo "                <a href=\"$base\" class=\"$u\">" . _s("datasets") . "</a>\n";
                 echo "              </div>\n";
                 echo "              <div class=\"submenu\">\n";
 
@@ -785,7 +785,7 @@ class AccountPage extends PersonalPage
         }
 }
 
-class GreenhousePage extends PersonalPage
+class DatasetPage extends PersonalPage
 {
         public $host;
         public $index;
@@ -797,7 +797,7 @@ class GreenhousePage extends PersonalPage
         {
                 global $osd_server, $mysqli;
 
-                parent::__construct($host, $visitor, "", "greenhouse");
+                parent::__construct($host, $visitor, "", "dataset");
 
                 $this->show_account_submenu = true;
         }
@@ -868,7 +868,7 @@ class Homepage extends PersonalPage
         public function insert_body() 
         {
                 global $base_url;
-                include "greenhouse.view.php"; 
+                include "dataset.view.php"; 
         }
 }
 

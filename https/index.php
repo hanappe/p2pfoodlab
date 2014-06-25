@@ -115,9 +115,9 @@ if ($view == "post") {
         $page->generate();
 
 
- } else if ($view == "greenhouse") {
+ } else if ($view == "dataset") {
         $gid = input_get_gid();
-        $page = new GreenhousePage($host_account,
+        $page = new DatasetPage($host_account,
                                    $visitor_account,
                                    $gid);
         $page->generate();
@@ -152,7 +152,7 @@ if ($view == "post") {
         } else if ($op == "validate") {
                 $visitor_account = validate_account();
                 //echo "ok";
-                header("Location: ". $base_url . "/community/people/" . $visitor_account->username);
+                header("Location: ". $base_url . "/people/" . $visitor_account->username);
                 db_close();
                 exit(0);
         }

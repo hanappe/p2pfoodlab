@@ -36,7 +36,7 @@
             </div>
 
             <div class="header_item">
-                <?php $this->insert_greenhouse_menu() ?>
+                <?php $this->insert_dataset_menu() ?>
             </div>
 <?php endif; ?>
 
@@ -56,7 +56,7 @@
 <?php else: ?>
               <div class="submenu shift_logo">
                 <span class="blue"><?php echo $this->visitor->username ?></span>&nbsp;
-                <a href="<?php url('people/' . $this->visitor->username) ?>" class="menu"><?php _p("home") ?></a> 
+                <a href="<?php url('people/'. $this->visitor->username) ?>" class="menu"><?php _p("home") ?></a> 
                 -
                 <a href="<?php url('people/' . $this->visitor->username . '/account') ?>" class="menu"><?php _p("account") ?></a> 
                 -

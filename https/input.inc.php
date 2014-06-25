@@ -187,7 +187,7 @@ function input_get_gid()
                 return null;
 
         if (!preg_match('/^[0-9]+$/', $gid)) {
-                badRequest("Requested greenhouse index not valid ('$gid').");
+                badRequest("Requested dataset index not valid ('$gid').");
         }
 
         return $gid;

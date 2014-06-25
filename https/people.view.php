@@ -31,7 +31,7 @@
 
        $messages = $account->count_messages();
 
-       $url = $base_url . "/people/" . $account->username;
+       $url = url_s('people/' . $account->username);
 
  if (($messages <= 0) 
      && (count($account->sensorbox) <= 0)
@@ -52,11 +52,11 @@ echo "    <a href=\"$url\" class=\"rightmargin standout\">" . $account->username
  if (count($account->sensorbox) == 1) {
          if ($messages > 0)          
                  echo "     - \n";
-         echo "     <a href=\"$url/greenhouse/1\">1 dataset</a>\n";
+         echo "     <a href=\"$url/dataset/1\">1 dataset</a>\n";
  } else if (count($account->sensorbox) > 1) {
          if ($messages > 0)          
                  echo "     - \n";
-         echo "     <a href=\"$url/greenhouse/1\">" . count($account->sensorbox) . " datasets</a>\n";
+         echo "     <a href=\"$url/dataset/1\">" . count($account->sensorbox) . " datasets</a>\n";
  }
 
 echo "  </div>\n";
