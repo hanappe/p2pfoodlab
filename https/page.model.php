@@ -873,14 +873,17 @@ class HomePage extends PersonalPage
 
         public function insert_body() 
         {
-                global $mysqli;
-                $query = "SELECT html FROM homepage WHERE id=" . $this->host->id;
-                $res = $mysqli->query($query);
-                if (!$mysqli->errno) {
-                        $row = $res->fetch_assoc();
+                $html = $this->host->get_homepage();
+                if ($html) {
                         echo "      <div class=\"strip\">\n";
                         echo "        <div class=\"content_box\">\n";
-                        echo $row['html'];
+                        echo $html;
+                        echo "        </div>";
+                        echo "      </div>\n";
+                } else if ($this->host->id == $this->visitor->id) {
+                        echo "      <div class=\"strip\">\n";
+                        echo "        <div class=\"content_box\">\n";
+                        echo _s("You can edit this page in the 'account' section.");
                         echo "        </div>";
                         echo "      </div>\n";
                 }

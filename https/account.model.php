@@ -538,6 +538,35 @@ class Account
                 return true;
         }
 
+        public function set_homepage($html) 
+        {
+                global $mysqli;
+                
+                $query = ("REPLACE INTO homepage VALUES ("
+                                  . $this->id . ",'" . $mysqli->real_escape_string($html) . "');");
+                //echo $query . "<br/>\n";
+
+                $res = $mysqli->query($query);
+                if ($mysqli->errno) {
+                        $this->err = $mysqli->error;
+                        return false;
+                }
+                return true;
+        }
+
+        public function get_homepage() 
+        {
+                global $mysqli;
+                
+                $query = "SELECT html FROM homepage WHERE id=" . $this->id;
+                $res = $mysqli->query($query);
+                if ($mysqli->errno) {
+                        $this->err = $mysqli->error;
+                        return FALSE;
+                }
+                return $row['html'];
+        }
+
         public function validate() 
         {
                 global $mysqli, $osd_appkey;

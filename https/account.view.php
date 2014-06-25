@@ -216,3 +216,17 @@ $lang = get_languages();
   </div> 
 </div> 
 <?php endif; ?>
+
+<?php
+$html = $this->visitor->get_homepage();
+?>
+<div class="strip">
+  <div class="content_box frame">
+    <div class="margin">
+      <form>
+         <textarea><?php echo htmlspecialchars($html) ?></textarea>
+      </form>
+    </div> 
+  </div> 
+</div> 
+
