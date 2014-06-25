@@ -223,9 +223,11 @@ $html = $this->visitor->get_homepage();
 <div class="strip">
   <div class="content_box frame">
     <div class="margin">
-      <form>
-         <textarea><?php echo htmlspecialchars($html) ?></textarea>
+      <p><?php _p("You can edit your homepage below. Just use plain HTML.") ?></p>
+      <form action="" method="post" name="homepage">
+         <textarea name="html"><?php echo htmlspecialchars($html) ?></textarea>
       </form>
+      <p><a href="javascript:void(0)" onclick="updateHomepage()"><?php _p("Update my homepage.") ?></a></p>
     </div> 
   </div> 
 </div> 

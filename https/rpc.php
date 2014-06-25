@@ -162,6 +162,16 @@ if ($request->op == "set_locale") {
                                         . $request->doc_id);
         
         jsonSuccess();
+
+} else if ($request->op == "set_homepage") {
+
+        if (!property_exists($request, "html"))
+                jsonBadRequest("invalid set_homepage request");
+
+        // FIXME: validate the HTML!!!
+
+        $visitor_account->set_homepage($request->html);
+        jsonSuccess();
  }
 
 ?>

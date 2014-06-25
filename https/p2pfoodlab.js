@@ -216,6 +216,17 @@ function updateLanguage(code, name)
                 null, updateLanguageCallback);
 }
 
+function updateHomepageCallback()
+{
+    alert("coucou");
+}
+
+function updateHomepage()
+{
+        request = { "op": "set_homepage", 
+                    "html": document.forms["homepage"].html.value };
+        new P2PFoodLab().rpc(request, null, updateHomepageCallback);
+}
 
 // Thanks to Scott Andrew LePera
 // (http://www.scottandrew.com/weblog/articles/cbs-events) and
