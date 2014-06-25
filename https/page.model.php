@@ -804,6 +804,7 @@ class DatasetPage extends PersonalPage
 
         public function insert_body() 
         {
+                global $mysqli;
                 $query = "SELECT html FROM homepage WHERE id=" . $this->host->id;
                 $res = $mysqli->query($query);
                 if (!$mysqli->errno) {
