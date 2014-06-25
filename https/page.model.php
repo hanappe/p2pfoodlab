@@ -839,7 +839,7 @@ class MediaPage extends PersonalPage
                                 $thumb = $base_url . "/docs/" . $doc->path . "-thumb.jpg";
 
                                 echo "      <div class=\"strip\">\n";
-                                echo "        <div class=\"content_box\">\n";
+                                echo "        <div class=\"content_box frame\">\n";
                                 echo "          <img src=\"$medium\" /><br>\n";
                                 echo "          [<a href=\"$orig\">orig</a>]\n";
                                 echo "          [<a href=\"$large\">large</a>]\n";
