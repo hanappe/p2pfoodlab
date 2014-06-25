@@ -793,11 +793,11 @@ class HomePage extends PersonalPage
         public $errmsg;
         public $datastreams;
 
-        function __construct($host, $visitor, $gid) 
+        function __construct($host, $visitor) 
         {
                 global $osd_server, $mysqli;
 
-                parent::__construct($host, $visitor, "", "dataset");
+                parent::__construct($host, $visitor, "", "homepage");
 
                 $this->show_account_submenu = true;
         }
@@ -823,7 +823,7 @@ class DatasetPage extends PersonalPage
         public $errmsg;
         public $datastreams;
 
-        function __construct($host, $visitor) 
+        function __construct($host, $visitor, $gid) 
         {
                 global $osd_server, $mysqli;
 
@@ -845,7 +845,7 @@ class DatasetPage extends PersonalPage
                         $this->index = 0;
                 }
                 if ($this->index >= 0) {
-                        $osd = new OpenSensorData($osd_server, null);
+                        $osd = new OpenSensorData($osd_server, null, null);
                         $this->group = $osd->get_group($host->sensorbox[$this->index]);
                         if ($this->group === FALSE) {
                                 $this->errmsg = "Connection to OpenSensorData.net failed";
