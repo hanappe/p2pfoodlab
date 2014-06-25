@@ -143,7 +143,7 @@ if ($view == "post") {
         unset($_SESSION['account']);
         unset($_SESSION['timeout']);
         unset($_SESSION["locale"]);
-        header("Location: " . $base_url);
+        header("Location: http://p2pfoodlab.net");
         db_close();
         exit(0);
 
