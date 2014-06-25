@@ -94,11 +94,11 @@ for ($i = 0; $i < count($_FILES['docs']['name']); $i++) {
         }
                 
         // Generate a sort of random extension...
-        $r =  sprintf('%02x%02x%02x', mt_rand(0, 0xff), 
-                      mt_rand(0, 0xff), mt_rand(0, 0xff));
+        $r =  sprintf('%02x%02x%02x%02x%02x%02x', 
+                      mt_rand(0, 0xff), mt_rand(0, 0xff), mt_rand(0, 0xff),
+                      mt_rand(0, 0xff), mt_rand(0, 0xff), mt_rand(0, 0xff));
                 
-        $path = sprintf("%03d/upload/%d-upload-%s",
-                        $d1, $visitor_account->id, $r);
+        $path = sprintf("%03d/upload/%s", $d1, $r);
 
         $filename = sprintf("%s/%s.jpg", $docsdir, $path);        
         if (copy($tmpname, $filename) === FALSE) {
