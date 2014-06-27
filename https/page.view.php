@@ -57,10 +57,10 @@
 
       $account_class = "menu"
       if ($this->selected_submenu == "account")
-            $account_class .= " blue"
+            $account_class .= " blue";
       $media_class = "menu"
       if ($this->selected_submenu == "media")
-           $media_class .= " blue"
+           $media_class .= " blue";
 ?>
               <div class="submenu shift_logo">
                 <span class="blue"><?php echo $this->visitor->username ?></span>&nbsp;
