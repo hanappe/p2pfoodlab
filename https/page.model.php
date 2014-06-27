@@ -28,6 +28,7 @@ class Page
         public $visitor;
         public $show_menu;
         public $show_account_submenu;
+        public $selected_submenu;
         public $message;
 
         function __construct($visitor) 
@@ -747,6 +748,7 @@ class AccountPage extends PersonalPage
 
                 parent::__construct($visitor, $visitor, "", "account");
                 $this->show_account_submenu = true;
+                $this->selected_submenu = "account";
 
                 $osd = new OpenSensorData($osd_server, null);
                 $this->osd_account = $osd->get_account($visitor->osd_username);
@@ -774,11 +776,6 @@ class AccountPage extends PersonalPage
                 }
         }
 
-        public function insert_title()
-        {
-                echo "<span class='title'>" . _s("account") . "</span>\n";
-        }
-
         public function insert_body() 
         {
                 include "account.view.php"; 
@@ -796,12 +793,8 @@ class MediaPage extends PersonalPage
 
                 parent::__construct($host, $visitor, "", "media");
                 $this->show_account_submenu = true;
+                $this->selected_submenu = "media";
                 $this->docs = Doc::loadall($host->id);
-        }
-
-        public function insert_title()
-        {
-                echo "<span class='title'>" . _s("media") . "</span>\n";
         }
 
         public function insert_upload() 

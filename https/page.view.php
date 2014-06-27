@@ -53,14 +53,22 @@
                 -
                 <a href="<?php url('help') ?>" class="menu"><?php _p("help") ?></a> 
               </div>
-<?php else: ?>
+<?php else: 
+
+      $account_class = "menu"
+      if ($this->selected_submenu == "account")
+            $account_class .= " blue"
+      $media_class = "menu"
+      if ($this->selected_submenu == "media")
+           $media_class .= " blue"
+?>
               <div class="submenu shift_logo">
                 <span class="blue"><?php echo $this->visitor->username ?></span>&nbsp;
                 <a href="<?php url('people/'. $this->visitor->username) ?>" class="menu"><?php _p("home") ?></a> 
                 -
-                <a href="<?php url('people/' . $this->visitor->username . '/account') ?>" class="menu"><?php _p("account") ?></a> 
+                <a href="<?php url('people/' . $this->visitor->username . '/account') ?>" class="<?php echo $account_class ?>"><?php _p("account") ?></a> 
                 -
-                <a href="<?php url('people/' . $this->visitor->username . '/media') ?>" class="menu"><?php _p("media") ?></a> 
+                <a href="<?php url('people/' . $this->visitor->username . '/media') ?>" class="<?php echo $media_class ?>"><?php _p("media") ?></a> 
                 -
                 <a href="<?php url('logout') ?>" class="menu"><?php _p("logout") ?></a> 
                 -
