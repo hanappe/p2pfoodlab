@@ -55,10 +55,10 @@
               </div>
 <?php else: 
 
-      $account_class = "menu"
+      $account_class = "menu";
       if ($this->selected_submenu == "account")
             $account_class .= " blue";
-      $media_class = "menu"
+      $media_class = "menu";
       if ($this->selected_submenu == "media")
            $media_class .= " blue";
 ?>
