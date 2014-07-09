@@ -36,7 +36,7 @@ if (1) {
                 if ($interval && (count($interval) >= 2)) {
                         $s = strtotime($interval[0]);
                         $e = strtotime($interval[1]);
-                        echo "datastream " . $datastream->id . ": start " . date("Y-m-d H:i:s", $s) . ", end " . date("Y-m-d H:i:s", $e) . "<br>\n";
+                        //echo "datastream " . $datastream->id . ": start " . date("Y-m-d H:i:s", $s) . ", end " . date("Y-m-d H:i:s", $e) . "<br>\n";
                         if ($s < $start_timestamp)
                                 $start_timestamp = $s;
                         if ($e > $end_timestamp)
