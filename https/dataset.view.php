@@ -24,14 +24,8 @@
 */
 
 
-$today = date("Ymd");
-$this_year = date("Y");
-$this_month = date("m");
-$start_date = sprintf("%04d-%02d-01", $this_year, $this_month);
-$range = sprintf("%04d%02d01/%s", $this_year, $this_month, $today);
-$osd = new OpenSensorData(null, null);
-
 if (1) {
+        $osd = new OpenSensorData(null, null, null);
         $start_timestamp = date("U");
         $end_timestamp = 0;
         
@@ -49,12 +43,40 @@ if (1) {
                                 $end_timestamp = $e;
                 }
         }
+
+        $start_year = date("Y", $start_timestamp);
+        $start_month = date("m", $start_timestamp);
+        $start_day = date("d", $start_timestamp);
+
+        $end_year = date("Y", $end_timestamp);
+        $end_month = date("m", $end_timestamp);
+        $end_day = date("d", $end_timestamp);
+
+ } else {
+
+        $start_year = date("Y");
+        $start_month = date("m");
+        $start_day = 1;
+
+        $end_year = $start_year;
+        $end_month = $start_month;
+        $end_day = date("d");
+
  }
 
+$start_date = sprintf("%04d-%02d-%02d", $start_year, $start_month, $start_day);
+$start_date_js = printf('%04d,%02d,%02d', $start_year, ($start_month-1), $start_day);
+
+$end_date = sprintf("%04d-%02d-%02d", $end_year, $end_month, $end_day);
+$end_date_js = printf('%04d,%02d,%02d', $end_year, ($end_month-1), $end_day);
+
+$range = sprintf("%04d%02d%02d/%04d%02d%02d", 
+                 $start_year, $start_month, $start_day, 
+                 $end_year, $end_month, $end_day);
 
 ?>
 <script type="text/javascript"> 
-var startDate = new Date(<?php printf('%04d,%02d,%02d', $this_year, ($this_month-1), 1) ?>);
+var startDate = new Date(<?php echo $start_date_js ?>);
 var endDate = new Date();
 
 <?php
