@@ -65,10 +65,10 @@ if (1) {
  }
 
 $start_date = sprintf("%04d-%02d-%02d", $start_year, $start_month, $start_day);
-$start_date_js = printf('%04d,%02d,%02d', $start_year, ($start_month-1), $start_day);
+$start_date_js = sprintf('%04d,%02d,%02d', $start_year, ($start_month-1), $start_day);
 
 $end_date = sprintf("%04d-%02d-%02d", $end_year, $end_month, $end_day);
-$end_date_js = printf('%04d,%02d,%02d', $end_year, ($end_month-1), $end_day);
+$end_date_js = sprintf('%04d,%02d,%02d', $end_year, ($end_month-1), $end_day);
 
 $range = sprintf("%04d%02d%02d/%04d%02d%02d", 
                  $start_year, $start_month, $start_day, 
@@ -77,7 +77,7 @@ $range = sprintf("%04d%02d%02d/%04d%02d%02d",
 ?>
 <script type="text/javascript"> 
 var startDate = new Date(<?php echo $start_date_js ?>);
-var endDate = new Date();
+var endDate = new Date(<?php echo $end_date_js ?>);
 
 <?php
 echo "var graphs = []\n";
@@ -269,7 +269,7 @@ if ($this->errmsg) {
             <?php _p("show data from") ?>
             <a href="javascript:void(0);" id="startDate" class="date"><?php echo $start_date ?></a>
             <?php _p("to") ?>
-            <a href="javascript:void(0);" id="endDate" class="date"><?php _p("today") ?></a>.
+            <a href="javascript:void(0);" id="endDate" class="date"><?php echo $start_date ?></a>.
             <script type="text/javascript">
             Calendar.setup(
               {
