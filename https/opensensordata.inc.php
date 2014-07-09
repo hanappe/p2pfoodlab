@@ -27,7 +27,7 @@ class OpenSensorData
         public $key = "no-key";
         public $cachedir = FALSE;
         public $appkey = "no-key";
-        public $err = false;
+        public $err = FALSE;
 
         function __construct($server, $key, $cachedir) 
         {
@@ -83,8 +83,11 @@ class OpenSensorData
                                  );
 
                 $context  = stream_context_create($options);
-                $url = $this->server . "/" . $path;
-                $r = file_get_contents($url, false, $context);
+                if ((strpos($path, "http://") === 0) || (strpos($path, "https://") === 0))
+                        $url = $path;
+                else
+                        $url = $this->server . "/" . $path;
+                $r = file_get_contents($url, FALSE, $context);
 
                 /* echo "-------------------------------------------<br>\n"; */
                 /* echo "GET $url<br>\n"; */
@@ -98,7 +101,7 @@ class OpenSensorData
                 $json = $this->decode($r);
                 if (isset($json->error)) {
                         $this->msg = $json->msg;
-                        return false;
+                        return FALSE;
                 }
 
                 return $json;
@@ -118,7 +121,7 @@ class OpenSensorData
 
                 $context  = stream_context_create($options);
                 $url = $this->server . "/" . $path;
-                $r = file_get_contents($url, false, $context);
+                $r = file_get_contents($url, FALSE, $context);
 
                 /* echo "-------------------------------------------<br>\n"; */
                 /* echo "PUT $url<br>\n"; */
@@ -133,7 +136,7 @@ class OpenSensorData
                 $json = $this->decode($r);
                 if (isset($json->error)) {
                         $this->msg = $json->msg;
-                        return false;
+                        return FALSE;
                 }
 
                 return $json;
@@ -153,7 +156,7 @@ class OpenSensorData
 
                 $context  = stream_context_create($options);
                 $url = $this->server . "/" . $path;
-                $r = file_get_contents($url, false, $context);
+                $r = file_get_contents($url, FALSE, $context);
 
                 /* echo "-------------------------------------------<br>\n"; */
                 /* echo "PUT/AppKey $url<br>\n"; */
@@ -170,7 +173,7 @@ class OpenSensorData
                 $json = $this->decode($r);
                 if (isset($json->error)) {
                         $this->msg = $json->msg;
-                        return false;
+                        return FALSE;
                 }
 
                 return $json;
@@ -210,6 +213,14 @@ class OpenSensorData
         public function get_datastream_by_id($id)
         {
                 return $this->get("datastreams/" . $id . ".json");
+        }
+
+        public function get_datastream_interval($id)
+        {
+                $dates = $this->get("http://opensensordata.net:10081/scripts/peter/interval?id=$id");
+                if ($dates === FALSE)
+                        return FALSE;
+                return $dates;
         }
 
         public function create_datastream($name, $description, $unit, $cached_ok)
