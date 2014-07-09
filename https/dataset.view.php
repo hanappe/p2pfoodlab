@@ -23,14 +23,13 @@
 
 */
 
-global $osd;
 
 $today = date("Ymd");
 $this_year = date("Y");
 $this_month = date("m");
 $start_date = sprintf("%04d-%02d-01", $this_year, $this_month);
 $range = sprintf("%04d%02d01/%s", $this_year, $this_month, $today);
-
+$osd = new OpenSensorData(null, null);
 
 if (1) {
         $start_timestamp = date("U");
