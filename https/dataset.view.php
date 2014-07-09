@@ -269,7 +269,7 @@ if ($this->errmsg) {
             <?php _p("show data from") ?>
             <a href="javascript:void(0);" id="startDate" class="date"><?php echo $start_date ?></a>
             <?php _p("to") ?>
-            <a href="javascript:void(0);" id="endDate" class="date"><?php echo $start_date ?></a>.
+            <a href="javascript:void(0);" id="endDate" class="date"><?php echo $end_date ?></a>.
             <script type="text/javascript">
             Calendar.setup(
               {
