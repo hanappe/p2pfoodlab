@@ -32,15 +32,17 @@ if (1) {
         $datastreams = $this->group->datastreams;
         for ($j = 0; $j < count($datastreams); $j++) {
                 $datastream = $datastreams[$j];
-                $interval = $osd->get_datastream_interval($datastream->id);
-                if ($interval && (count($interval) >= 2)) {
-                        $s = strtotime($interval[0]);
-                        $e = strtotime($interval[1]);
-                        //echo "datastream " . $datastream->id . ": start " . date("Y-m-d H:i:s", $s) . ", end " . date("Y-m-d H:i:s", $e) . "<br>\n";
-                        if ($s < $start_timestamp)
-                                $start_timestamp = $s;
-                        if ($e > $end_timestamp)
-                                $end_timestamp = $e;
+                if (isset($this->datastreams[$datastream->id])) {
+                        $interval = $osd->get_datastream_interval($datastream->id);
+                        if ($interval && (count($interval) >= 2)) {
+                                $s = strtotime($interval[0]);
+                                $e = strtotime($interval[1]);
+                                //echo "datastream " . $datastream->id . ": start " . date("Y-m-d H:i:s", $s) . ", end " . date("Y-m-d H:i:s", $e) . "<br>\n";
+                                if ($s < $start_timestamp)
+                                        $start_timestamp = $s;
+                                if ($e > $end_timestamp)
+                                        $end_timestamp = $e;
+                        }
                 }
         }
 
