@@ -407,7 +407,7 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                     circle.graphics.drawCircle(x[i], 14, 4);
                     circle._slideshow = this;
                     circle._slideshowPhotoIndex = i;
-                    circle._slideshowX = x[i];
+                    circle._slideshowX = (this.width - x[i] >= 100)? x[i] : this.width - 100;
                     circle._slideshowText = this.photos[i].datetime;
                     circle._slideshowTextShape = text;
                     var showdate = function(e) { var text = e.target._slideshowTextShape; text.text = e.target._slideshowText; text.x = e.target._slideshowX - 5; text.visible = true; stage.update(); };
