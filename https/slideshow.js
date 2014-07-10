@@ -403,7 +403,10 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                     var circle = new createjs.Shape();
                     circle.graphics.setStrokeStyle(0.2);
                     circle.graphics.beginStroke("#000000");
-                    circle.graphics.beginFill("white");
+                    if (i == this.curPhoto) 
+                        circle.graphics.beginFill("black");
+                    else
+                        circle.graphics.beginFill("white");
                     circle.graphics.drawCircle(x[i], 14, 4);
                     circle._slideshow = this;
                     circle._slideshowPhotoIndex = i;
@@ -412,7 +415,7 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                     circle._slideshowTextShape = text;
                     var showdate = function(e) { var text = e.target._slideshowTextShape; text.text = e.target._slideshowText; text.x = e.target._slideshowX - 5; text.visible = true; stage.update(); };
                     var hidedate = function(e) { var text = e.target._slideshowTextShape; text.visible = false; stage.update(); };
-                    var showphoto = function(e) { e.target._slideshow.selectPhoto(e.target._slideshowPhotoIndex); };
+                    var showphoto = function(e) { e.target._slideshow.selectPhoto(e.target._slideshowPhotoIndex); stage.update(); };
                     circle.addEventListener("mouseover", showdate);
                     circle.addEventListener("mouseout", hidedate);
                     circle.addEventListener("click", showphoto);
