@@ -351,7 +351,7 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
         }
 
         this.updateTimeline = function() {
-            for (int j = 0; j < this.circles.length; j++) {
+            for (var j = 0; j < this.circles.length; j++) {
                 circle = this.circles[j];
                 circle.graphics.clear();
                 circle.graphics.setStrokeStyle(0.2);
