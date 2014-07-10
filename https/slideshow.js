@@ -394,8 +394,8 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                 line.graphics.endStroke();
                 stage.addChild(line);
 
-                var text = new createjs.Text("test");
-                //text.visible = false;
+                var text = new createjs.Text("");
+                text.visible = false;
                 text.x = 100;
                 text.y = 0;
 
