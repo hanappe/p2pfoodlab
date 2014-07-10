@@ -5,7 +5,7 @@
     <script type="text/javascript" src="<?php url('config.js') ?>"></script>
     <script type="text/javascript" src="<?php url('p2pfoodlab.js') ?>"></script>
     <link rel="stylesheet" type="text/css" href="<?php url('p2pfoodlab.css') ?>" />
-    <script type="text/javascript" src="<?php url('easeljs-0.7.1.min.js) ?>"></script>
+    <script type="text/javascript" src="<?php url('easeljs-0.7.1.min.js') ?>"></script>
     <script type="text/javascript" src="<?php url('slideshow.js') ?>"></script>
     <link rel="stylesheet" type="text/css" href="<?php url('slideshow.css') ?>" />
     <script type="text/javascript" src="<?php url('dygraph-combined.js') ?>"></script>
