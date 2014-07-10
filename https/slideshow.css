@@ -121,11 +121,11 @@ div.DateBox {
 div.Timeline {
       margin: 0 auto;
       text-align: center;
-      height: 24px;
+      height: 12px;
       font-size: 14px;
       line-height: 22px;
       padding: 4px;
-      padding-top: 8px;
+      padding-top: 4px;
       padding-left: 20px;
       padding-right: 20px;
       color: black;

@@ -354,7 +354,20 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
             for (var i = 0; i < this.photos.length; i++) {
                 var datetime = this.photos[i].datetime;
                 var date = new Date(datetime);
-                this.timeline.innerHTML = this.timeline.innerHTML + date.toString() + ", \n"; 
+                //this.timeline.innerHTML = this.timeline.innerHTML + date.toString() + ", \n"; 
+
+                this.timelineCanvas.width = this.width - 20;
+                this.timelineCanvas.height = 12;
+                var stage = new createjs.Stage(this.timelineCanvas);
+                var line = new createjs.Shape();
+                line.x = 0;
+                line.y = 0;
+                line.graphics.setStrokeStyle(1);
+                line.graphics.beginStroke("#000000");
+                line.graphics.moveTo(6, 6);
+                line.graphics.lineTo(this.timelineCanvas.width - 6, 6);
+                line.graphics.endStroke();
+                stage.addChild(line);
             }
         }
 
@@ -391,6 +404,11 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                 this.timeline.className = "Timeline";
                 this.timeline.id = this.rootId + "_Timeline";
                 root.appendChild(this.timeline);
+
+                this.timelineCanvas = document.createElement("CANVAS");
+                this.timelineCanvas.className = "TimelineCanvas";
+                this.timelineCanvas.id = this.rootId + "_TimelineCanvas";
+                this.timeline.appendChild(this.timelineCanvas);
 
                 this.imageWidth = this.width;
                 this.imageHeight = (this.height
