@@ -398,28 +398,49 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                 text.visible = false;
                 text.x = 100;
                 text.y = 0;
+                
+                this.circles = [];
 
                 for (var i = 0; i < timestamps.length; i++) {
-                    var circle = new createjs.Shape();
-                    circle.graphics.setStrokeStyle(0.2);
-                    circle.graphics.beginStroke("#000000");
+                    this.circles[i] = new createjs.Shape();
+                    this.circles[i].graphics.setStrokeStyle(0.2);
+                    this.circles[i].graphics.beginStroke("#000000");
                     if (i == this.curPhoto) 
-                        circle.graphics.beginFill("black");
+                        this.circles[i].graphics.beginFill("#000000");
                     else
-                        circle.graphics.beginFill("white");
-                    circle.graphics.drawCircle(x[i], 14, 4);
-                    circle._slideshow = this;
-                    circle._slideshowPhotoIndex = i;
-                    circle._slideshowX = (this.width - x[i] >= 100)? x[i] : this.width - 100;
-                    circle._slideshowText = this.photos[i].datetime;
-                    circle._slideshowTextShape = text;
-                    var showdate = function(e) { var text = e.target._slideshowTextShape; text.text = e.target._slideshowText; text.x = e.target._slideshowX - 5; text.visible = true; stage.update(); };
-                    var hidedate = function(e) { var text = e.target._slideshowTextShape; text.visible = false; stage.update(); };
-                    var showphoto = function(e) { e.target._slideshow.selectPhoto(e.target._slideshowPhotoIndex); stage.update(); };
-                    circle.addEventListener("mouseover", showdate);
-                    circle.addEventListener("mouseout", hidedate);
-                    circle.addEventListener("click", showphoto);
-                    stage.addChild(circle);
+                        this.circles[i].graphics.beginFill("#ffffff");
+                    this.circles[i].graphics.drawCircle(x[i], 14, 4);
+                    this.circles[i].graphics.endFill();
+                    this.circles[i].graphics.endStroke();
+
+                    this.circles[i]._slideshow = this;
+                    this.circles[i]._slideshowIndex = i;
+                    this.circles[i]._slideshowX = x[i];
+                    this.circles[i]._slideshowTextX = (this.width - x[i] >= 105)? x[i] - 5 : this.width - 105;
+                    this.circles[i]._slideshowText = this.photos[i].datetime;
+                    this.circles[i]._slideshowTextShape = text;
+                    var showdate = function(e) { 
+                        var text = e.target._slideshowTextShape; 
+                        text.text = e.target._slideshowText; 
+                        text.x = e.target.slideshowTextX; 
+                        text.visible = true; 
+                        stage.update(); 
+                    };
+                    var hidedate = function(e) { 
+                        var text = e.target._slideshowTextShape; 
+                        text.visible = false; 
+                        stage.update(); 
+                    };
+                    var showphoto = function(e) { 
+                        e.target._slideshow.selectPhoto(e.target._slideshowIndex); 
+                        e.target.graphics.clear().beginFill("#000000").drawCircle(e.target._slideshowX, 14, 4).endFill()
+                        stage.update(); 
+                    };
+                    this.circles[i].addEventListener("mouseover", showdate);
+                    this.circles[i].addEventListener("mouseout", hidedate);
+                    this.circles[i].addEventListener("click", showphoto);
+
+                    stage.addChild(this.circles[i]);
                 }
                 
                 stage.addChild(text);
