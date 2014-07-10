@@ -308,7 +308,7 @@ if ($this->errmsg) {
                     <script type="text/javascript"> 
                     var slideshow = new Photostream("<?php echo $id ?>", [], 
                                                     "http://opensensordata.net", ".jpg", 
-                                                    575, 510);
+                                                    575, 530);
                     slideshows.push(slideshow);
                     </script>
                   </div>
