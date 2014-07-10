@@ -431,9 +431,16 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                         text.visible = false; 
                         stage.update(); 
                     };
-                    var showphoto = function(e) { 
-                        e.target._slideshow.selectPhoto(e.target._slideshowIndex); 
-                        e.target.graphics.clear().beginFill("#000000").drawCircle(e.target._slideshowX, 14, 4).endFill()
+                    var showphoto = function(e) {
+                        var circle = e.target;
+                        var slideshow = circle._slideshow;
+                        var prev = slideshow.curPhoto;
+
+                        slideshow.selectPhoto(circle._slideshowIndex); 
+                        circle.graphics.clear().beginFill("#000000").drawCircle(circle._slideshowX, 14, 4).endFill();
+
+                        circle = slideshow.circles[prev];
+                        circle.graphics.clear().beginFill("#ffffff").drawCircle(circle._slideshowX, 14, 4).endFill();
                         stage.update(); 
                     };
                     this.circles[i].addEventListener("mouseover", showdate);
