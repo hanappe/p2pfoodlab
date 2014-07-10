@@ -53,7 +53,7 @@ a.title, a.standout { color: #326296; }
 a.standout:hover { color: #ba3c21; }
 div.standout { color: #326296; }
 span.standout { color: #326296; }
-div.warning { color: #ba3c21: bold; }
+div.warning { color: #ba3c21; font-weight: bold; }
 span.warning { color: #ba3c21; }
 img.noborder { border: none; }
 .middle { vertical-align: middle; }
@@ -402,7 +402,7 @@ div.editor_textlen {
     padding-bottom: 5px;
     font-size: 10px; 
     line-height: 10px;
-    //text-align: right;
+    /*text-align: right;*/
 }
 
 img.note_icon {

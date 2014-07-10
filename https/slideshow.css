@@ -119,14 +119,19 @@ div.DateBox {
 }
 
 div.Timeline {
-      margin: 0 auto;
-      text-align: center;
-      height: 12px;
-      font-size: 14px;
-      line-height: 22px;
-      padding: 4px;
-      padding-top: 4px;
-      padding-left: 20px;
-      padding-right: 20px;
-      color: black;
+    margin: 0 auto;
+    border: 0px; 
+    padding: 0px;
+    width: 100%;
+    height: 20px;
+    font-size: 10px;
+    color: black;
+}
+
+div.TimelineCanvas {
+    width: 100%;
+    height: 20px;
+    margin: 0px;
+    padding: 0px;
+    border: 0px; 
 }

@@ -351,23 +351,76 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
         }
 
         this.updateTimeline = function() {
+            var dates = [];
+            var timestamps = [];
+            for (var i = 0; i < this.photos.length; i++) {
+                dates[i] = new Date(this.photos[i].datetime);
+                timestamps[i] = dates[i].getTime();
+            }
+            var min = 18446744073709551616, max = 0;
+            for (var i = 0; i < timestamps.length; i++) {
+                if (timestamps[i] > max)
+                    max = timestamps[i];
+                if (timestamps[i] < min)
+                    min = timestamps[i];
+            }
+            var dx = this.width - 2 * 4;
+            var dt = max - min;
+            var x = [];
+            for (var i = 0; i < timestamps.length; i++) {
+                x[i] = 4 + dx * (timestamps[i] - min) / dt
+            }
+
             for (var i = 0; i < this.photos.length; i++) {
                 var datetime = this.photos[i].datetime;
                 var date = new Date(datetime);
                 //this.timeline.innerHTML = this.timeline.innerHTML + date.toString() + ", \n"; 
 
-                this.timelineCanvas.width = this.width - 20;
-                this.timelineCanvas.height = 12;
+                this.timeline.style.width = this.width + "px";
+                this.timeline.style.height = "12px";
+                this.timelineCanvas.width = this.width;
+                this.timelineCanvas.height = 20;
+
                 var stage = new createjs.Stage(this.timelineCanvas);
+                stage.enableMouseOver(20);
+                //createjs.Touch.enable(stage);
                 var line = new createjs.Shape();
                 line.x = 0;
                 line.y = 0;
-                line.graphics.setStrokeStyle(1);
+                line.graphics.setStrokeStyle(0.2);
                 line.graphics.beginStroke("#000000");
-                line.graphics.moveTo(6, 6);
-                line.graphics.lineTo(this.timelineCanvas.width - 6, 6);
+                line.graphics.moveTo(6, 14);
+                line.graphics.lineTo(this.timelineCanvas.width - 6, 14);
                 line.graphics.endStroke();
                 stage.addChild(line);
+
+                var text = new createjs.Text("test");
+                //text.visible = false;
+                text.x = 100;
+                text.y = 0;
+
+                for (var i = 0; i < timestamps.length; i++) {
+                    var circle = new createjs.Shape();
+                    circle.graphics.setStrokeStyle(0.2);
+                    circle.graphics.beginStroke("#000000");
+                    circle.graphics.beginFill("white");
+                    circle.graphics.drawCircle(x[i], 14, 4);
+                    circle._slideshow = this;
+                    circle._slideshowPhotoIndex = i;
+                    circle._slideshowX = x[i];
+                    circle._slideshowText = this.photos[i].datetime;
+                    circle._slideshowTextShape = text;
+                    var showdate = function(e) { var text = e.target._slideshowTextShape; text.text = e.target._slideshowText; text.x = e.target._slideshowX - 5; text.visible = true; stage.update(); };
+                    var hidedate = function(e) { var text = e.target._slideshowTextShape; text.visible = false; stage.update(); };
+                    var showphoto = function(e) { e.target._slideshow.selectPhoto(e.target._slideshowPhotoIndex); };
+                    circle.addEventListener("mouseover", showdate);
+                    circle.addEventListener("mouseout", hidedate);
+                    circle.addEventListener("click", showphoto);
+                    stage.addChild(circle);
+                }
+                
+                stage.addChild(text);
+                stage.update();
             }
         }
 
