@@ -422,7 +422,7 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                     var showdate = function(e) { 
                         var text = e.target._slideshowTextShape; 
                         text.text = e.target._slideshowText; 
-                        text.x = e.target.slideshowTextX; 
+                        text.x = e.target._slideshowTextX; 
                         text.visible = true; 
                         stage.update(); 
                     };
