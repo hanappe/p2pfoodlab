@@ -405,10 +405,12 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                     this.circles[i] = new createjs.Shape();
                     this.circles[i].graphics.setStrokeStyle(0.2);
                     this.circles[i].graphics.beginStroke("#000000");
+
                     if (i == 0) 
                         this.circles[i].graphics.beginFill("#000000");
                     else
                         this.circles[i].graphics.beginFill("#ffffff");
+
                     this.circles[i].graphics.drawCircle(x[i], 14, 4);
                     this.circles[i].graphics.endFill();
                     this.circles[i].graphics.endStroke();
@@ -438,6 +440,7 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
 
                         slideshow.selectPhoto(circle._slideshowIndex); 
                         circle.graphics.clear();
+                        circle.graphics.setStrokeStyle(0.2);
                         circle.graphics.beginStroke("#000000");
                         circle.graphics.beginFill("#000000");
                         circle.graphics.drawCircle(circle._slideshowX, 14, 4);
@@ -446,6 +449,7 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
 
                         circle = slideshow.circles[prev];
                         circle.graphics.clear();
+                        circle.graphics.setStrokeStyle(0.2);
                         circle.graphics.beginStroke("#000000");
                         circle.graphics.beginFill("#ffffff");
                         circle.graphics.drawCircle(circle._slideshowX, 14, 4);
