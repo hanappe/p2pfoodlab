@@ -350,10 +350,18 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                                 this.rootId + "_nextPhoto", this.nextPhoto);
         }
 
+        this.updateTimeline = function() {
+            for (var i = 0; i < this.photos.length; i++) {
+                var datetime = this.photos[i].datetime;
+                this.timeline.innerHTML = this.timeline.innerHTML + datetime + "<br>\n"; 
+            }
+        }
+
         this.setPhotos = function(photos) {
                 this.preLoad = [];
                 this.curPhoto = 0;
                 this.photos = photos; 
+                this.updateTimeline();
                 this.doTransition();
         }
 
@@ -377,6 +385,11 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                 this.dateBox.className = "DateBox";
                 this.dateBox.id = this.rootId + "_CaptionBox";
                 root.appendChild(this.dateBox);
+
+                this.timeline = document.createElement("DIV");
+                this.timeline.className = "Timeline";
+                this.timeline.id = this.rootId + "_Timeline";
+                root.appendChild(this.timeline);
 
                 this.imageWidth = this.width;
                 this.imageHeight = (this.height
