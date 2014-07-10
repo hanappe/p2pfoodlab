@@ -371,7 +371,7 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
             circle.graphics.endFill();
             circle.graphics.endStroke();
             
-            this.stage.update(); 
+            this.timeline.update(); 
         }
 
         this.buildTimeline = function() {
@@ -405,9 +405,9 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                 this.timelineCanvas.width = this.width;
                 this.timelineCanvas.height = 20;
 
-                this.stage = new createjs.Stage(this.timelineCanvas);
-                this.stage.enableMouseOver(20);
-                //createjs.Touch.enable(this.stage);
+                this.timeline = new createjs.Stage(this.timelineCanvas);
+                this.timeline.enableMouseOver(20);
+                //createjs.Touch.enable(this.timeline);
                 var line = new createjs.Shape();
                 line.x = 0;
                 line.y = 0;
@@ -416,7 +416,7 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                 line.graphics.moveTo(6, 14);
                 line.graphics.lineTo(this.timelineCanvas.width - 6, 14);
                 line.graphics.endStroke();
-                this.stage.addChild(line);
+                this.timeline.addChild(line);
 
                 var text = new createjs.Text("");
                 text.visible = false;
@@ -447,15 +447,17 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                     this.circles[i]._slideshowTextShape = text;
                     var showdate = function(e) { 
                         var text = e.target._slideshowTextShape; 
+                        var slideshow = e.target._slideshow; 
                         text.text = e.target._slideshowText; 
                         text.x = e.target._slideshowTextX; 
                         text.visible = true; 
-                        this.stage.update(); 
+                        slideshow.timeline.update(); 
                     };
                     var hidedate = function(e) { 
                         var text = e.target._slideshowTextShape; 
+                        var slideshow = e.target._slideshow; 
                         text.visible = false; 
-                        this.stage.update(); 
+                        slideshow.timeline.update(); 
                     };
                     var showphoto = function(e) {
                         var circle = e.target;
@@ -466,11 +468,11 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                     this.circles[i].addEventListener("mouseout", hidedate);
                     this.circles[i].addEventListener("click", showphoto);
 
-                    this.stage.addChild(this.circles[i]);
+                    this.timeline.addChild(this.circles[i]);
                 }
                 
-                this.stage.addChild(text);
-                this.stage.update();
+                this.timeline.addChild(text);
+                this.timeline.update();
             }
         }
 
