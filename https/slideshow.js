@@ -353,7 +353,8 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
         this.updateTimeline = function() {
             for (var i = 0; i < this.photos.length; i++) {
                 var datetime = this.photos[i].datetime;
-                this.timeline.innerHTML = this.timeline.innerHTML + datetime + "<br>\n"; 
+                var date = new Date(datetime);
+                this.timeline.innerHTML = this.timeline.innerHTML + date.toString() + ", \n"; 
             }
         }
 
