@@ -343,11 +343,11 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
 
         this.insertPhotoTimeline = function() {
                 this.insertLink(this.ctrl, "Arrow", "<", 
-                                this.rootId + "_prevPhoto", 
+                                this.rootId + "_nextPhoto", 
                                 this.prevPhoto);
                                 
                 this.insertLink(this.ctrl, "Arrow", ">", 
-                                this.rootId + "_nextPhoto", this.nextPhoto);
+                                this.rootId + "_prevPhoto", this.nextPhoto);
         }
 
         this.updateTimeline = function() {
