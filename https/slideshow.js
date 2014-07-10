@@ -405,7 +405,7 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                     this.circles[i] = new createjs.Shape();
                     this.circles[i].graphics.setStrokeStyle(0.2);
                     this.circles[i].graphics.beginStroke("#000000");
-                    if (i == this.curPhoto) 
+                    if (i == 0) 
                         this.circles[i].graphics.beginFill("#000000");
                     else
                         this.circles[i].graphics.beginFill("#ffffff");
@@ -437,10 +437,21 @@ function Photostream(rootId, photos, pathPrefix, pathPostfix, width, height)
                         var prev = slideshow.curPhoto;
 
                         slideshow.selectPhoto(circle._slideshowIndex); 
-                        circle.graphics.clear().beginFill("#000000").drawCircle(circle._slideshowX, 14, 4).endFill();
+                        circle.graphics.clear();
+                        circle.graphics.beginStroke("#000000");
+                        circle.graphics.beginFill("#000000");
+                        circle.graphics.drawCircle(circle._slideshowX, 14, 4);
+                        circle.graphics.endFill();
+                        circle.graphics.endStroke();
 
                         circle = slideshow.circles[prev];
-                        circle.graphics.clear().beginFill("#ffffff").drawCircle(circle._slideshowX, 14, 4).endFill();
+                        circle.graphics.clear();
+                        circle.graphics.beginStroke("#000000");
+                        circle.graphics.beginFill("#ffffff");
+                        circle.graphics.drawCircle(circle._slideshowX, 14, 4);
+                        circle.graphics.endFill();
+                        circle.graphics.endStroke();
+
                         stage.update(); 
                     };
                     this.circles[i].addEventListener("mouseover", showdate);
