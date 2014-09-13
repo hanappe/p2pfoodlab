@@ -164,16 +164,18 @@ int main(int argc, char **argv)
         if (box == NULL) 
                 exit(1);
 
-        if (sensorbox_lock(box) != 0) {
-                log_warn("Another process is already active. Exiting.");
-                delete_sensorbox(box);
-                exit(1);
-        } 
-
         if (_test) 
                 sensorbox_test_run(box);
 
         if (strcmp(command, "update") == 0) {
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
+
+                log_debug("Main: starting update ---------------------------------");
 
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
@@ -209,16 +211,40 @@ int main(int argc, char **argv)
                 sensorbox_poweroff_maybe(box);
 
                 //clock_update(box);
+                log_debug("Main: update finished ---------------------------------");
+
+                sensorbox_unlock(box);
+
 
         } else if (strcmp(command, "upload-data") == 0) {
+
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
+
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
                 sensorbox_upload_data(box);
 
+                sensorbox_unlock(box);
+
         } else if (strcmp(command, "upload-photos") == 0) {
+
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
+
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
                 sensorbox_upload_photos(box);
+
+                sensorbox_unlock(box);
 
         } else if (strcmp(command, "list-events") == 0) {
                 if (sensorbox_init(box) != 0)
@@ -226,6 +252,13 @@ int main(int argc, char **argv)
                 sensorbox_print_events(box);
 
         } else if (strcmp(command, "grab-image") == 0) {
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
+
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
                 if (_output_file == NULL) {
@@ -234,42 +267,103 @@ int main(int argc, char **argv)
                 }
                 sensorbox_grab_image(box, _output_file);
 
+                sensorbox_unlock(box);
+
         } else if (strcmp(command, "camera") == 0) {
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
+
                 time_t t;
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
                 if (sensorbox_get_time(box, &t) == 0)
                         sensorbox_update_camera(box, t);
 
+                sensorbox_unlock(box);
+
         } else if (strcmp(command, "store-data") == 0) {
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
+
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
                 sensorbox_store_sensor_data(box, _output_file);
 
+                sensorbox_unlock(box);
+
         } else if (strcmp(command, "update-clock") == 0) {
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
+
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
                 clock_update(box);
 
+                sensorbox_unlock(box);
+
         } else if (strcmp(command, "set-time") == 0) {
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
+
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
                 //clock_set(box);
                 time_t m = time(NULL);
                 sensorbox_set_time(box, m); 
 
+                sensorbox_unlock(box);
+
         } else if (strcmp(command, "get-time") == 0) {
                 time_t m;
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
+
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
                 int err = sensorbox_get_time(box, &m); 
                 if (!err) 
                         printf("%lu\n", (unsigned long) m);
+
+                sensorbox_unlock(box);
                 
         } else if (strcmp(command, "ifup") == 0) {
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
                 sensorbox_bring_network_up(box);
 
+                sensorbox_unlock(box);
+
         } else if (strcmp(command, "merge") == 0) {
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
                 if (optind < argc) {
                         const char* filename = argv[optind++];
                         sensorbox_merge_config(box, filename);
@@ -277,24 +371,42 @@ int main(int argc, char **argv)
                         usage(stderr, argc, argv);                        
                 }
 
+                sensorbox_unlock(box);
+
         } else if (strcmp(command, "osd") == 0) {
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
                 sensorbox_create_osd_definitions(box);
 
         } else if (strcmp(command, "measure") == 0) {
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
                 sensorbox_measure(box);
 
-        /* } else if (strcmp(command, "status") == 0) { */
-        /*         status_t status; */
-        /*         sensorbox_get_status(box, &status); */
+                sensorbox_unlock(box);
+
+                /* } else if (strcmp(command, "status") == 0) { */
+                /*         status_t status; */
+                /*         sensorbox_get_status(box, &status); */
 
         } else if (strcmp(command, "reset-stack") == 0) {
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
                 if (sensorbox_init(box) != 0)
                         goto error_recovery;
                 sensorbox_reset_stack(box);
+
+                sensorbox_unlock(box);
 
         } else if (strcmp(command, "config-get") == 0) {
                 if (optind < argc) {
@@ -313,14 +425,21 @@ int main(int argc, char **argv)
                 sensorbox_bring_network_up_maybe(box);                
 
         } else if (strcmp(command, "upload-status") == 0) {
+
+                if (sensorbox_lock(box) != 0) {
+                        log_warn("Another process is already active. Exiting.");
+                        delete_sensorbox(box);
+                        exit(1);
+                } 
                 sensorbox_upload_status(box);
+
+                sensorbox_unlock(box);
 
         } else {
                 usage(stderr, argc, argv);
         }
 
 
-        sensorbox_unlock(box);
         delete_sensorbox(box);
         exit(0);
 
