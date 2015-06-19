@@ -161,7 +161,11 @@ void sensorbox_init_time(sensorbox_t* box)
                 log_info("Sensorbox: Bringing up network to run NTP and using local system time"); 
                 sensorbox_bring_network_up_and_run_ntp(box);
         } else {
-                log_info("Sensorbox: Using Arduino's time.");
+                struct tm tm;
+                localtime_r(&t, &tm);
+                log_info("Sensorbox: Using Arduino's time (%04d%02d%02d-%02d%02d%02d).",
+                         1900 + tm.tm_year, 1 + tm.tm_mon, tm.tm_mday, 
+                         tm.tm_hour, tm.tm_min, tm.tm_sec);
         }
 }
 
@@ -253,6 +257,18 @@ static int sensorbox_load_sensors(sensorbox_t* box)
         box->sensors[SENSOR_SOIL_ID].flag = SENSOR_SOIL;
         box->sensors[SENSOR_SOIL_ID].name = "soil";
 
+        box->sensors[SENSOR_A0_ID].index = SENSOR_A0_ID;
+        box->sensors[SENSOR_A0_ID].flag = SENSOR_A0;
+        box->sensors[SENSOR_A0_ID].name = "a0";
+
+        box->sensors[SENSOR_A1_ID].index = SENSOR_A1_ID;
+        box->sensors[SENSOR_A1_ID].flag = SENSOR_A1;
+        box->sensors[SENSOR_A1_ID].name = "a1";
+
+        box->sensors[SENSOR_A2_ID].index = SENSOR_A2_ID;
+        box->sensors[SENSOR_A2_ID].flag = SENSOR_A2;
+        box->sensors[SENSOR_A2_ID].name = "a2";
+
         /* datastreams */
         box->datastreams[DATASTREAM_T].index = DATASTREAM_T;
         box->datastreams[DATASTREAM_T].sensor = SENSOR_TRH_ID;
@@ -289,6 +305,21 @@ static int sensorbox_load_sensors(sensorbox_t* box)
         box->datastreams[DATASTREAM_SOIL].name = "soil";
         box->datastreams[DATASTREAM_SOIL].unit = "RH%";
 
+        box->datastreams[DATASTREAM_A0].index = DATASTREAM_A0;
+        box->datastreams[DATASTREAM_A0].sensor = SENSOR_A0_ID;
+        box->datastreams[DATASTREAM_A0].name = "a0";
+        box->datastreams[DATASTREAM_A0].unit = "none";
+
+        box->datastreams[DATASTREAM_A1].index = DATASTREAM_A1;
+        box->datastreams[DATASTREAM_A1].sensor = SENSOR_A1_ID;
+        box->datastreams[DATASTREAM_A1].name = "a1";
+        box->datastreams[DATASTREAM_A1].unit = "none";
+
+        box->datastreams[DATASTREAM_A2].index = DATASTREAM_A2;
+        box->datastreams[DATASTREAM_A2].sensor = SENSOR_A2_ID;
+        box->datastreams[DATASTREAM_A2].name = "a2";
+        box->datastreams[DATASTREAM_A2].unit = "none";
+
         int err = config_get_sensors(box->config, 
                                      box->sensors, SENSOR_COUNT,
                                      &box->sensors_enabled, 
@@ -296,6 +327,8 @@ static int sensorbox_load_sensors(sensorbox_t* box)
         if (err != 0) 
                 return err;
 
+        // FIXME: make more generic instead of hardcoding list of sensors
+        
         if (box->sensors_enabled & SENSOR_TRH) {
                 box->sensors[SENSOR_TRH_ID].enabled = 1;
                 box->datastreams[DATASTREAM_T].enabled = 1;
@@ -343,6 +376,30 @@ static int sensorbox_load_sensors(sensorbox_t* box)
                 box->datastreams[DATASTREAM_USBBAT].osd_id = 
                         opensensordata_get_datastream_id(box->osd, 
                                                          box->datastreams[DATASTREAM_USBBAT].name);
+        }
+
+        if (box->sensors_enabled & SENSOR_A0) {
+                box->sensors[SENSOR_A0_ID].enabled = 1;
+                box->datastreams[DATASTREAM_A0].enabled = 1;
+                box->datastreams[DATASTREAM_A0].osd_id = 
+                        opensensordata_get_datastream_id(box->osd, 
+                                                         box->datastreams[DATASTREAM_A0].name);
+        }
+
+        if (box->sensors_enabled & SENSOR_A1) {
+                box->sensors[SENSOR_A1_ID].enabled = 1;
+                box->datastreams[DATASTREAM_A1].enabled = 1;
+                box->datastreams[DATASTREAM_A1].osd_id = 
+                        opensensordata_get_datastream_id(box->osd, 
+                                                         box->datastreams[DATASTREAM_A1].name);
+        }
+
+        if (box->sensors_enabled & SENSOR_A2) {
+                box->sensors[SENSOR_A2_ID].enabled = 1;
+                box->datastreams[DATASTREAM_A2].enabled = 1;
+                box->datastreams[DATASTREAM_A2].osd_id = 
+                        opensensordata_get_datastream_id(box->osd, 
+                                                         box->datastreams[DATASTREAM_A2].name);
         }
 
         /* photostream */

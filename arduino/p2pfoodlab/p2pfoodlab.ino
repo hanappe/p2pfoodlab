@@ -76,12 +76,16 @@
 #define PUMP_PIN                8
 #define SERIAL_RX_PIN           5
 #define SERIAL_TX_PIN           3
+#define A0_PIN                  A2
+#define A1_PIN                  A0
 
 #define SENSOR_TRH              (1 << 0)
 #define SENSOR_TRHX             (1 << 1)
 #define SENSOR_LUM              (1 << 2)
 #define SENSOR_USBBAT           (1 << 3)
 #define SENSOR_SOIL             (1 << 4)
+#define SENSOR_A0               (1 << 5)
+#define SENSOR_A1               (1 << 6)
 
 #define DEFAULT_SLEEP           20000
 
@@ -526,18 +530,19 @@ static short get_level_usb_batttery()
         return v;
 }
 
-static short _luminosity = 0;
+static short _analog[2] = { 0, 0 };
+static short _analog_pin[2] = { A0_PIN, A1_PIN };
 
-static short _get_luminosity()
+static short _get_analog(int index)
 {
         int i, a;
         for (i = 0; i < 5; i++) {
-                a = analogRead(LUMINOSITY_PIN);
+                a = analogRead(_analog_pin[index]);
                 delay(100);
         }
         int v = 0;
         for (i = 0; i < 4; i++) {
-                a = analogRead(LUMINOSITY_PIN);
+                a = analogRead(_analog_pin[index]);
                 v += a;
                 delay(10);
         }
@@ -545,20 +550,25 @@ static short _get_luminosity()
         return r;
 }
 
-static void update_luminosity()
+static void update_analog(int index)
 {
         float alpha = 0.9f;
-        float y = (float) _luminosity;
-        float x = (float) _get_luminosity();
+        float y = (float) _analog[index];
+        float x = (float) _get_analog(index);
         y = (x + alpha * y) / (1.0f + alpha);
-        _luminosity = (short) (y + 0.5f);
+        _analog[index] = (short) (y + 0.5f);
+}
+
+static short get_analog(int index)
+{
+        short v = _analog[index];
+        _analog[index] = 0;
+        return v;
 }
 
 static short get_luminosity()
 {
-        short v = _luminosity;
-        _luminosity = 0;
-        return v;
+        get_analog(0);
 }
 
 static short get_soilhumidity()
@@ -587,6 +597,12 @@ static void update_sensors()
 {  
         if (state.sensors & SENSOR_LUM)
                 update_luminosity(); 
+
+        if (state.sensors & SENSOR_A0)
+                update_analog(0); 
+
+        if (state.sensors & SENSOR_A1)
+                update_analog(1); 
 
         if (state.sensors & SENSOR_USBBAT)
                 update_level_usb_batttery(); 
